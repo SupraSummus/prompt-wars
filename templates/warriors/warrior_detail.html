@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <main class="container">
+    <h1>{{ object }}</h1>
+    <dl>
+      <dt>Created at</dt>
+      <dd>{{ object.created_at }}</dd>
+      <dt>Name</dt>
+      <dd>{{ object.name }}</dd>
+      <dt>Author</dt>
+      <dd>{{ object.author }}</dd>
+      <dt>Elo rating</dt>
+      <dd>{{ object.elo }}</dd>
+    </dl>
+  </main>
+{% endblock %}
