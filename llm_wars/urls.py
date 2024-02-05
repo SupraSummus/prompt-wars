@@ -19,6 +19,7 @@ from django.urls import path
 
 from warriors.views import WarriorCreateView, WarriorDetailView
 
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('', WarriorCreateView.as_view(), name='warrior_create'),

@@ -16,16 +16,12 @@ class ReadOnlyModelAdminMixin:
 
 @admin.register(Warrior)
 class WarriorAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
-    list_display = ('name', 'elo', 'created_at')
+    list_display = ('name', 'rating', 'created_at')
     search_fields = ('name', 'author')
     date_hierarchy = 'created_at'
-    list_filter = ('created_at',)
-    ordering = ('-elo', 'created_at')
 
 
 @admin.register(Battle)
 class BattleAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
-    list_display = ('warrior_1', 'warrior_2', 'created_at')
-    date_hierarchy = 'created_at'
-    list_filter = ('created_at',)
-    ordering = ('-created_at',)
+    list_display = ('warrior_1', 'warrior_2', 'scheduled_at')
+    date_hierarchy = 'scheduled_at'

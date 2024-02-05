@@ -32,6 +32,13 @@ ignore = [
     "E501",  # line too long
 ]
 
+[tool.isort]
+skip_gitignore = true
+lines_after_imports = 2
+# 5 = Hanging Grid Grouped
+multi_line_output = 5
+include_trailing_comma = true
+
 [tool.pylint.format]
 recursive = "yes"
 errors-only = "yes"
@@ -41,6 +48,12 @@ load-plugins = [
 
 [tool.pylint.pylint_django]
 django-settings-module = "llm_wars.settings"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "llm_wars.settings"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+FAIL_INVALID_TEMPLATE_VARS = true
+addopts = "--reuse-db"
 
 [tool.black]
 skip-string-normalization = true

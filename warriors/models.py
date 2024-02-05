@@ -1,11 +1,15 @@
 import hashlib
+import math
 import uuid
 
-import openai
-from django.conf import settings
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+
+from .lcs import lcs_len
+
+
+MAX_WARRIOR_LENGTH = 1000
 
 
 class Warrior(models.Model):
@@ -15,8 +19,7 @@ class Warrior(models.Model):
         editable=False
     )
     body = models.TextField(
-        max_length=1000,
-        blank=True,
+        max_length=MAX_WARRIOR_LENGTH,
     )
     body_sha_256 = models.BinaryField(
         max_length=32,
@@ -33,13 +36,13 @@ class Warrior(models.Model):
         max_length=100,
         blank=True,
     )
-    elo = models.FloatField(
+    rating = models.FloatField(
         default=0.0,
         db_index=True,
     )
 
     class Meta:
-        ordering = ('-elo',)
+        ordering = ('-rating',)
 
     def __str__(self):
         return self.name or str(self.id)
@@ -58,7 +61,7 @@ class Battle(models.Model):
         default=uuid.uuid4,
         editable=False
     )
-    created_at = models.DateTimeField(
+    scheduled_at = models.DateTimeField(
         default=timezone.now,
     )
     warrior_1 = models.ForeignKey(
@@ -66,53 +69,47 @@ class Battle(models.Model):
         related_name='warrior1',
         on_delete=models.CASCADE,
     )
+    warrior_1_rating = models.FloatField()
     warrior_2 = models.ForeignKey(
         to=Warrior,
         related_name='warrior2',
         on_delete=models.CASCADE,
     )
-    result_1_2 = models.TextField(
-        max_length=1000,
-        blank=True,
-    )
-    result_2_1 = models.TextField(
-        max_length=1000,
+    warrior_2_rating = models.FloatField()
+
+    result = models.TextField(
+        max_length=MAX_WARRIOR_LENGTH,
+        null=True,
         blank=True,
     )
     llm_version = models.CharField(
         max_length=100,
+        null=True,
+        blank=True,
+    )
+    resolved_at = models.DateTimeField(
+        null=True,
+        blank=True,
     )
 
     class Meta:
-        ordering = ('-created_at',)
+        ordering = ('-scheduled_at',)
 
+    @property
+    def rating_gained(self):
+        """
+        Rating points transfered from warrior 2 to warrior 1
+        """
+        expected_score = 1 / (1 + math.exp(self.warrior_2_rating - self.warrior_1_rating))
+        K = 1 / 16
+        return K * (self.score - expected_score)
 
-openai_client = openai.Client(
-    api_key=settings.OPENAI_API_KEY,
-)
-
-
-def perform_battle(warrior_1, warrior_2, save=True, now=None):
-    if now is None:
-        now = timezone.now()
-    prompt = warrior_1.body + warrior_2.body
-    model = 'gpt-3.5-turbo'
-    response = openai_client.chat.completions.create(
-        messages=[
-            {'role': 'user', 'message': prompt},
-        ],
-        model='gpt-3.5-turbo',
-        temperature=0,
-        max_tokens=1000,
-    )
-    (resp_choice,) = response.choices
-    battle = Battle(
-        warrior_1=warrior_1,
-        warrior_2=warrior_2,
-        result_1_2=resp_choice.message,
-        llm_version=model + '/' + resp_choice.fingerprint,
-        created_at=now,
-    )
-    if save:
-        battle.save()
-    return battle
+    @property
+    def score(self):
+        """
+        Score of warrior 1
+        Score of warrior 2 is `1 - score`
+        """
+        s1 = lcs_len(self.warrior_1.body, self.result) / len(self.warrior_1.body)
+        s2 = lcs_len(self.warrior_2.body, self.result) / len(self.warrior_2.body)
+        return s1 / (s1 + s2)
