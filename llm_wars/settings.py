@@ -135,4 +135,10 @@ SILENCED_SYSTEM_CHECKS.append('django_recaptcha.recaptcha_test_key_error')
 # Django Q
 Q_CLUSTER = {
     'orm': 'default',
+
+    # task is killed when no result in set time
+    'timeout': 30,
+    # task is tried again when there is no result in set time
+    'retry': 60,
+    'workers': env.int('DJANGO_Q_WORKERS', default=4),
 }
