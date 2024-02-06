@@ -23,7 +23,7 @@ def resolve_battle(battle_id, direction):
     model = 'gpt-3.5-turbo'
     response = openai_client.chat.completions.create(
         messages=[
-            {'role': 'user', 'message': prompt},
+            {'role': 'user', 'content': prompt},
         ],
         model='gpt-3.5-turbo',
         temperature=0,
@@ -34,8 +34,8 @@ def resolve_battle(battle_id, direction):
         max_tokens=MAX_WARRIOR_LENGTH,
     )
     (resp_choice,) = response.choices
-    battle_view.result = resp_choice.message[:MAX_WARRIOR_LENGTH]
-    battle_view.llm_version = model + '/' + resp_choice.fingerprint
+    battle_view.result = resp_choice.message.content[:MAX_WARRIOR_LENGTH]
+    battle_view.llm_version = model + '/' + (response.system_fingerprint or '')
 
     battle_view.resolved_at = now
     battle_view.save(update_fields=[
@@ -47,12 +47,14 @@ def resolve_battle(battle_id, direction):
 
 @transaction.atomic
 def transfer_rating(battle_id):
-    battle = Battle.object.filter(id=battle_id).select_related(
+    battle = Battle.objects.filter(id=battle_id).select_related(
         'warrior_1',
         'warrior_2',
     ).select_for_update(no_key=True).get()
     assert battle.rating_transferred_at is None
-    Battle.object.filter(id=battle_id).update(
+    assert battle.resolved_at_1_2 is not None
+    assert battle.resolved_at_2_1 is not None
+    Battle.objects.filter(id=battle_id).update(
         rating_transferred_at=TransactionNow(),
     )
     rating_gained = battle.rating_gained

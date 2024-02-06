@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     'django_recaptcha',
+    'django_q',
     'warriors',
 ]
 
@@ -129,3 +130,9 @@ OPENAI_API_KEY = env.str('OPENAI_API_KEY', default='')
 RECAPTCHA_PUBLIC_KEY = env.str('RECAPTCHA_SITE_KEY', '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI')
 RECAPTCHA_PRIVATE_KEY = env.str('RECAPTCHA_SECRET_KEY', '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe')
 SILENCED_SYSTEM_CHECKS.append('django_recaptcha.recaptcha_test_key_error')
+
+
+# Django Q
+Q_CLUSTER = {
+    'orm': 'default',
+}

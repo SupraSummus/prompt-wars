@@ -4,6 +4,7 @@ import math
 import uuid
 from functools import partial
 
+import django_q
 from django.contrib.postgres.functions import TransactionNow
 from django.db import models, transaction
 from django.urls import reverse
@@ -67,17 +68,6 @@ class Warrior(models.Model):
         if opponent is None:
             return None
         battle = Battle.from_warriors(self, opponent)
-
-        from .tasks import resolve_battle, transfer_rating
-        transaction.on_commit(partial(
-            async_chain,
-            [
-                (resolve_battle, battle.id, '1_2'),
-                (resolve_battle, battle.id, '2_1'),
-                (transfer_rating, battle.id),
-            ],
-        ))
-
         self.update_next_battle_schedule(now)
         opponent.update_next_battle_schedule(now)
         return battle
@@ -188,13 +178,27 @@ class Battle(models.Model):
     def from_warriors(cls, warrior_1, warrior_2):
         if warrior_1.id > warrior_2.id:
             warrior_1, warrior_2 = warrior_2, warrior_1
-        return cls.objects.create(
+        battle = cls.objects.create(
             warrior_1=warrior_1,
             warrior_1_rating=warrior_1.rating,
             warrior_2=warrior_2,
             warrior_2_rating=warrior_2.rating,
             scheduled_at=TransactionNow(),
         )
+
+        from .tasks import resolve_battle, transfer_rating
+        transaction.on_commit(partial(
+            async_chain,
+            [
+                (resolve_battle, (battle.id, '1_2')),
+                (resolve_battle, (battle.id, '2_1')),
+                (transfer_rating, (battle.id,)),
+            ],
+            # by default it uses sync=False in non-configurable manner
+            sync=django_q.conf.Conf.SYNC,
+        ))
+
+        return battle
 
     @property
     def rating_gained(self):
@@ -227,21 +231,37 @@ class BattleRelativeView:
         return self.battle.warrior_1 if self.direction == '1_2' else self.battle.warrior_2
 
     @property
+    def warrior_1_rating(self):
+        return self.battle.warrior_1_rating if self.direction == '1_2' else self.battle.warrior_2_rating
+
+    @property
     def warrior_2(self):
         return self.battle.warrior_2 if self.direction == '1_2' else self.battle.warrior_1
 
+    @property
+    def warrior_2_rating(self):
+        return self.battle.warrior_2_rating if self.direction == '1_2' else self.battle.warrior_1_rating
+
     def __getattr__(self, field_name):
-        return getattr(
-            self.battle,
-            self.map_field_name(field_name),
-        )
+        mapped_name = self.map_field_name(field_name)
+        if mapped_name is not None:
+            return getattr(
+                self.battle,
+                self.map_field_name(field_name),
+            )
+        else:
+            return super().__getattribute__(field_name)
 
     def __setattr__(self, field_name, value):
-        return setattr(
-            self.battle,
-            self.map_field_name(field_name),
-            value,
-        )
+        mapped_name = self.map_field_name(field_name)
+        if mapped_name is not None:
+            setattr(
+                self.battle,
+                self.map_field_name(field_name),
+                value,
+            )
+        else:
+            super().__setattr__(field_name, value)
 
     def save(self, update_fields):
         self.battle.save(update_fields=[
@@ -249,12 +269,13 @@ class BattleRelativeView:
         ])
 
     def map_field_name(self, field_name):
-        assert field_name in (
+        if field_name in (
             'result',
             'llm_version',
             'resolved_at',
-        )
-        return f'{field_name}_{self.direction}'
+        ):
+            return f'{field_name}_{self.direction}'
+        return None
 
     @property
     def rating_gained(self):
