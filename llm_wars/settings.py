@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 
 import environ
+import sentry_sdk
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -142,3 +143,10 @@ Q_CLUSTER = {
     'retry': 60,
     'workers': env.int('DJANGO_Q_WORKERS', default=4),
 }
+
+if SENTRY_DSN := env.str('SENTRY_DSN', default=''):
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        traces_sample_rate=0.01,
+        profiles_sample_rate=0.01,
+    )
