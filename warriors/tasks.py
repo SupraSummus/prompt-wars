@@ -71,8 +71,14 @@ def schedule_battles(n=10, now=None):
     warriors = Warrior.objects.filter(
         next_battle_schedule__lte=now,
     ).order_by('next_battle_schedule').select_for_update(
-        now_key=True,
+        no_key=True,
         skip_locked=True,
     )[:n]
+    exclude_warriors = set()
     for warrior in warriors:
-        warrior.schedule_battle(now=now)
+        if warrior.id in exclude_warriors:
+            continue
+        battle = warrior.schedule_battle(now=now)
+        if battle is not None:
+            exclude_warriors.add(battle.warrior_1.id)
+            exclude_warriors.add(battle.warrior_2.id)

@@ -46,7 +46,7 @@ class Warrior(models.Model):
     )
     next_battle_schedule = models.DateTimeField(
         db_index=None,
-        default=None,
+        default=timezone.now,
     )
 
     class Meta:
@@ -62,8 +62,8 @@ class Warrior(models.Model):
     def get_absolute_url(self):
         return reverse('warrior_detail', args=[str(self.id)])
 
-    def schedule_battle(self, now):
-        opponent = self.find_opponent()
+    def schedule_battle(self, now, **kwargs):
+        opponent = self.find_opponent(**kwargs)
         if opponent is None:
             return None
         battle = Battle.from_warriors(self, opponent)
@@ -82,20 +82,38 @@ class Warrior(models.Model):
         opponent.update_next_battle_schedule(now)
         return battle
 
-    def find_opponent(self, rating_range=10):
-        top_rating = Warrior.objects.filter(
-            rating__gt=self.rating,
-        ).order_by('rating')[:rating_range].max()
-        bottom_rating = Warrior.objects.filter(
-            rating__lt=self.rating,
-        ).order_by('-rating')[:rating_range].min()
-        return Warrior.objects.filter(
-            rating__lte=top_rating,
-            rating__gte=bottom_rating,
-        ).order_by('?').select_for_update(
+    def find_opponent(self, **kwargs):
+        return self.find_opponents(**kwargs).order_by('?').select_for_update(
             no_key=True,
             skip_locked=True,
         ).first()
+
+    def find_opponents(self, rating_range=10, exclude_warriors=None):
+        if exclude_warriors is None:
+            exclude_warriors = [self.id]
+        top_rating = Warrior.objects.filter(
+            rating__gt=self.rating,
+        ).order_by('rating')[:rating_range].aggregate(
+            models.Max('rating'),
+        )['rating__max']
+        bottom_rating = Warrior.objects.filter(
+            rating__lt=self.rating,
+        ).order_by('-rating')[:rating_range].aggregate(
+            models.Min('rating'),
+        )['rating__min']
+
+        # top and bottom rating can be none if there are no warriors at either side
+        if top_rating is None:
+            top_rating = self.rating
+        if bottom_rating is None:
+            bottom_rating = self.rating
+
+        return Warrior.objects.filter(
+            rating__lte=top_rating,
+            rating__gte=bottom_rating,
+        ).exclude(
+            id__in=exclude_warriors,
+        )
 
     def update_next_battle_schedule(self, now):
         self.next_battle_schedule = now + datetime.timedelta(days=1)
@@ -160,7 +178,7 @@ class Battle(models.Model):
         constraints = [
             models.CheckConstraint(
                 check=models.Q(
-                    warrior_1_id__lte=models.F('warrior_2_id'),
+                    warrior_1_id__lt=models.F('warrior_2_id'),
                 ),
                 name='warrior_ordering',
             ),
