@@ -47,7 +47,10 @@ def resolve_battle(battle_id, direction):
 
 @transaction.atomic
 def transfer_rating(battle_id):
-    battle = Battle.object.get(id=battle_id)
+    battle = Battle.object.filter(id=battle_id).select_related(
+        'warrior_1',
+        'warrior_2',
+    ).select_for_update(no_key=True).get()
     assert battle.rating_transferred_at is None
     Battle.object.filter(id=battle_id).update(
         rating_transferred_at=TransactionNow(),
@@ -59,3 +62,17 @@ def transfer_rating(battle_id):
     Warrior.objects.filter(id=battle.warrior_2_id).update(
         rating=F('rating') - rating_gained,
     )
+
+
+@transaction.atomic
+def schedule_battles(n=10, now=None):
+    if now is None:
+        now = timezone.now()
+    warriors = Warrior.objects.filter(
+        next_battle_schedule__lte=now,
+    ).order_by('next_battle_schedule').select_for_update(
+        now_key=True,
+        skip_locked=True,
+    )[:n]
+    for warrior in warriors:
+        warrior.schedule_battle(now=now)

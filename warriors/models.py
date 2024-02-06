@@ -1,10 +1,14 @@
+import datetime
 import hashlib
 import math
 import uuid
+from functools import partial
 
-from django.db import models
+from django.contrib.postgres.functions import TransactionNow
+from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
+from django_q.tasks import async_chain
 
 from .lcs import lcs_len
 
@@ -57,6 +61,45 @@ class Warrior(models.Model):
 
     def get_absolute_url(self):
         return reverse('warrior_detail', args=[str(self.id)])
+
+    def schedule_battle(self, now):
+        opponent = self.find_opponent()
+        if opponent is None:
+            return None
+        battle = Battle.from_warriors(self, opponent)
+
+        from .tasks import resolve_battle, transfer_rating
+        transaction.on_commit(partial(
+            async_chain,
+            [
+                (resolve_battle, battle.id, '1_2'),
+                (resolve_battle, battle.id, '2_1'),
+                (transfer_rating, battle.id),
+            ],
+        ))
+
+        self.update_next_battle_schedule(now)
+        opponent.update_next_battle_schedule(now)
+        return battle
+
+    def find_opponent(self, rating_range=10):
+        top_rating = Warrior.objects.filter(
+            rating__gt=self.rating,
+        ).order_by('rating')[:rating_range].max()
+        bottom_rating = Warrior.objects.filter(
+            rating__lt=self.rating,
+        ).order_by('-rating')[:rating_range].min()
+        return Warrior.objects.filter(
+            rating__lte=top_rating,
+            rating__gte=bottom_rating,
+        ).order_by('?').select_for_update(
+            no_key=True,
+            skip_locked=True,
+        ).first()
+
+    def update_next_battle_schedule(self, now):
+        self.next_battle_schedule = now + datetime.timedelta(days=1)
+        self.save(update_fields=['next_battle_schedule'])
 
 
 class Battle(models.Model):
@@ -114,6 +157,26 @@ class Battle(models.Model):
 
     class Meta:
         ordering = ('-scheduled_at',)
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(
+                    warrior_1_id__lte=models.F('warrior_2_id'),
+                ),
+                name='warrior_ordering',
+            ),
+        ]
+
+    @classmethod
+    def from_warriors(cls, warrior_1, warrior_2):
+        if warrior_1.id > warrior_2.id:
+            warrior_1, warrior_2 = warrior_2, warrior_1
+        return cls.objects.create(
+            warrior_1=warrior_1,
+            warrior_1_rating=warrior_1.rating,
+            warrior_2=warrior_2,
+            warrior_2_rating=warrior_2.rating,
+            scheduled_at=TransactionNow(),
+        )
 
     @property
     def rating_gained(self):
@@ -190,6 +253,12 @@ class BattleRelativeView:
         Score of warrior 1
         Score of warrior 2 is `1 - score`
         '''
-        s1 = lcs_len(self.warrior_1.body, self.result) / len(self.warrior_1.body)
-        s2 = lcs_len(self.warrior_2.body, self.result) / len(self.warrior_2.body)
+        s1 = lcs_len(self.warrior_1.body, self.result) / max(
+            len(self.warrior_1.body),
+            len(self.result),
+        )
+        s2 = lcs_len(self.warrior_2.body, self.result) / max(
+            len(self.warrior_2.body),
+            len(self.result),
+        )
         return s1 / (s1 + s2)
