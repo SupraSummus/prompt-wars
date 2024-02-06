@@ -1,10 +1,11 @@
 import openai
 from django.conf import settings
+from django.contrib.postgres.functions import TransactionNow
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
-from .models import MAX_WARRIOR_LENGTH, Battle, Warrior
+from .models import MAX_WARRIOR_LENGTH, Battle, BattleRelativeView, Warrior
 
 
 openai_client = openai.Client(
@@ -12,9 +13,11 @@ openai_client = openai.Client(
 )
 
 
-def resolve_battle(battle_id):
+def resolve_battle(battle_id, direction):
     now = timezone.now()
     battle = Battle.objects.get(id=battle_id)
+    battle_view = BattleRelativeView(battle, direction)
+    assert battle_view.resolved_at is None
 
     prompt = battle.warrior_1.body + battle.warrior_2.body
     model = 'gpt-3.5-turbo'
@@ -31,21 +34,28 @@ def resolve_battle(battle_id):
         max_tokens=MAX_WARRIOR_LENGTH,
     )
     (resp_choice,) = response.choices
-    battle.result = resp_choice.message[:MAX_WARRIOR_LENGTH]
-    battle.llm_version = model + '/' + resp_choice.fingerprint
+    battle_view.result = resp_choice.message[:MAX_WARRIOR_LENGTH]
+    battle_view.llm_version = model + '/' + resp_choice.fingerprint
 
-    battle.resolved_at = now
-    battle.save(update_fields=[
+    battle_view.resolved_at = now
+    battle_view.save(update_fields=[
         'result',
         'llm_version',
         'resolved_at',
     ])
 
-    rating_transfer = battle.rating_transfer
-    with transaction.atomic():
-        Warrior.objects.filter(id=battle.warrior_1_id).update(
-            rating=F('rating') + rating_transfer,
-        )
-        Warrior.objects.filter(id=battle.warrior_2_id).update(
-            rating=F('rating') - rating_transfer,
-        )
+
+@transaction.atomic
+def transfer_rating(battle_id):
+    battle = Battle.object.get(id=battle_id)
+    assert battle.rating_transferred_at is None
+    Battle.object.filter(id=battle_id).update(
+        rating_transferred_at=TransactionNow(),
+    )
+    rating_gained = battle.rating_gained
+    Warrior.objects.filter(id=battle.warrior_1_id).update(
+        rating=F('rating') + rating_gained,
+    )
+    Warrior.objects.filter(id=battle.warrior_2_id).update(
+        rating=F('rating') - rating_gained,
+    )

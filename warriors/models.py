@@ -37,8 +37,12 @@ class Warrior(models.Model):
         blank=True,
     )
     rating = models.FloatField(
-        default=0.0,
         db_index=True,
+        default=0.0,
+    )
+    next_battle_schedule = models.DateTimeField(
+        db_index=None,
+        default=None,
     )
 
     class Meta:
@@ -77,17 +81,33 @@ class Battle(models.Model):
     )
     warrior_2_rating = models.FloatField()
 
-    result = models.TextField(
+    result_1_2 = models.TextField(
         max_length=MAX_WARRIOR_LENGTH,
-        null=True,
         blank=True,
     )
-    llm_version = models.CharField(
+    llm_version_1_2 = models.CharField(
         max_length=100,
+        blank=True,
+    )
+    resolved_at_1_2 = models.DateTimeField(
         null=True,
         blank=True,
     )
-    resolved_at = models.DateTimeField(
+
+    result_2_1 = models.TextField(
+        max_length=MAX_WARRIOR_LENGTH,
+        blank=True,
+    )
+    llm_version_2_1 = models.CharField(
+        max_length=100,
+        blank=True,
+    )
+    resolved_at_2_1 = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    rating_transferred_at = models.DateTimeField(
         null=True,
         blank=True,
     )
@@ -97,19 +117,79 @@ class Battle(models.Model):
 
     @property
     def rating_gained(self):
-        """
+        '''
         Rating points transfered from warrior 2 to warrior 1
-        """
+        '''
+        return self.view_1.rating_gained - self.view_2.rating_gained
+
+    @property
+    def view_1(self):
+        return BattleRelativeView(self, '1_2')
+
+    @property
+    def view_2(self):
+        return BattleRelativeView(self, '2_1')
+
+
+class BattleRelativeView:
+    def __init__(self, battle, direction):
+        '''
+        :param battle: Battle
+        :param direction: str '1_2' or '2_1'
+        '''
+        assert direction in ('1_2', '2_1')
+        self.battle = battle
+        self.direction = direction
+
+    @property
+    def warrior_1(self):
+        return self.battle.warrior_1 if self.direction == '1_2' else self.battle.warrior_2
+
+    @property
+    def warrior_2(self):
+        return self.battle.warrior_2 if self.direction == '1_2' else self.battle.warrior_1
+
+    def __getattr__(self, field_name):
+        return getattr(
+            self.battle,
+            self.map_field_name(field_name),
+        )
+
+    def __setattr__(self, field_name, value):
+        return setattr(
+            self.battle,
+            self.map_field_name(field_name),
+            value,
+        )
+
+    def save(self, update_fields):
+        self.battle.save(update_fields=[
+            self.map_field_name(f) for f in update_fields
+        ])
+
+    def map_field_name(self, field_name):
+        assert field_name in (
+            'result',
+            'llm_version',
+            'resolved_at',
+        )
+        return f'{field_name}_{self.direction}'
+
+    @property
+    def rating_gained(self):
+        '''
+        Rating points transfered from warrior 2 to warrior 1
+        '''
         expected_score = 1 / (1 + math.exp(self.warrior_2_rating - self.warrior_1_rating))
         K = 1 / 16
         return K * (self.score - expected_score)
 
     @property
     def score(self):
-        """
+        '''
         Score of warrior 1
         Score of warrior 2 is `1 - score`
-        """
+        '''
         s1 = lcs_len(self.warrior_1.body, self.result) / len(self.warrior_1.body)
         s2 = lcs_len(self.warrior_2.body, self.result) / len(self.warrior_2.body)
         return s1 / (s1 + s2)
