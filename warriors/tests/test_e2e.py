@@ -19,7 +19,8 @@ def test_battle_from_warriors_e2e(monkeypatch, warrior):
     completion_mock.message.content = 'Some result'
     completions_mock = mock.MagicMock()
     completions_mock.choices = [completion_mock]
-    completions_mock.system_fingerprint = 'copy this to the output'
+    completions_mock.model = 'gpt-3.5'
+    completions_mock.system_fingerprint = '1234'
     create_mock = mock.Mock(return_value=completions_mock)
     monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
 

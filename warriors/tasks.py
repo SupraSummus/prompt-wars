@@ -13,6 +13,20 @@ openai_client = openai.Client(
 )
 
 
+def do_moderation(warrior_id):
+    warrior = Warrior.objects.get(id=warrior_id)
+    assert warrior.moderation_date is None
+    moderation_results = openai_client.moderations.create(
+        input=warrior.body,
+    )
+    (result,) = moderation_results.results
+    Warrior.objects.filter(id=warrior_id).update(
+        moderation_flagged=result.flagged,
+        moderation_model=moderation_results.model,
+        moderation_date=timezone.now(),
+    )
+
+
 def resolve_battle(battle_id, direction):
     now = timezone.now()
     battle = Battle.objects.get(id=battle_id)
@@ -20,7 +34,6 @@ def resolve_battle(battle_id, direction):
     assert battle_view.resolved_at is None
 
     prompt = battle.warrior_1.body + battle.warrior_2.body
-    model = 'gpt-3.5-turbo'
     response = openai_client.chat.completions.create(
         messages=[
             {'role': 'user', 'content': prompt},
@@ -35,7 +48,7 @@ def resolve_battle(battle_id, direction):
     )
     (resp_choice,) = response.choices
     battle_view.result = resp_choice.message.content[:MAX_WARRIOR_LENGTH]
-    battle_view.llm_version = model + '/' + (response.system_fingerprint or '')
+    battle_view.llm_version = response.model + '/' + (response.system_fingerprint or '')
 
     battle_view.resolved_at = now
     battle_view.save(update_fields=[
@@ -60,9 +73,11 @@ def transfer_rating(battle_id):
     rating_gained = battle.rating_gained
     Warrior.objects.filter(id=battle.warrior_1_id).update(
         rating=F('rating') + rating_gained,
+        games_played=F('games_played') + 1,
     )
     Warrior.objects.filter(id=battle.warrior_2_id).update(
         rating=F('rating') - rating_gained,
+        games_played=F('games_played') + 1,
     )
 
 

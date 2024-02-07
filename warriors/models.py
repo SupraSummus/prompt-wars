@@ -1,5 +1,4 @@
 import datetime
-import hashlib
 import math
 import uuid
 from functools import partial
@@ -41,24 +40,44 @@ class Warrior(models.Model):
         max_length=100,
         blank=True,
     )
+
     rating = models.FloatField(
         db_index=True,
         default=0.0,
     )
+    games_played = models.PositiveIntegerField(
+        default=0,
+    )
+
+    moderation_date = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+    moderation_flagged = models.BooleanField(
+        default=False,
+    )
+    moderation_model = models.CharField(
+        max_length=100,
+        blank=True,
+    )
+
     next_battle_schedule = models.DateTimeField(
-        db_index=None,
-        default=timezone.now,
+        null=True,
+        blank=True,
     )
 
     class Meta:
         ordering = ('-rating',)
+        indexes = [
+            models.Index(
+                fields=['next_battle_schedule'],
+                condition=models.Q(next_battle_schedule__isnull=False),
+                name='next_battle_schedule_index',
+            ),
+        ]
 
     def __str__(self):
         return self.name or str(self.id)
-
-    def save(self, *args, **kwargs):
-        self.body_sha_256 = hashlib.sha256(self.body.encode('utf-8')).digest()
-        super().save(*args, **kwargs)
 
     def get_absolute_url(self):
         return reverse('warrior_detail', args=[str(self.id)])
