@@ -2,7 +2,6 @@ import openai
 from django.conf import settings
 from django.contrib.postgres.functions import TransactionNow
 from django.db import transaction
-from django.db.models import F
 from django.utils import timezone
 
 from .models import MAX_WARRIOR_LENGTH, Battle, BattleRelativeView, Warrior
@@ -78,13 +77,19 @@ def transfer_rating(battle_id):
     ])
 
     rating_gained = battle.rating_gained
-    Warrior.objects.filter(id=battle.warrior_1_id).update(
-        rating=F('rating') + rating_gained,
-        games_played=F('games_played') + 1,
-    )
-    Warrior.objects.filter(id=battle.warrior_2_id).update(
-        rating=F('rating') - rating_gained,
-        games_played=F('games_played') + 1,
+    battle.warrior_1.rating += rating_gained
+    battle.warrior_2.rating -= rating_gained
+    battle.warrior_1.games_played += 1
+    battle.warrior_2.games_played += 1
+    battle.warrior_1.next_battle_schedule = TransactionNow() + battle.warrior_1.get_next_battle_delay()
+    battle.warrior_2.next_battle_schedule = TransactionNow() + battle.warrior_2.get_next_battle_delay()
+    Warrior.objects.bulk_update(
+        [battle.warrior_1, battle.warrior_2],
+        [
+            'rating',
+            'games_played',
+            'next_battle_schedule',
+        ],
     )
 
 

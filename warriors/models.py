@@ -91,8 +91,12 @@ class Warrior(models.Model):
         if opponent is None:
             return None
         battle = Battle.from_warriors(self, opponent)
-        self.update_next_battle_schedule(now)
-        opponent.update_next_battle_schedule(now)
+        self.next_battle_schedule = None
+        opponent.next_battle_schedule = None
+        Warrior.objects.bulk_update(
+            [self, opponent],
+            ['next_battle_schedule'],
+        )
         return battle
 
     def find_opponent(self, **kwargs):
@@ -131,9 +135,13 @@ class Warrior(models.Model):
             id__in=exclude_warriors,
         )
 
-    def update_next_battle_schedule(self, now):
-        self.next_battle_schedule = now + datetime.timedelta(days=1)
-        self.save(update_fields=['next_battle_schedule'])
+    def get_next_battle_delay(self):
+        n = self.games_played - 1
+        if n < 0:
+            return datetime.timedelta()
+        return datetime.timedelta(
+            minutes=2 ** n,
+        )
 
 
 class Battle(models.Model):
