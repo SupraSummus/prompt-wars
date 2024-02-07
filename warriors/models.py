@@ -42,7 +42,6 @@ class Warrior(models.Model):
     )
 
     rating = models.FloatField(
-        db_index=True,
         default=0.0,
     )
     games_played = models.PositiveIntegerField(
@@ -54,7 +53,7 @@ class Warrior(models.Model):
         blank=True,
     )
     moderation_flagged = models.BooleanField(
-        default=False,
+        null=True,
     )
     moderation_model = models.CharField(
         max_length=100,
@@ -67,12 +66,17 @@ class Warrior(models.Model):
     )
 
     class Meta:
-        ordering = ('-rating',)
+        ordering = ('id',)
         indexes = [
             models.Index(
+                fields=['rating'],
+                name='rating_index',
+                condition=models.Q(moderation_flagged=False),
+            ),
+            models.Index(
                 fields=['next_battle_schedule'],
-                condition=models.Q(next_battle_schedule__isnull=False),
                 name='next_battle_schedule_index',
+                condition=models.Q(next_battle_schedule__isnull=False),
             ),
         ]
 
@@ -100,12 +104,15 @@ class Warrior(models.Model):
     def find_opponents(self, rating_range=10, exclude_warriors=None):
         if exclude_warriors is None:
             exclude_warriors = [self.id]
-        top_rating = Warrior.objects.filter(
+        battle_worthy_qs = Warrior.objects.filter(
+            moderation_flagged=False,
+        )
+        top_rating = battle_worthy_qs.filter(
             rating__gt=self.rating,
         ).order_by('rating')[:rating_range].aggregate(
             models.Max('rating'),
         )['rating__max']
-        bottom_rating = Warrior.objects.filter(
+        bottom_rating = battle_worthy_qs.filter(
             rating__lt=self.rating,
         ).order_by('-rating')[:rating_range].aggregate(
             models.Min('rating'),
@@ -117,7 +124,7 @@ class Warrior(models.Model):
         if bottom_rating is None:
             bottom_rating = self.rating
 
-        return Warrior.objects.filter(
+        return battle_worthy_qs.filter(
             rating__lte=top_rating,
             rating__gte=bottom_rating,
         ).exclude(
