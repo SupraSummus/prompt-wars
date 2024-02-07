@@ -67,9 +67,16 @@ def transfer_rating(battle_id):
     assert battle.rating_transferred_at is None
     assert battle.resolved_at_1_2 is not None
     assert battle.resolved_at_2_1 is not None
-    Battle.objects.filter(id=battle_id).update(
-        rating_transferred_at=TransactionNow(),
-    )
+
+    battle.warrior_1_rating = battle.warrior_1.rating
+    battle.warrior_2_rating = battle.warrior_2.rating
+    battle.rating_transferred_at = TransactionNow()
+    battle.save(update_fields=[
+        'warrior_1_rating',
+        'warrior_2_rating',
+        'rating_transferred_at',
+    ])
+
     rating_gained = battle.rating_gained
     Warrior.objects.filter(id=battle.warrior_1_id).update(
         rating=F('rating') + rating_gained,

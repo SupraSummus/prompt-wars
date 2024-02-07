@@ -150,13 +150,11 @@ class Battle(models.Model):
         related_name='warrior1',
         on_delete=models.CASCADE,
     )
-    warrior_1_rating = models.FloatField()
     warrior_2 = models.ForeignKey(
         to=Warrior,
         related_name='warrior2',
         on_delete=models.CASCADE,
     )
-    warrior_2_rating = models.FloatField()
 
     result_1_2 = models.TextField(
         max_length=MAX_WARRIOR_LENGTH,
@@ -184,6 +182,14 @@ class Battle(models.Model):
         blank=True,
     )
 
+    warrior_1_rating = models.FloatField(
+        null=True,
+        blank=True,
+    )
+    warrior_2_rating = models.FloatField(
+        null=True,
+        blank=True,
+    )
     rating_transferred_at = models.DateTimeField(
         null=True,
         blank=True,
@@ -206,9 +212,7 @@ class Battle(models.Model):
             warrior_1, warrior_2 = warrior_2, warrior_1
         battle = cls.objects.create(
             warrior_1=warrior_1,
-            warrior_1_rating=warrior_1.rating,
             warrior_2=warrior_2,
-            warrior_2_rating=warrior_2.rating,
             scheduled_at=TransactionNow(),
         )
 
@@ -326,4 +330,6 @@ class BattleRelativeView:
             len(self.warrior_2.body),
             len(self.result),
         )
+        if s1 + s2 == 0:
+            return 0.5
         return s1 / (s1 + s2)

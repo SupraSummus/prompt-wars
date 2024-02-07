@@ -4,7 +4,9 @@ import pytest
 from django.utils import timezone
 
 from ..models import Battle, Warrior
-from ..tasks import do_moderation, openai_client, schedule_battles
+from ..tasks import (
+    do_moderation, openai_client, schedule_battles, transfer_rating,
+)
 from .factories import WarriorFactory
 
 
@@ -57,3 +59,16 @@ def test_schedule_battles():
         participants.add(b.warrior_1)
         participants.add(b.warrior_2)
     assert participants == warriors
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('battle', [{
+    'resolved_at_1_2': timezone.now(),
+    'resolved_at_2_1': timezone.now(),
+}], indirect=True)
+def test_transfer_rating(battle):
+    transfer_rating(battle.id)
+    battle.refresh_from_db()
+    assert battle.rating_transferred_at is not None
+    assert battle.warrior_1_rating is not None
+    assert battle.warrior_2_rating is not None
