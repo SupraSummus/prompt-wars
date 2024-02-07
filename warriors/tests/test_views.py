@@ -2,18 +2,9 @@ from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
-from django_recaptcha.client import RecaptchaResponse
 
 from ..models import Warrior
 from ..tasks import do_moderation
-
-
-@pytest.fixture
-def mocked_recaptcha(request):
-    is_valid = getattr(request, 'param', True)
-    with patch('django_recaptcha.fields.client.submit') as mocked_submit:
-        mocked_submit.return_value = RecaptchaResponse(is_valid=is_valid)
-        yield mocked_submit
 
 
 @pytest.mark.django_db
@@ -48,7 +39,7 @@ def test_create_warrior(client, mocked_recaptcha):
     assert warrior.moderation_date is None
 
     # moderation task scheduled
-    mocked_async_task.assert_called_once_with(do_moderation, (warrior.id,))
+    mocked_async_task.assert_called_once_with(do_moderation, warrior.id)
 
 
 @pytest.mark.django_db

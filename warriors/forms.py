@@ -34,5 +34,5 @@ class WarriorCreateForm(forms.ModelForm):
 
     def save(self):
         warrior = super().save()
-        async_task(do_moderation, (warrior.id,))
+        async_task(do_moderation, warrior.id)
         return warrior

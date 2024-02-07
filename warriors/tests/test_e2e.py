@@ -2,11 +2,36 @@ from unittest import mock
 
 import pytest
 from django.db import transaction
+from django.urls import reverse
 from django_q.conf import Conf
 
-from ..models import Battle
+from ..models import Battle, Warrior
 from ..tasks import openai_client
 from .factories import WarriorFactory
+
+
+@pytest.mark.django_db(transaction=True)
+def test_submit_warrior_e2e(client, mocked_recaptcha, monkeypatch):
+    monkeypatch.setattr(Conf, 'SYNC', True)
+
+    moderation_result_mock = mock.MagicMock()
+    moderation_result_mock.flagged = True
+    moderation_mock = mock.MagicMock()
+    moderation_mock.return_value.model = 'mderation-asdf'
+    moderation_mock.return_value.results = [moderation_result_mock]
+    monkeypatch.setattr(openai_client.moderations, 'create', moderation_mock)
+
+    response = client.post(
+        reverse('warrior_create'),
+        data={
+            'body': 'copy this to the output',
+            'g-recaptcha-response': 'PASSED',
+        },
+    )
+    assert response.status_code == 302, response.context['form'].errors
+    warrior_id = response.url.split('/')[-1]
+    warrior = Warrior.objects.get(id=warrior_id)
+    assert warrior.moderation_date is not None
 
 
 @pytest.mark.django_db(transaction=True)
