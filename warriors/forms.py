@@ -32,7 +32,10 @@ class WarriorCreateForm(forms.ModelForm):
             ))
         return body
 
-    def save(self):
-        warrior = super().save()
+    def save(self, commit=True):
+        warrior = super().save(commit=False)
+        warrior.body_sha_256 = self.cleaned_data['body_sha_256']
+        assert commit
+        warrior.save()
         async_task(do_moderation, warrior.id)
         return warrior

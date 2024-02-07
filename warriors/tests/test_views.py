@@ -33,6 +33,7 @@ def test_create_warrior(client, mocked_recaptcha):
     assert warrior.name == 'Test Warrior'
     assert warrior.author == 'Test Author'
     assert warrior.body == 'Test Body'
+    assert len(warrior.body_sha_256) == 32
     assert warrior.rating == 0.0
     assert warrior.games_played == 0
     assert warrior.next_battle_schedule is None
