@@ -16,8 +16,8 @@ class ReadOnlyModelAdminMixin:
 
 @admin.register(Warrior)
 class WarriorAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
-    list_display = ('name', 'rating', 'created_at')
-    search_fields = ('name', 'author')
+    list_display = ('id', 'name', 'rating', 'created_at')
+    search_fields = ('id', 'name', 'author')
     date_hierarchy = 'created_at'
 
 
