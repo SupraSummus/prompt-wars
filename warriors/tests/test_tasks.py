@@ -15,15 +15,16 @@ from .factories import WarriorFactory
     'name': 'Test Warrior',
     'author': 'Test Author',
 }], indirect=True)
-def test_do_moderation(warrior, monkeypatch):
+@pytest.mark.parametrize('moderation_flagged', [True, False])
+def test_do_moderation(warrior, monkeypatch, moderation_flagged):
     assert warrior.body
     assert warrior.name
     assert warrior.author
 
     moderation_result_mock = mock.MagicMock()
-    moderation_result_mock.flagged = True
+    moderation_result_mock.flagged = moderation_flagged
     moderation_mock = mock.MagicMock()
-    moderation_mock.return_value.model = 'mderation-asdf'
+    moderation_mock.return_value.model = 'moderation-asdf'
     moderation_mock.return_value.results = [moderation_result_mock]
     monkeypatch.setattr(openai_client.moderations, 'create', moderation_mock)
 
@@ -31,8 +32,9 @@ def test_do_moderation(warrior, monkeypatch):
 
     warrior.refresh_from_db()
     assert warrior.moderation_date is not None
-    assert warrior.moderation_flagged is True
-    assert warrior.moderation_model
+    assert warrior.moderation_flagged is moderation_flagged
+    assert warrior.moderation_model == 'moderation-asdf'
+    assert (warrior.next_battle_schedule is None) == moderation_flagged
 
 
 @pytest.mark.django_db

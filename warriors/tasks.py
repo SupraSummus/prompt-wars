@@ -16,14 +16,23 @@ def do_moderation(warrior_id):
     warrior = Warrior.objects.get(id=warrior_id)
     assert warrior.moderation_date is None
     moderation_results = openai_client.moderations.create(
-        input=warrior.body,
+        input='\n'.join([
+            warrior.name,
+            warrior.author,
+            warrior.body,
+        ]),
     )
     (result,) = moderation_results.results
-    Warrior.objects.filter(id=warrior_id).update(
-        moderation_flagged=result.flagged,
-        moderation_model=moderation_results.model,
-        moderation_date=timezone.now(),
-    )
+    warrior.moderation_flagged = result.flagged
+    warrior.moderation_model = moderation_results.model
+    warrior.moderation_date = timezone.now()
+    warrior.next_battle_schedule = None if result.flagged else '1970-01-01T00:00:00Z'
+    warrior.save(update_fields=[
+        'moderation_flagged',
+        'moderation_model',
+        'moderation_date',
+        'next_battle_schedule',
+    ])
 
 
 def resolve_battle(battle_id, direction):
