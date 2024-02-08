@@ -16,6 +16,13 @@ from .lcs import lcs_len
 MAX_WARRIOR_LENGTH = 1000
 
 
+class WarriorQuerySet(models.QuerySet):
+    def battleworthy(self):
+        return self.filter(
+            moderation_flagged=False,
+        )
+
+
 class Warrior(models.Model):
     id = models.UUIDField(
         primary_key=True,
@@ -65,6 +72,8 @@ class Warrior(models.Model):
         blank=True,
     )
 
+    objects = WarriorQuerySet.as_manager()
+
     class Meta:
         ordering = ('id',)
         indexes = [
@@ -81,6 +90,8 @@ class Warrior(models.Model):
         ]
 
     def __str__(self):
+        if self.moderation_flagged is not False:
+            return str(self.id)
         return self.name or str(self.id)
 
     def get_absolute_url(self):
@@ -108,9 +119,7 @@ class Warrior(models.Model):
     def find_opponents(self, rating_range=10, exclude_warriors=None):
         if exclude_warriors is None:
             exclude_warriors = [self.id]
-        battle_worthy_qs = Warrior.objects.filter(
-            moderation_flagged=False,
-        )
+        battle_worthy_qs = Warrior.objects.battleworthy()
         top_rating = battle_worthy_qs.filter(
             rating__gt=self.rating,
         ).order_by('rating')[:rating_range].aggregate(

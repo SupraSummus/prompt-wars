@@ -3,15 +3,42 @@
 {% block content %}
   <main class="container">
     <h1>{{ object }}</h1>
-    <dl>
-      <dt>Created at</dt>
-      <dd>{{ object.created_at }}</dd>
-      <dt>Name</dt>
-      <dd>{{ object.name }}</dd>
-      <dt>Author</dt>
-      <dd>{{ object.author }}</dd>
-      <dt>Elo rating</dt>
-      <dd>{{ object.elo }}</dd>
-    </dl>
+
+    {% if object.moderation_flagged is None %}
+      <p aria-busy="true">
+        Hold on for a second, please. We are checking if this warrior is battleworthy.
+      </p>
+      <a href="" role="button">Reload the page</a> to see the results.
+
+    {% elif object.moderation_flagged %}
+      <p>
+        Sorry, but we cannot battle this warrior.
+        Our AI moderator flagged it as not appropriate.
+      <p>
+      <p>
+        You may <a href="{% url 'warrior_create' %}">submit another warrior</a>, of course.
+      </p>
+
+    {% else %}
+      <dl>
+        {% if object.name %}
+          <dt>Name</dt>
+          <dd>{{ object.name }}</dd>
+        {% endif %}
+        {% if object.author %}
+          <dt>Author</dt>
+          <dd>{{ object.author }}</dd>
+        {% endif %}
+        <dt>Created at</dt>
+        <dd>{{ object.created_at }}</dd>
+        <dt>Rating points</dt>
+        <dd>{{ object.rating }}</dd>
+        <dt>Games played</dt>
+        <dd>{{ object.games_played }}</dd>
+        <dt>Id</dt>
+        <dd>{{ object.id }}</dd>
+      </dl>
+
+    {% endif %}
   </main>
 {% endblock %}

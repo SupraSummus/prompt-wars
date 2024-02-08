@@ -10,7 +10,7 @@ from .tasks import do_moderation
 
 
 class WarriorCreateForm(forms.ModelForm):
-    captcha = ReCaptchaField()
+    captcha = ReCaptchaField(label='')
 
     class Meta:
         model = Warrior
@@ -20,6 +20,15 @@ class WarriorCreateForm(forms.ModelForm):
             'author',
             'captcha',
         )
+        labels = {
+            'body': 'Prompt',
+            'name': 'Warrior name (optional)',
+            'author': 'Author (optional, but recommended for eternal glory)',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.label_suffix = ''
 
     def clean_body(self):
         body = self.cleaned_data['body']

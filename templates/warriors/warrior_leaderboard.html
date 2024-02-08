@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <main class="container">
+    <h1>Leaderboard</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Name</th>
+          <th>Rating points</th>
+          <th>Games played</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for warrior in warriors %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>
+              <a href="{% url 'warrior_detail' warrior.id %}">{{ warrior }}</a>
+            </td>
+            <td>{{ warrior.rating }}</td>
+            <td>{{ warrior.games_played }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </main>
+{% endblock %}

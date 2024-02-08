@@ -12,5 +12,20 @@
   </head>
   <body>
     {% block content %}{% endblock %}
+    <footer class="container">
+      <nav>
+        <aside>
+          <ul>
+            <li><a href="{% url 'warrior_leaderboard' %}">Leaderboard</a></li>
+            <li><a href="{% url 'warrior_create' %}">New warrior</a></li>
+          </ul>
+        </aside>
+        <aside>
+          <ul>
+            <li>For the glory of mankind!</li>
+          </ul>
+        </aside>
+      </nav>
+    </footer>
   </body>
 </html>

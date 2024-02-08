@@ -3,6 +3,13 @@
 {% block content %}
   <main class="container">
     <h1>Create a Warrior</h1>
+    <details>
+      <summary>Wait, what?</summary>
+      <p>
+        The goal is to create a self-replicating prompt.
+        It will be submitted to LLM with other prompt,
+        and it must ensure its survival in the output generated.
+    </details>
     <form method="post">
       {% csrf_token %}
       {{ form.as_p }}

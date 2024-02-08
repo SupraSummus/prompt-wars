@@ -56,3 +56,23 @@ def test_create_warrior_duplicate(client, warrior, mocked_recaptcha):
     )
     assert response.status_code == 200
     assert 'body' in response.context['form'].errors
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('warrior', [
+    {'moderation_flagged': False},
+    {'moderation_flagged': True},
+    {'moderation_flagged': None},
+], indirect=True)
+def test_warrior_details(client, warrior):
+    response = client.get(
+        reverse('warrior_detail', args=(warrior.id,))
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_leaderboard(client, warrior):
+    response = client.get(reverse('warrior_leaderboard'))
+    assert response.status_code == 200
+    assert warrior in response.context['warriors']
