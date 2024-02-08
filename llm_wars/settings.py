@@ -150,6 +150,7 @@ Q_CLUSTER = {
     # task is tried again when there is no result in set time
     'retry': 60,
     'workers': env.int('DJANGO_Q_WORKERS', default=4),
+    'catch_up': False,
 }
 
 if SENTRY_DSN := env.str('SENTRY_DSN', default=''):

@@ -14,6 +14,13 @@ from .lcs import lcs_len
 
 
 MAX_WARRIOR_LENGTH = 1000
+RATING_TRANSFER_COEFFICIENT = 1 / 16
+
+# Matchaking max rating diff makes sure that equal players after one fully wins (scores 1) wont be matched again.
+# 1. assume warriors of equal rating -> expected match score is 0.5
+# 2. assume one of them wins fully -> scores 1
+# 3. rating transfered is RATING_TRANSFER_COEFFICIENT * (1 - 0.5)
+MATCHMAKING_MAX_RATING_DIFF = RATING_TRANSFER_COEFFICIENT / 2
 
 
 class WarriorQuerySet(models.QuerySet):
@@ -116,30 +123,16 @@ class Warrior(models.Model):
             skip_locked=True,
         ).first()
 
-    def find_opponents(self, rating_range=10, exclude_warriors=None):
+    def find_opponents(self, max_rating_diff=MATCHMAKING_MAX_RATING_DIFF, exclude_warriors=None):
         if exclude_warriors is None:
             exclude_warriors = [self.id]
         battle_worthy_qs = Warrior.objects.battleworthy()
-        top_rating = battle_worthy_qs.filter(
-            rating__gt=self.rating,
-        ).order_by('rating')[:rating_range].aggregate(
-            models.Max('rating'),
-        )['rating__max']
-        bottom_rating = battle_worthy_qs.filter(
-            rating__lt=self.rating,
-        ).order_by('-rating')[:rating_range].aggregate(
-            models.Min('rating'),
-        )['rating__min']
-
-        # top and bottom rating can be none if there are no warriors at either side
-        if top_rating is None:
-            top_rating = self.rating
-        if bottom_rating is None:
-            bottom_rating = self.rating
+        top_rating = self.rating + max_rating_diff
+        bottom_rating = self.rating - max_rating_diff
 
         return battle_worthy_qs.filter(
-            rating__lte=top_rating,
-            rating__gte=bottom_rating,
+            rating__lt=top_rating,
+            rating__gt=bottom_rating,
         ).exclude(
             id__in=exclude_warriors,
         )
@@ -252,7 +245,7 @@ class Battle(models.Model):
         '''
         Rating points transfered from warrior 2 to warrior 1
         '''
-        return self.view_1.rating_gained - self.view_2.rating_gained
+        return (self.view_1.rating_gained - self.view_2.rating_gained) / 2
 
     @property
     def view_1(self):
@@ -330,8 +323,7 @@ class BattleRelativeView:
         Rating points transfered from warrior 2 to warrior 1
         '''
         expected_score = 1 / (1 + math.exp(self.warrior_2_rating - self.warrior_1_rating))
-        K = 1 / 16
-        return K * (self.score - expected_score)
+        return RATING_TRANSFER_COEFFICIENT * (self.score - expected_score)
 
     @property
     def score(self):
