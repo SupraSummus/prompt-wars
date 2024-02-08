@@ -10,7 +10,7 @@
       </p>
       <a href="" role="button">Reload the page</a> to see the results.
 
-    {% elif object.moderation_passed is False %}
+    {% elif not object.moderation_passed %}
       <p>
         Sorry, but we cannot battle this warrior.
         Our AI moderator flagged it as not appropriate.
@@ -36,8 +36,15 @@
         <dt>Games played</dt>
         <dd>{{ object.games_played }}</dd>
         <dt>Id</dt>
-        <dd>{{ object.id }}</dd>
+        <dd><code>{{ object.id }}</code></dd>
       </dl>
+
+      {% if battles %}
+        <h2>Battles</h2>
+        {% for battle in battles %}
+          {% include 'warriors/partials/battle.html' with battle=battle %}
+        {% endfor %}
+      {% endif %}
 
     {% endif %}
   </main>

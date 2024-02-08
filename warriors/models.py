@@ -1,7 +1,7 @@
 import datetime
 import math
 import uuid
-from functools import partial
+from functools import cached_property, partial
 
 import django_q
 from django.contrib.postgres.functions import TransactionNow
@@ -146,6 +146,13 @@ class Warrior(models.Model):
         )
 
 
+class BattleQuerySet(models.QuerySet):
+    def with_warrior(self, warrior):
+        return self.filter(
+            models.Q(warrior_1=warrior) | models.Q(warrior_2=warrior),
+        )
+
+
 class Battle(models.Model):
     id = models.UUIDField(
         primary_key=True,
@@ -205,6 +212,8 @@ class Battle(models.Model):
         blank=True,
     )
 
+    objects = BattleQuerySet.as_manager()
+
     class Meta:
         ordering = ('-scheduled_at',)
         constraints = [
@@ -245,18 +254,43 @@ class Battle(models.Model):
         '''
         Rating points transfered from warrior 2 to warrior 1
         '''
-        return (self.view_1.rating_gained - self.view_2.rating_gained) / 2
+        return (self.game_1.rating_gained - self.game_2.rating_gained) / 2
 
     @property
-    def view_1(self):
-        return BattleRelativeView(self, '1_2')
+    def rating_gained_str(self):
+        return f'{self.rating_gained:+.3f}'
 
-    @property
-    def view_2(self):
-        return BattleRelativeView(self, '2_1')
+    @cached_property
+    def game_1(self):
+        return Game(self, '1_2')
+
+    @cached_property
+    def game_2(self):
+        return Game(self, '2_1')
+
+    def get_warrior_viewpoint(self, warrior):
+        """Return Battle such that warrior_1 == warrior"""
+        if warrior == self.warrior_1:
+            return self
+        elif warrior == self.warrior_2:
+            return Battle(
+                id=self.id,
+                scheduled_at=self.scheduled_at,
+                warrior_1=self.warrior_2,
+                warrior_2=self.warrior_1,
+                result_1_2=self.result_2_1,
+                llm_version_1_2=self.llm_version_2_1,
+                resolved_at_1_2=self.resolved_at_2_1,
+                result_2_1=self.result_1_2,
+                llm_version_2_1=self.llm_version_1_2,
+                resolved_at_2_1=self.resolved_at_1_2,
+                warrior_1_rating=self.warrior_2_rating,
+                warrior_2_rating=self.warrior_1_rating,
+                rating_transferred_at=self.rating_transferred_at,
+            )
 
 
-class BattleRelativeView:
+class Game:
     def __init__(self, battle, direction):
         '''
         :param battle: Battle
@@ -325,7 +359,7 @@ class BattleRelativeView:
         expected_score = 1 / (1 + math.exp(self.warrior_2_rating - self.warrior_1_rating))
         return RATING_TRANSFER_COEFFICIENT * (self.score - expected_score)
 
-    @property
+    @cached_property
     def score(self):
         '''
         Score of warrior 1
@@ -342,3 +376,7 @@ class BattleRelativeView:
         if s1 + s2 == 0:
             return 0.5
         return s1 / (s1 + s2)
+
+    @property
+    def score_rev(self):
+        return 1.0 - self.score

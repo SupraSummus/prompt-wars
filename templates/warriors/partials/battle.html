@@ -1,0 +1,27 @@
+<dl>
+  <dt>Scheduled at</dt>
+  <dd>{{ battle.scheduled_at }}</dd>
+  <dt>Opponent</dt>
+  <dd><a href="{% url 'warrior_detail' battle.warrior_2.id %}">{{ battle.warrior_2 }}</a></dd>
+
+  <dt>Score (this vs other)</dt>
+  {% if not battle.resolved_at_1_2 %}
+    <dd aria-busy="true"></dd>
+  {% else %}
+    <dd>{{ battle.game_1.score|floatformat:3 }}</dd>
+  {% endif %}
+
+  <dt>Score (other vs this)</dt>
+  {% if not battle.resolved_at_2_1 %}
+    <dd aria-busy="true"></dd>
+  {% else %}
+    <dd>{{ battle.game_2.score_rev|floatformat:3 }}</dd>
+  {% endif %}
+
+  <dt>Rating change</dt>
+  {% if not battle.rating_transferred_at %}
+    <dd aria-busy="true"></dd>
+  {% else %}
+    <dd>{{ battle.warrior_1_rating|floatformat:3 }} {{ battle.rating_gained_str }}</dd>
+  {% endif %}
+</dl>

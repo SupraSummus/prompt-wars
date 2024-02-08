@@ -3,7 +3,7 @@ from django.views.generic.edit import CreateView
 from django.views.generic.list import ListView
 
 from .forms import WarriorCreateForm
-from .models import Warrior
+from .models import Battle, Warrior
 
 
 class WarriorCreateView(CreateView):
@@ -14,6 +14,22 @@ class WarriorCreateView(CreateView):
 
 class WarriorDetailView(DetailView):
     model = Warrior
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        battles_qs = Battle.objects.with_warrior(
+            self.object,
+        ).order_by('-scheduled_at')[:100].select_related(
+            'warrior_1',
+            'warrior_2',
+        )
+        context['battles'] = [
+            battle.get_warrior_viewpoint(self.object)
+            for battle in battles_qs
+        ]
+
+        return context
 
 
 class WarriorLeaderboard(ListView):

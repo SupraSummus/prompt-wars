@@ -4,7 +4,7 @@ from django.contrib.postgres.functions import TransactionNow
 from django.db import transaction
 from django.utils import timezone
 
-from .models import MAX_WARRIOR_LENGTH, Battle, BattleRelativeView, Warrior
+from .models import MAX_WARRIOR_LENGTH, Battle, Game, Warrior
 
 
 openai_client = openai.Client(
@@ -58,7 +58,7 @@ def schedule_battles(n=10, now=None):
 def resolve_battle(battle_id, direction):
     now = timezone.now()
     battle = Battle.objects.get(id=battle_id)
-    battle_view = BattleRelativeView(battle, direction)
+    battle_view = Game(battle, direction)
     assert battle_view.resolved_at is None
 
     prompt = battle_view.warrior_1.body + battle_view.warrior_2.body

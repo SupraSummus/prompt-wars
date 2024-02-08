@@ -78,14 +78,14 @@ def test_battle_rating_gained():
     )
 
     # lets consider a single game there - the one where propmt is warrior_1 || warrior_2
-    game = battle.view_1
+    game = battle.game_1
     assert game.score == 0  # this means that warrior_1 was totaly erased, and warrior_2 totally preserved
     # warrior_1 lost as many points as possible to an equaly skilled opponent
     assert game.rating_gained == -RATING_TRANSFER_COEFFICIENT * 0.5
 
     # second game - warrior_2 || warrior_1
-    assert battle.view_2.score == 1
-    assert battle.view_2.rating_gained == RATING_TRANSFER_COEFFICIENT * 0.5
+    assert battle.game_2.score == 1
+    assert battle.game_2.rating_gained == RATING_TRANSFER_COEFFICIENT * 0.5
 
     # overall we have maximum rating gain
     assert battle.rating_gained == -RATING_TRANSFER_COEFFICIENT * 0.5
