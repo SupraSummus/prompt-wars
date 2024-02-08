@@ -19,3 +19,6 @@ class WarriorFactory(factory.django.DjangoModelFactory):
 class BattleFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Battle
+
+    warrior_1 = factory.SubFactory(WarriorFactory)
+    warrior_2 = factory.SubFactory(WarriorFactory)

@@ -103,7 +103,11 @@ def test_transfer_rating(battle):
     transfer_rating(battle.id)
     battle.refresh_from_db()
     assert battle.rating_transferred_at is not None
+
+    # historic rating are saved
     assert battle.warrior_1_rating is not None
     assert battle.warrior_2_rating is not None
+
+    # warriors are put back into matchmaking queue
     assert battle.warrior_1.next_battle_schedule is not None
     assert battle.warrior_2.next_battle_schedule is not None

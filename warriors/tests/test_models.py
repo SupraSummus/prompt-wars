@@ -1,8 +1,10 @@
 import datetime
+from uuid import UUID
 
 import pytest
 
-from .factories import WarriorFactory
+from ..models import RATING_TRANSFER_COEFFICIENT
+from .factories import BattleFactory, WarriorFactory
 
 
 @pytest.mark.django_db
@@ -60,3 +62,30 @@ def test_schedule_battle_clears_next_battle_schedule(warrior):
     other.refresh_from_db()
     assert warrior.next_battle_schedule is None
     assert other.next_battle_schedule is None
+
+
+@pytest.mark.django_db
+def test_battle_rating_gained():
+    battle = BattleFactory(
+        warrior_1__id=UUID(int=1),
+        warrior_1__body='asdf',
+        warrior_2__id=UUID(int=2),
+        warrior_2__body='qwerty',
+        result_1_2='qwerty',
+        result_2_1='qwerty',
+        warrior_1_rating=0.0,
+        warrior_2_rating=0.0,
+    )
+
+    # lets consider a single game there - the one where propmt is warrior_1 || warrior_2
+    game = battle.view_1
+    assert game.score == 0  # this means that warrior_1 was totaly erased, and warrior_2 totally preserved
+    # warrior_1 lost as many points as possible to an equaly skilled opponent
+    assert game.rating_gained == -RATING_TRANSFER_COEFFICIENT * 0.5
+
+    # second game - warrior_2 || warrior_1
+    assert battle.view_2.score == 1
+    assert battle.view_2.rating_gained == RATING_TRANSFER_COEFFICIENT * 0.5
+
+    # overall we have maximum rating gain
+    assert battle.rating_gained == -RATING_TRANSFER_COEFFICIENT * 0.5

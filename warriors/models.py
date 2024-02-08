@@ -14,13 +14,13 @@ from .lcs import lcs_len
 
 
 MAX_WARRIOR_LENGTH = 1000
-RATING_TRANSFER_COEFFICIENT = 1 / 16
+RATING_TRANSFER_COEFFICIENT = 0.1
 
 # Matchaking max rating diff makes sure that equal players after one fully wins (scores 1) wont be matched again.
 # 1. assume warriors of equal rating -> expected match score is 0.5
-# 2. assume one of them wins fully -> scores 1
-# 3. rating transfered is RATING_TRANSFER_COEFFICIENT * (1 - 0.5)
-MATCHMAKING_MAX_RATING_DIFF = RATING_TRANSFER_COEFFICIENT / 2
+# 2. assume one of them wins fully -> scores 1, other scores 0
+# 3. rating transfered is RATING_TRANSFER_COEFFICIENT * (1 - 0.5) -> their diff after the battle is twice that
+MATCHMAKING_MAX_RATING_DIFF = RATING_TRANSFER_COEFFICIENT
 
 
 class WarriorQuerySet(models.QuerySet):
