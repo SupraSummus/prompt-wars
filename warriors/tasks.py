@@ -35,6 +35,26 @@ def do_moderation(warrior_id):
     ])
 
 
+@transaction.atomic
+def schedule_battles(n=10, now=None):
+    if now is None:
+        now = timezone.now()
+    warriors = Warrior.objects.filter(
+        next_battle_schedule__lte=now,
+    ).order_by('next_battle_schedule').select_for_update(
+        no_key=True,
+        skip_locked=True,
+    )[:n]
+    exclude_warriors = set()
+    for warrior in warriors:
+        if warrior.id in exclude_warriors:
+            continue
+        battle = warrior.schedule_battle(now=now)
+        if battle is not None:
+            exclude_warriors.add(battle.warrior_1.id)
+            exclude_warriors.add(battle.warrior_2.id)
+
+
 def resolve_battle(battle_id, direction):
     now = timezone.now()
     battle = Battle.objects.get(id=battle_id)
@@ -100,23 +120,3 @@ def transfer_rating(battle_id):
             'next_battle_schedule',
         ],
     )
-
-
-@transaction.atomic
-def schedule_battles(n=10, now=None):
-    if now is None:
-        now = timezone.now()
-    warriors = Warrior.objects.filter(
-        next_battle_schedule__lte=now,
-    ).order_by('next_battle_schedule').select_for_update(
-        no_key=True,
-        skip_locked=True,
-    )[:n]
-    exclude_warriors = set()
-    for warrior in warriors:
-        if warrior.id in exclude_warriors:
-            continue
-        battle = warrior.schedule_battle(now=now)
-        if battle is not None:
-            exclude_warriors.add(battle.warrior_1.id)
-            exclude_warriors.add(battle.warrior_2.id)
