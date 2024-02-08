@@ -4,13 +4,13 @@
   <main class="container">
     <h1>{{ object }}</h1>
 
-    {% if object.moderation_flagged is None %}
+    {% if object.moderation_passed is None %}
       <p aria-busy="true">
         Hold on for a second, please. We are checking if this warrior is battleworthy.
       </p>
       <a href="" role="button">Reload the page</a> to see the results.
 
-    {% elif object.moderation_flagged %}
+    {% elif object.moderation_passed is False %}
       <p>
         Sorry, but we cannot battle this warrior.
         Our AI moderator flagged it as not appropriate.
@@ -32,7 +32,7 @@
         <dt>Created at</dt>
         <dd>{{ object.created_at }}</dd>
         <dt>Rating points</dt>
-        <dd>{{ object.rating }}</dd>
+        <dd>{{ object.rating|floatformat:3 }}</dd>
         <dt>Games played</dt>
         <dd>{{ object.games_played }}</dd>
         <dt>Id</dt>
