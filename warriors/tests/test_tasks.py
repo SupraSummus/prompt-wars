@@ -5,7 +5,8 @@ from django.utils import timezone
 
 from ..models import Battle, Warrior
 from ..tasks import (
-    do_moderation, openai_client, schedule_battles, transfer_rating,
+    do_moderation, openai_client, resolve_battle, schedule_battles,
+    transfer_rating,
 )
 from .factories import WarriorFactory
 
@@ -61,6 +62,36 @@ def test_schedule_battles():
         participants.add(b.warrior_1)
         participants.add(b.warrior_2)
     assert participants == warriors
+
+
+@pytest.mark.django_db
+def test_resolve_battle(battle, monkeypatch):
+    assert battle.warrior_1.body
+    assert battle.warrior_2.body
+
+    completion_mock = mock.MagicMock()
+    completion_mock.message.content = 'Some result'
+    completions_mock = mock.MagicMock()
+    completions_mock.choices = [completion_mock]
+    completions_mock.model = 'gpt-3.5'
+    completions_mock.system_fingerprint = '1234'
+    create_mock = mock.Mock(return_value=completions_mock)
+    monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
+
+    resolve_battle(battle.id, '2_1')
+
+    # LLM was properly invoked
+    assert create_mock.call_count == 1
+    assert create_mock.call_args.kwargs['messages'] == [{
+        'role': 'user',
+        'content': battle.warrior_2.body + battle.warrior_1.body,
+    }]
+
+    # DB state is correct
+    battle.refresh_from_db()
+    assert battle.result_2_1 == 'Some result'
+    assert battle.resolved_at_2_1 is not None
+    assert battle.llm_version_2_1 == 'gpt-3.5/1234'
 
 
 @pytest.mark.django_db

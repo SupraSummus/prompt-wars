@@ -61,7 +61,7 @@ def resolve_battle(battle_id, direction):
     battle_view = BattleRelativeView(battle, direction)
     assert battle_view.resolved_at is None
 
-    prompt = battle.warrior_1.body + battle.warrior_2.body
+    prompt = battle_view.warrior_1.body + battle_view.warrior_2.body
     response = openai_client.chat.completions.create(
         messages=[
             {'role': 'user', 'content': prompt},
