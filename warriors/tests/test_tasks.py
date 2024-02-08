@@ -32,7 +32,7 @@ def test_do_moderation(warrior, monkeypatch, moderation_flagged):
 
     warrior.refresh_from_db()
     assert warrior.moderation_date is not None
-    assert warrior.moderation_flagged is moderation_flagged
+    assert warrior.moderation_passed is (not moderation_flagged)
     assert warrior.moderation_model == 'moderation-asdf'
     assert (warrior.next_battle_schedule is None) == moderation_flagged
 

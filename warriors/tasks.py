@@ -23,12 +23,12 @@ def do_moderation(warrior_id):
         ]),
     )
     (result,) = moderation_results.results
-    warrior.moderation_flagged = result.flagged
+    warrior.moderation_passed = not result.flagged
     warrior.moderation_model = moderation_results.model
     warrior.moderation_date = timezone.now()
     warrior.next_battle_schedule = None if result.flagged else '1970-01-01T00:00:00Z'
     warrior.save(update_fields=[
-        'moderation_flagged',
+        'moderation_passed',
         'moderation_model',
         'moderation_date',
         'next_battle_schedule',

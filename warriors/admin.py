@@ -16,7 +16,16 @@ class ReadOnlyModelAdminMixin:
 
 @admin.register(Warrior)
 class WarriorAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
-    list_display = ('id', 'name', 'rating', 'created_at')
+    list_display = (
+        'id',
+        'moderation_passed',
+        'rating',
+        'games_played',
+        'created_at',
+    )
+    list_filter = (
+        'moderation_passed',
+    )
     search_fields = ('id', 'name', 'author')
     date_hierarchy = 'created_at'
 

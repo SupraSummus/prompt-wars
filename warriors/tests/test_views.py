@@ -60,9 +60,9 @@ def test_create_warrior_duplicate(client, warrior, mocked_recaptcha):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('warrior', [
-    {'moderation_flagged': False},
-    {'moderation_flagged': True},
-    {'moderation_flagged': None},
+    {'moderation_passed': False},
+    {'moderation_passed': True},
+    {'moderation_passed': None},
 ], indirect=True)
 def test_warrior_details(client, warrior):
     response = client.get(

@@ -13,7 +13,7 @@ class WarriorFactory(factory.django.DjangoModelFactory):
     body_sha_256 = factory.LazyAttribute(
         lambda o: hashlib.sha256(o.body.encode('utf-8')).digest()
     )
-    moderation_flagged = False
+    moderation_passed = True
 
 
 class BattleFactory(factory.django.DjangoModelFactory):

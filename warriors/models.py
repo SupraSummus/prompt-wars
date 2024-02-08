@@ -19,7 +19,7 @@ MAX_WARRIOR_LENGTH = 1000
 class WarriorQuerySet(models.QuerySet):
     def battleworthy(self):
         return self.filter(
-            moderation_flagged=False,
+            moderation_passed=True,
         )
 
 
@@ -59,7 +59,7 @@ class Warrior(models.Model):
         null=True,
         blank=True,
     )
-    moderation_flagged = models.BooleanField(
+    moderation_passed = models.BooleanField(
         null=True,
     )
     moderation_model = models.CharField(
@@ -90,7 +90,7 @@ class Warrior(models.Model):
         ]
 
     def __str__(self):
-        if self.moderation_flagged is not False:
+        if self.moderation_passed is not True:
             return str(self.id)
         return self.name or str(self.id)
 

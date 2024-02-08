@@ -41,9 +41,9 @@ def test_find_opponents_range(warrior):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('moderation_flagged', [True, None])
-def test_find_opponents_exclude_not_worthy(warrior, moderation_flagged):
-    other = WarriorFactory(moderation_flagged=moderation_flagged)
+@pytest.mark.parametrize('moderation_passed', [False, None])
+def test_find_opponents_exclude_not_worthy(warrior, moderation_passed):
+    other = WarriorFactory(moderation_passed=moderation_passed)
     opponents = warrior.find_opponents()
     assert other not in opponents
 
