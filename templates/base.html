@@ -13,19 +13,17 @@
   <body>
     {% block content %}{% endblock %}
     <footer class="container">
-      <nav>
-        <aside>
-          <ul>
-            <li><a href="{% url 'warrior_leaderboard' %}">Leaderboard</a></li>
-            <li><a href="{% url 'warrior_create' %}">New warrior</a></li>
-          </ul>
-        </aside>
-        <aside>
-          <ul>
-            <li>For the glory of mankind!</li>
-          </ul>
-        </aside>
-      </nav>
+      <small>
+        <a href="{% url 'warrior_leaderboard' %}">Leaderboard</a>
+        •
+        <a href="{% url 'warrior_create' %}">New warrior</a>
+        •
+        <span>
+          Want some <a href="https://github.com/SupraSummus/prompt-wars">source code</a>?
+        </span>
+        •
+        <span>For the glory of mankind!</span>
+      </small>
     </footer>
   </body>
 </html>
