@@ -5,7 +5,7 @@
     <h1>{{ object }}</h1>
 
     {% if object.moderation_passed is None %}
-      <p aria-busy="true">
+      <p>
         Hold on for a second, please. We are checking if this warrior is battleworthy.
       </p>
       <a href="" role="button">Reload the page</a> to see the results.
@@ -60,12 +60,16 @@
               <td>{{ battle.scheduled_at }}</td>
               <td><a href="{% url 'warrior_detail' battle.warrior_2.id %}">{{ battle.warrior_2 }}</a></td>
               <td>
-                {% if not battle.resolved_at_1_2 %}<span aria-busy="true"></span>
-                {% else %}{{ battle.game_1.score|floatformat:3 }}{% endif %}
+                <a href="{% url 'battle_detail' battle.id %}?{{ request.GET.urlencode }}#{{ battle.game_1_id }}">
+                  {% if not battle.resolved_at_1_2 %}<span aria-busy="true"></span>
+                  {% else %}{{ battle.game_1_2.score|floatformat:3 }}{% endif %}
+                </a>
               </td>
               <td>
-                {% if not battle.resolved_at_2_1 %}<span aria-busy="true"></span>
-                {% else %}{{ battle.game_2.score_rev|floatformat:3 }}{% endif %}
+                <a href="{% url 'battle_detail' battle.id %}?{{ request.GET.urlencode }}#{{ battle.game_2_id }}">
+                  {% if not battle.resolved_at_2_1 %}<span aria-busy="true"></span>
+                  {% else %}{{ battle.game_2_1.score_rev|floatformat:3 }}{% endif %}
+                </a>
               </td>
               <td>
                 {% if not battle.rating_transferred_at %}<span aria-busy="true"></span>

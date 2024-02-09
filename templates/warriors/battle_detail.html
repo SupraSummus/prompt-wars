@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <main class="container">
+    <hgroup>
+      <h1>A battle</h1>
+      <p>
+        scheduled at {{ battle.scheduled_at }}
+        {% if battle.rating_transferred_at %}
+          , resolved at {{ battle.rating_transferred_at }}
+        {% endif %}
+      </p>
+    </hgroup>
+    <section id="1_2">
+      <hgroup>
+        <h2>Game 1</h2>
+        <p>{{ battle.game_1_2.warrior_1 }} || {{ battle.game_1_2.warrior_2 }}</p>
+      </hgroup>
+      {% if show_secrets %}
+        <pre>{{ battle.game_1_2.result }}</pre>
+      {% endif %}
+    </section>
+    <section id="2_1">
+      <hgroup>
+        <h2>Game 2</h2>
+        <p>{{ battle.game_2_1.warrior_1 }} || {{ battle.game_2_1.warrior_2 }}</p>
+      </hgroup>
+      {% if show_secrets %}
+        <pre>{{ battle.game_2_1.result }}</pre>
+      {% endif %}
+    </section>
+  </main>
+{% endblock %}

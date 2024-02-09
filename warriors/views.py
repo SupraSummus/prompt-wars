@@ -38,6 +38,21 @@ class WarriorDetailView(DetailView):
         return context
 
 
+class BattleDetailView(DetailView):
+    model = Battle
+    context_object_name = 'battle'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        secret = self.request.GET.get('secret', default='')
+        context['show_secrets_1'] = self.object.warrior_1.is_secret_valid(secret)
+        context['show_secrets_2'] = self.object.warrior_2.is_secret_valid(secret)
+        context['show_secrets'] = context['show_secrets_1'] or context['show_secrets_2']
+
+        return context
+
+
 class WarriorLeaderboard(ListView):
     model = Warrior
     template_name = 'warriors/warrior_leaderboard.html'

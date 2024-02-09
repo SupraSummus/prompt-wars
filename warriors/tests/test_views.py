@@ -93,6 +93,14 @@ def test_warrior_details_secret(client, warrior, good_secret):
 
 
 @pytest.mark.django_db
+def test_battle_details(client, battle):
+    response = client.get(
+        reverse('battle_detail', args=(battle.id,))
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
 def test_leaderboard(client, warrior):
     response = client.get(reverse('warrior_leaderboard'))
     assert response.status_code == 200

@@ -285,23 +285,28 @@ class Battle(models.Model):
 
         return battle
 
+    def __init__(self, *args, game_1_id='1_2', game_2_id='2_1', **kwargs):
+        super().__init__(*args, **kwargs)
+        self.game_1_id = game_1_id
+        self.game_2_id = game_2_id
+
     @property
     def rating_gained(self):
         '''
         Rating points transfered from warrior 2 to warrior 1
         '''
-        return (self.game_1.rating_gained - self.game_2.rating_gained) / 2
+        return (self.game_1_2.rating_gained - self.game_2_1.rating_gained) / 2
 
     @property
     def rating_gained_str(self):
         return f'{self.rating_gained:+.3f}'
 
     @cached_property
-    def game_1(self):
+    def game_1_2(self):
         return Game(self, '1_2')
 
     @cached_property
-    def game_2(self):
+    def game_2_1(self):
         return Game(self, '2_1')
 
     def get_warrior_viewpoint(self, warrior):
@@ -323,6 +328,8 @@ class Battle(models.Model):
                 warrior_1_rating=self.warrior_2_rating,
                 warrior_2_rating=self.warrior_1_rating,
                 rating_transferred_at=self.rating_transferred_at,
+                game_1_id=self.game_2_id,
+                game_2_id=self.game_1_id,
             )
 
 

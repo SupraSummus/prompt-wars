@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.urls import path
 
 from warriors.views import (
-    WarriorCreateView, WarriorDetailView, WarriorLeaderboard,
+    BattleDetailView, WarriorCreateView, WarriorDetailView, WarriorLeaderboard,
 )
 
 
@@ -26,5 +26,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path('', WarriorCreateView.as_view(), name='warrior_create'),
     path('warrior/<uuid:pk>', WarriorDetailView.as_view(), name='warrior_detail'),
+    path('battle/<uuid:pk>', BattleDetailView.as_view(), name='battle_detail'),
     path('leaderboard/', WarriorLeaderboard.as_view(), name='warrior_leaderboard'),
 ]
