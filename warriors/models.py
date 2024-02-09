@@ -86,6 +86,19 @@ class Warrior(models.Model):
 
     class Meta:
         ordering = ('id',)
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(body_sha_256=models.Func(
+                    models.Func(
+                        models.F('body'),
+                        models.Value('utf-8'),
+                        function='convert_to',
+                    ),
+                    function='sha256',
+                )),
+                name='body_sha_256',
+            ),
+        ]
         indexes = [
             models.Index(
                 fields=['rating'],
