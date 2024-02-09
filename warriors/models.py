@@ -215,7 +215,10 @@ class Battle(models.Model):
     objects = BattleQuerySet.as_manager()
 
     class Meta:
-        ordering = ('-scheduled_at',)
+        ordering = (
+            '-rating_transferred_at',  # nulls first, then most recent
+            '-scheduled_at',
+        )
         constraints = [
             models.CheckConstraint(
                 check=models.Q(

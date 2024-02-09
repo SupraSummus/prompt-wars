@@ -20,7 +20,7 @@ class WarriorDetailView(DetailView):
 
         battles_qs = Battle.objects.with_warrior(
             self.object,
-        ).order_by('-scheduled_at')[:100].select_related(
+        )[:100].select_related(
             'warrior_1',
             'warrior_2',
         )

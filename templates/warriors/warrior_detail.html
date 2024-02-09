@@ -39,13 +39,45 @@
         <dd><code>{{ object.id }}</code></dd>
       </dl>
 
-      {% if battles %}
-        <h2>Battles</h2>
-        {% for battle in battles %}
-          {% include 'warriors/partials/battle.html' with battle=battle %}
-        {% endfor %}
-      {% endif %}
-
+      <h2>Battles</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Scheduled at</th>
+            <th>Opponent</th>
+            <th>Score (this vs other)</th>
+            <th>Score (other vs this)</th>
+            <th>Rating change</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for battle in battles %}
+            <tr>
+              <td>{{ battle.scheduled_at }}</td>
+              <td><a href="{% url 'warrior_detail' battle.warrior_2.id %}">{{ battle.warrior_2 }}</a></td>
+              <td>
+                {% if not battle.resolved_at_1_2 %}<span aria-busy="true"></span>
+                {% else %}{{ battle.game_1.score|floatformat:3 }}{% endif %}
+              </td>
+              <td>
+                {% if not battle.resolved_at_2_1 %}<span aria-busy="true"></span>
+                {% else %}{{ battle.game_2.score_rev|floatformat:3 }}{% endif %}
+              </td>
+              <td>
+                {% if not battle.rating_transferred_at %}<span aria-busy="true"></span>
+                {% else %}{{ battle.warrior_1_rating|floatformat:3 }} {{ battle.rating_gained_str }}{% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5">
+                No battles yet, but one should be scheduled soon.
+                <a href="" role="button">Reload the page</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     {% endif %}
   </main>
 {% endblock %}
