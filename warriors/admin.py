@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.html import format_html
 
 from .models import Battle, Warrior
 
@@ -28,6 +29,38 @@ class WarriorAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
     )
     search_fields = ('id', 'name', 'author')
     date_hierarchy = 'created_at'
+
+    fieldsets = (
+        (None, {
+            'fields': (
+                'name',
+                'author',
+                'body',
+                'created_at',
+                'secret_link',
+            ),
+        }),
+        ('Stats', {
+            'fields': (
+                'rating',
+                'games_played',
+            ),
+        }),
+        ('Moderation', {
+            'fields': (
+                'moderation_passed',
+                'moderation_date',
+                'moderation_model',
+            ),
+        }),
+    )
+
+    def secret_link(self, obj):
+        return format_html(
+            '<a href="{}">{}</a>',
+            obj.get_absolute_url_secret(),
+            obj.get_absolute_url_secret(),
+        )
 
 
 @admin.register(Battle)

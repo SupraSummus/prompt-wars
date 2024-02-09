@@ -2,9 +2,11 @@ import datetime
 import math
 import uuid
 from functools import cached_property, partial
+from urllib.parse import urlencode
 
 import django_q
 from django.contrib.postgres.functions import TransactionNow
+from django.core.signing import BadSignature, Signer
 from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
@@ -80,6 +82,7 @@ class Warrior(models.Model):
     )
 
     objects = WarriorQuerySet.as_manager()
+    secret_signer = Signer(salt='warrior')
 
     class Meta:
         ordering = ('id',)
@@ -103,6 +106,11 @@ class Warrior(models.Model):
 
     def get_absolute_url(self):
         return reverse('warrior_detail', args=[str(self.id)])
+
+    def get_absolute_url_secret(self):
+        return self.get_absolute_url() + '?' + urlencode({
+            'secret': self.secret,
+        })
 
     def schedule_battle(self, now, **kwargs):
         opponent = self.find_opponent(**kwargs)
@@ -144,6 +152,18 @@ class Warrior(models.Model):
         return datetime.timedelta(
             minutes=2 ** n,
         )
+
+    @cached_property
+    def secret(self):
+        return self.secret_signer.sign(str(self.id)).split(':')[1]
+
+    def is_secret_valid(self, key):
+        full_key = f'{self.id}:{key}'
+        try:
+            self.secret_signer.unsign(full_key)
+            return True
+        except BadSignature:
+            return False
 
 
 class BattleQuerySet(models.QuerySet):

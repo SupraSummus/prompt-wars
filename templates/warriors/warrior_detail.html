@@ -21,6 +21,10 @@
 
     {% else %}
       <dl>
+        {% if show_secrets %}
+          <dt>Body</dt>
+          <dd><pre>{{ object.body }}</pre></dd>
+        {% endif %}
         {% if object.name %}
           <dt>Name</dt>
           <dd>{{ object.name }}</dd>

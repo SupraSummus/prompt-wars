@@ -29,7 +29,8 @@ def test_submit_warrior_e2e(client, mocked_recaptcha, monkeypatch):
         },
     )
     assert response.status_code == 302, response.context['form'].errors
-    warrior_id = response.url.split('/')[-1]
+    path, query = response.url.split('?')
+    warrior_id = path.split('/')[-1]
     warrior = Warrior.objects.get(id=warrior_id)
     assert warrior.moderation_date is not None
 

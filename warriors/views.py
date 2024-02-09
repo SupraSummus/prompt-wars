@@ -11,6 +11,9 @@ class WarriorCreateView(CreateView):
     form_class = WarriorCreateForm
     template_name = 'warriors/warrior_create.html'
 
+    def get_success_url(self):
+        return self.object.get_absolute_url_secret()
+
 
 class WarriorDetailView(DetailView):
     model = Warrior
@@ -28,6 +31,9 @@ class WarriorDetailView(DetailView):
             battle.get_warrior_viewpoint(self.object)
             for battle in battles_qs
         ]
+
+        secret = self.request.GET.get('secret', default='')
+        context['show_secrets'] = self.object.is_secret_valid(secret)
 
         return context
 
