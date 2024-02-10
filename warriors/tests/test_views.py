@@ -65,6 +65,20 @@ def test_create_warrior_duplicate(client, warrior, mocked_recaptcha):
 
 
 @pytest.mark.django_db
+def test_create_no_strip(client, mocked_recaptcha):
+    response = client.post(
+        reverse('warrior_create'),
+        data={
+            'body': ' Test \r\nWarrior \n\n',
+            'g-recaptcha-response': 'PASSED',
+        },
+    )
+    assert response.status_code == 302
+    warrior = Warrior.objects.get()
+    assert warrior.body == ' Test \nWarrior \n\n'
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize('warrior', [
     {'moderation_passed': False},
     {'moderation_passed': True},
