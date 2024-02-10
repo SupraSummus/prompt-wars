@@ -146,9 +146,9 @@ Q_CLUSTER = {
     'orm': 'default',
 
     # task is killed when no result in set time
-    'timeout': 30,
+    'timeout': 60,  # openai is slow handling word-repeating prompts
     # task is tried again when there is no result in set time
-    'retry': 60,
+    'retry': 120,
     'workers': env.int('DJANGO_Q_WORKERS', default=4),
     'catch_up': False,
 }
