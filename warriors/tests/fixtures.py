@@ -11,8 +11,14 @@ def warrior(request):
 
 
 @pytest.fixture
-def battle(request, warrior):
-    other_warrior = WarriorFactory()
+def other_warrior(request):
+    return WarriorFactory(
+        **getattr(request, 'param', {}),
+    )
+
+
+@pytest.fixture
+def battle(request, warrior, other_warrior):
     if warrior.id > other_warrior.id:
         warrior, other_warrior = other_warrior, warrior
     return BattleFactory(

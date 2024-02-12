@@ -127,9 +127,13 @@ class Warrior(models.Model):
 
     def schedule_battle(self, now, **kwargs):
         opponent = self.find_opponent(**kwargs)
+
         if opponent is None:
+            self.next_battle_schedule = now + self.get_next_battle_delay()
+            self.save(update_fields=['next_battle_schedule'])
             return None
-        battle = Battle.from_warriors(self, opponent)
+
+        battle = Battle.create_from_warriors(self, opponent)
         self.next_battle_schedule = None
         opponent.next_battle_schedule = None
         Warrior.objects.bulk_update(
@@ -144,18 +148,31 @@ class Warrior(models.Model):
             skip_locked=True,
         ).first()
 
-    def find_opponents(self, max_rating_diff=MATCHMAKING_MAX_RATING_DIFF, exclude_warriors=None):
+    def find_opponents(
+        self,
+        max_rating_diff=MATCHMAKING_MAX_RATING_DIFF,
+        cooldown=datetime.timedelta(days=28),
+        exclude_warriors=None,
+    ):
         if exclude_warriors is None:
             exclude_warriors = [self.id]
         battle_worthy_qs = Warrior.objects.battleworthy()
         top_rating = self.rating + max_rating_diff
         bottom_rating = self.rating - max_rating_diff
 
+        historic_battles = Battle.objects.with_warrior(self).filter(
+            scheduled_at__gt=timezone.now() - cooldown,
+        )
+
         return battle_worthy_qs.filter(
             rating__lt=top_rating,
             rating__gt=bottom_rating,
         ).exclude(
             id__in=exclude_warriors,
+        ).exclude(
+            id__in=historic_battles.values('warrior_1'),
+        ).exclude(
+            id__in=historic_battles.values('warrior_2'),
         )
 
     def get_next_battle_delay(self):
@@ -262,7 +279,7 @@ class Battle(models.Model):
         ]
 
     @classmethod
-    def from_warriors(cls, warrior_1, warrior_2):
+    def create_from_warriors(cls, warrior_1, warrior_2):
         if warrior_1.id > warrior_2.id:
             warrior_1, warrior_2 = warrior_2, warrior_1
         battle = cls.objects.create(

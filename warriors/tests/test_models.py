@@ -3,7 +3,7 @@ from uuid import UUID
 
 import pytest
 
-from ..models import RATING_TRANSFER_COEFFICIENT
+from ..models import RATING_TRANSFER_COEFFICIENT, Battle
 from .factories import BattleFactory, WarriorFactory
 
 
@@ -47,6 +47,16 @@ def test_find_opponents_exclude_not_worthy(warrior, moderation_passed):
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize('battle_exists', [True, False])
+def test_find_opponents_exclude_already_battled(warrior, other_warrior, battle_exists):
+    if battle_exists:
+        Battle.create_from_warriors(warrior, other_warrior)
+    opponents = warrior.find_opponents()
+    opponent_expected = not battle_exists
+    assert (other_warrior in opponents) is opponent_expected
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize('warrior', [{
     'next_battle_schedule': datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
 }], indirect=True)
@@ -62,6 +72,21 @@ def test_schedule_battle_clears_next_battle_schedule(warrior):
     other.refresh_from_db()
     assert warrior.next_battle_schedule is None
     assert other.next_battle_schedule is None
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('warrior', [{
+    'next_battle_schedule': datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+    'games_played': 2,
+}], indirect=True)
+def test_schedule_battle_no_warriors(warrior):
+    now = datetime.datetime(2022, 1, 2, 0, 0, 0, tzinfo=datetime.timezone.utc)
+    battle = warrior.schedule_battle(now)
+    assert battle is None
+
+    # next_battle_schedule is moved to the future
+    warrior.refresh_from_db()
+    assert warrior.next_battle_schedule > now
 
 
 @pytest.mark.django_db

@@ -51,7 +51,7 @@ def test_battle_from_warriors_e2e(monkeypatch, warrior):
     monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
 
     with transaction.atomic():
-        battle = Battle.from_warriors(warrior, other_warrior)
+        battle = Battle.create_from_warriors(warrior, other_warrior)
         battle.refresh_from_db()
         assert battle.resolved_at_1_2 is None
         assert battle.resolved_at_2_1 is None
