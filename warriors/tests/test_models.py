@@ -85,7 +85,11 @@ def test_battle_rating_gained():
         warrior_2__id=UUID(int=2),
         warrior_2__body='qwerty',
         result_1_2='qwerty',
+        lcs_len_1_2_1=0,
+        lcs_len_1_2_2=6,
         result_2_1='qwerty',
+        lcs_len_2_1_1=0,
+        lcs_len_2_1_2=6,
         warrior_1_rating=0.0,
         warrior_2_rating=0.0,
     )

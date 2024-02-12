@@ -12,8 +12,6 @@ from django.urls import reverse
 from django.utils import timezone
 from django_q.tasks import async_chain
 
-from .lcs import lcs_len
-
 
 MAX_WARRIOR_LENGTH = 1000
 RATING_TRANSFER_COEFFICIENT = 0.1
@@ -23,6 +21,9 @@ RATING_TRANSFER_COEFFICIENT = 0.1
 # 2. assume one of them wins fully -> scores 1, other scores 0
 # 3. rating transfered is RATING_TRANSFER_COEFFICIENT * (1 - 0.5) -> their diff after the battle is twice that
 MATCHMAKING_MAX_RATING_DIFF = RATING_TRANSFER_COEFFICIENT
+
+# once to warriors battled we want to wait for a while before they can be matched again
+MATCHMAKING_COOLDOWN = datetime.timedelta(days=28)
 
 
 class WarriorQuerySet(models.QuerySet):
@@ -151,7 +152,7 @@ class Warrior(models.Model):
     def find_opponents(
         self,
         max_rating_diff=MATCHMAKING_MAX_RATING_DIFF,
-        cooldown=datetime.timedelta(days=28),
+        cooldown=MATCHMAKING_COOLDOWN,
     ):
         battle_worthy_qs = Warrior.objects.battleworthy()
         top_rating = self.rating + max_rating_diff
@@ -224,6 +225,14 @@ class Battle(models.Model):
         max_length=MAX_WARRIOR_LENGTH,
         blank=True,
     )
+    lcs_len_1_2_1 = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+    )
+    lcs_len_1_2_2 = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+    )
     llm_version_1_2 = models.CharField(
         max_length=100,
         blank=True,
@@ -235,6 +244,14 @@ class Battle(models.Model):
 
     result_2_1 = models.TextField(
         max_length=MAX_WARRIOR_LENGTH,
+        blank=True,
+    )
+    lcs_len_2_1_1 = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+    )
+    lcs_len_2_1_2 = models.PositiveIntegerField(
+        null=True,
         blank=True,
     )
     llm_version_2_1 = models.CharField(
@@ -356,22 +373,7 @@ class Game:
         assert direction in ('1_2', '2_1')
         self.battle = battle
         self.direction = direction
-
-    @property
-    def warrior_1(self):
-        return self.battle.warrior_1 if self.direction == '1_2' else self.battle.warrior_2
-
-    @property
-    def warrior_1_rating(self):
-        return self.battle.warrior_1_rating if self.direction == '1_2' else self.battle.warrior_2_rating
-
-    @property
-    def warrior_2(self):
-        return self.battle.warrior_2 if self.direction == '1_2' else self.battle.warrior_1
-
-    @property
-    def warrior_2_rating(self):
-        return self.battle.warrior_2_rating if self.direction == '1_2' else self.battle.warrior_1_rating
+        self.direction_from, self.direction_to = direction.split('_')
 
     def __getattr__(self, field_name):
         mapped_name = self.map_field_name(field_name)
@@ -406,7 +408,20 @@ class Game:
             'resolved_at',
         ):
             return f'{field_name}_{self.direction}'
-        return None
+        elif field_name == 'lcs_len_1':
+            return f'lcs_len_{self.direction}_{self.direction_from}'
+        elif field_name == 'lcs_len_2':
+            return f'lcs_len_{self.direction}_{self.direction_to}'
+        elif field_name == 'warrior_1':
+            return f'warrior_{self.direction_from}'
+        elif field_name == 'warrior_2':
+            return f'warrior_{self.direction_to}'
+        elif field_name == 'warrior_1_rating':
+            return f'warrior_{self.direction_from}_rating'
+        elif field_name == 'warrior_2_rating':
+            return f'warrior_{self.direction_to}_rating'
+        else:
+            return None
 
     @property
     def rating_gained(self):
@@ -422,11 +437,11 @@ class Game:
         Score of warrior 1
         Score of warrior 2 is `1 - score`
         '''
-        s1 = lcs_len(self.warrior_1.body, self.result) / max(
+        s1 = self.lcs_len_1 / max(
             len(self.warrior_1.body),
             len(self.result),
         )
-        s2 = lcs_len(self.warrior_2.body, self.result) / max(
+        s2 = self.lcs_len_2 / max(
             len(self.warrior_2.body),
             len(self.result),
         )

@@ -78,6 +78,10 @@ def test_resolve_battle(battle, monkeypatch):
     create_mock = mock.Mock(return_value=completions_mock)
     monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
 
+    lcs_len_mock = mock.MagicMock()
+    lcs_len_mock.side_effect = [14, 23]
+    monkeypatch.setattr('warriors.tasks.lcs_len', lcs_len_mock)
+
     resolve_battle(battle.id, '2_1')
 
     # LLM was properly invoked
@@ -87,17 +91,28 @@ def test_resolve_battle(battle, monkeypatch):
         'content': battle.warrior_2.body + battle.warrior_1.body,
     }]
 
+    # lcs_len was properly invoked
+    assert lcs_len_mock.call_count == 2
+    assert lcs_len_mock.call_args_list[0].args == (battle.warrior_2.body, 'Some result')
+    assert lcs_len_mock.call_args_list[1].args == (battle.warrior_1.body, 'Some result')
+
     # DB state is correct
     battle.refresh_from_db()
     assert battle.result_2_1 == 'Some result'
     assert battle.resolved_at_2_1 is not None
     assert battle.llm_version_2_1 == 'gpt-3.5/1234'
+    assert battle.lcs_len_2_1_1 == 23
+    assert battle.lcs_len_2_1_2 == 14
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('battle', [{
     'resolved_at_1_2': timezone.now(),
+    'lcs_len_1_2_1': 31,
+    'lcs_len_1_2_2': 31,
     'resolved_at_2_1': timezone.now(),
+    'lcs_len_2_1_1': 31,
+    'lcs_len_2_1_2': 31,
 }], indirect=True)
 def test_transfer_rating(battle):
     transfer_rating(battle.id)

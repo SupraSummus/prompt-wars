@@ -4,6 +4,7 @@ from django.contrib.postgres.functions import TransactionNow
 from django.db import transaction
 from django.utils import timezone
 
+from .lcs import lcs_len
 from .models import MAX_WARRIOR_LENGTH, Battle, Game, Warrior
 
 
@@ -76,11 +77,15 @@ def resolve_battle(battle_id, direction):
     )
     (resp_choice,) = response.choices
     battle_view.result = resp_choice.message.content[:MAX_WARRIOR_LENGTH]
+    battle_view.lcs_len_1 = lcs_len(battle_view.warrior_1.body, battle_view.result)
+    battle_view.lcs_len_2 = lcs_len(battle_view.warrior_2.body, battle_view.result)
     battle_view.llm_version = response.model + '/' + (response.system_fingerprint or '')
 
     battle_view.resolved_at = now
     battle_view.save(update_fields=[
         'result',
+        'lcs_len_1',
+        'lcs_len_2',
         'llm_version',
         'resolved_at',
     ])
