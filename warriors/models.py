@@ -181,6 +181,24 @@ class Warrior(models.Model):
             minutes=2 ** n,
         )
 
+    def update_rating(self, save=True):
+        """
+        Compute rating based on games played.
+
+        We assume all battles form a tournament
+        and starting rating of this warrior is 0.
+        """
+        rating = 0.0
+        games_played = 0
+        for b in Battle.objects.with_warrior(self).select_related('warrior_1', 'warrior_2'):
+            b = b.get_warrior_viewpoint(self)
+            rating += b.rating_gained
+            games_played += 1
+        self.rating = rating
+        self.games_played = games_played
+        if save:
+            self.save(update_fields=['rating', 'games_played'])
+
     @cached_property
     def secret(self):
         return self.secret_signer.sign(str(self.id)).split(':')[1]
@@ -434,9 +452,10 @@ class Game:
     @property
     def rating_gained(self):
         '''
-        Rating points transfered from warrior 2 to warrior 1
+        Rating points transfered from warrior 2 to warrior 1.
+        We assume that the warrior_1 rating is 0.
         '''
-        expected_score = 1 / (1 + math.exp(self.warrior_2_rating - self.warrior_1_rating))
+        expected_score = 1 / (1 + math.exp(self.warrior_2.rating))
         return RATING_TRANSFER_COEFFICIENT * (self.score - expected_score)
 
     @cached_property

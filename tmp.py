@@ -1,15 +1,16 @@
-from warriors.lcs import lcs_len
-from warriors.models import Battle
+from warriors.models import Warrior
 
 
-def update_lcs_len(game):
-    if not game.resolved_at:
-        return
-    game.lcs_len_1 = lcs_len(game.warrior_1.body, game.result)
-    game.lcs_len_2 = lcs_len(game.warrior_2.body, game.result)
-    game.save(update_fields=['lcs_len_1', 'lcs_len_2'])
+total_changes = 0.0
+n = 0
+warriors = list(Warrior.objects.all())
+for warrior in warriors:
+    old_rating = warrior.rating
+    warrior.update_rating(save=False)
+    total_changes += abs(old_rating - warrior.rating)
+    print(f'{warrior}: {old_rating} -> {warrior.rating}')
+    n += 1
+Warrior.objects.bulk_update(warriors, ['rating'])
 
 
-for battle in Battle.objects.all():
-    update_lcs_len(battle.game_1_2)
-    update_lcs_len(battle.game_2_1)
+print(f'Avg rating change: {total_changes / n}')

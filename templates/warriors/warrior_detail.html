@@ -75,7 +75,7 @@
               </td>
               <td>
                 {% if not battle.rating_transferred_at %}<span aria-busy="true"></span>
-                {% else %}{{ battle.warrior_1_rating|floatformat:3 }} {{ battle.rating_gained_str }}{% endif %}
+                {% else %}{{ battle.rating_gained_str }}{% endif %}
               </td>
             </tr>
           {% empty %}

@@ -110,11 +110,8 @@ def transfer_rating(battle_id):
         'rating_transferred_at',
     ])
 
-    rating_gained = battle.rating_gained
-    battle.warrior_1.rating += rating_gained
-    battle.warrior_2.rating -= rating_gained
-    battle.warrior_1.games_played += 1
-    battle.warrior_2.games_played += 1
+    battle.warrior_1.update_rating(save=False)
+    battle.warrior_2.update_rating(save=False)
     battle.warrior_1.next_battle_schedule = TransactionNow() + battle.warrior_1.get_next_battle_delay()
     battle.warrior_2.next_battle_schedule = TransactionNow() + battle.warrior_2.get_next_battle_delay()
     Warrior.objects.bulk_update(
