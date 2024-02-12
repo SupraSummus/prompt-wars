@@ -36,13 +36,15 @@
           <dd>{{ object.author }}</dd>
         {% endif %}
         <dt>Created at</dt>
-        <dd>{{ object.created_at }}</dd>
+        <dd><time>{{ object.created_at }}</time></dd>
         <dt>Rating points</dt>
         <dd>{{ object.rating|floatformat:3 }}</dd>
         <dt>Games played</dt>
         <dd>{{ object.games_played }}</dd>
         <dt>Id</dt>
         <dd><code>{{ object.id }}</code></dd>
+        <dt>Next battle scheduled at</dt>
+        <dd><time>{{ object.next_battle_schedule }}</time></dd>
       </dl>
 
       <h2>Battles</h2>

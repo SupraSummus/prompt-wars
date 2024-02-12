@@ -5,9 +5,9 @@
     <hgroup>
       <h1>A battle</h1>
       <p>
-        scheduled at {{ battle.scheduled_at }}
+        scheduled at <time>{{ battle.scheduled_at }}</time>
         {% if battle.rating_transferred_at %}
-          , resolved at {{ battle.rating_transferred_at }}
+          , resolved at <time>{{ battle.rating_transferred_at }}</time>
         {% endif %}
       </p>
     </hgroup>
