@@ -3,6 +3,7 @@ from urllib.parse import parse_qs
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 
 from ..models import Warrior
 from ..tasks import do_moderation
@@ -84,7 +85,12 @@ def test_create_no_strip(client, mocked_recaptcha):
     {'moderation_passed': True},
     {'moderation_passed': None},
 ], indirect=True)
-def test_warrior_details(client, warrior):
+@pytest.mark.parametrize('battle', [{
+    'resolved_at_1_2': timezone.now(),
+    'lcs_len_1_2_1': 23,
+    'lcs_len_1_2_2': 32,
+}], indirect=True)
+def test_warrior_details(client, warrior, battle):
     response = client.get(
         reverse('warrior_detail', args=(warrior.id,))
     )
@@ -93,7 +99,12 @@ def test_warrior_details(client, warrior):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('good_secret', [True, False])
-def test_warrior_details_secret(client, warrior, good_secret):
+@pytest.mark.parametrize('battle', [{
+    'resolved_at_1_2': timezone.now(),
+    'lcs_len_1_2_1': 23,
+    'lcs_len_1_2_2': 32,
+}], indirect=True)
+def test_warrior_details_secret(client, warrior, good_secret, battle):
     if good_secret:
         secret = warrior.secret
     else:

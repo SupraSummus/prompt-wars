@@ -350,15 +350,23 @@ class Battle(models.Model):
                 scheduled_at=self.scheduled_at,
                 warrior_1=self.warrior_2,
                 warrior_2=self.warrior_1,
+
                 result_1_2=self.result_2_1,
+                lcs_len_1_2_1=self.lcs_len_2_1_2,
+                lcs_len_1_2_2=self.lcs_len_2_1_1,
                 llm_version_1_2=self.llm_version_2_1,
                 resolved_at_1_2=self.resolved_at_2_1,
+
                 result_2_1=self.result_1_2,
+                lcs_len_2_1_1=self.lcs_len_1_2_2,
+                lcs_len_2_1_2=self.lcs_len_1_2_1,
                 llm_version_2_1=self.llm_version_1_2,
                 resolved_at_2_1=self.resolved_at_1_2,
+
                 warrior_1_rating=self.warrior_2_rating,
                 warrior_2_rating=self.warrior_1_rating,
                 rating_transferred_at=self.rating_transferred_at,
+
                 game_1_id=self.game_2_id,
                 game_2_id=self.game_1_id,
             )
