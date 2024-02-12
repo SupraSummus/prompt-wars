@@ -152,10 +152,7 @@ class Warrior(models.Model):
         self,
         max_rating_diff=MATCHMAKING_MAX_RATING_DIFF,
         cooldown=datetime.timedelta(days=28),
-        exclude_warriors=None,
     ):
-        if exclude_warriors is None:
-            exclude_warriors = [self.id]
         battle_worthy_qs = Warrior.objects.battleworthy()
         top_rating = self.rating + max_rating_diff
         bottom_rating = self.rating - max_rating_diff
@@ -168,7 +165,7 @@ class Warrior(models.Model):
             rating__lt=top_rating,
             rating__gt=bottom_rating,
         ).exclude(
-            id__in=exclude_warriors,
+            id=self.id,
         ).exclude(
             id__in=historic_battles.values('warrior_1'),
         ).exclude(
