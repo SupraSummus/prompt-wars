@@ -43,10 +43,11 @@
         <dd>{{ object.games_played }}</dd>
         <dt>Id</dt>
         <dd><code>{{ object.id }}</code></dd>
-        <dt>Next battle scheduled at</dt>
+        <dt>Next battle</dt>
         <dd>
           {% if object.next_battle_schedule %}
-            {% include 'time.html' with time=object.next_battle_schedule %}
+            at {% include 'time.html' with time=object.next_battle_schedule %}<br/>
+            in {{ object.next_battle_schedule|timeuntil }}
           {% else %}
             unknown
           {% endif %}
