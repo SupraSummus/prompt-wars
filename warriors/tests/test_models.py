@@ -90,8 +90,6 @@ def test_battle_rating_gained():
         result_2_1='qwerty',
         lcs_len_2_1_1=0,
         lcs_len_2_1_2=6,
-        warrior_1_rating=0.0,
-        warrior_2_rating=0.0,
     )
 
     # lets consider a single game there - the one where propmt is warrior_1 || warrior_2

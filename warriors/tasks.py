@@ -101,12 +101,8 @@ def transfer_rating(battle_id):
     assert battle.resolved_at_1_2 is not None
     assert battle.resolved_at_2_1 is not None
 
-    battle.warrior_1_rating = battle.warrior_1.rating
-    battle.warrior_2_rating = battle.warrior_2.rating
     battle.rating_transferred_at = TransactionNow()
     battle.save(update_fields=[
-        'warrior_1_rating',
-        'warrior_2_rating',
         'rating_transferred_at',
     ])
 

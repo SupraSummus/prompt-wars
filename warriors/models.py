@@ -281,14 +281,6 @@ class Battle(models.Model):
         blank=True,
     )
 
-    warrior_1_rating = models.FloatField(
-        null=True,
-        blank=True,
-    )
-    warrior_2_rating = models.FloatField(
-        null=True,
-        blank=True,
-    )
     rating_transferred_at = models.DateTimeField(
         null=True,
         blank=True,
@@ -381,8 +373,6 @@ class Battle(models.Model):
                 llm_version_2_1=self.llm_version_1_2,
                 resolved_at_2_1=self.resolved_at_1_2,
 
-                warrior_1_rating=self.warrior_2_rating,
-                warrior_2_rating=self.warrior_1_rating,
                 rating_transferred_at=self.rating_transferred_at,
 
                 game_1_id=self.game_2_id,
@@ -442,10 +432,6 @@ class Game:
             return f'warrior_{self.direction_from}'
         elif field_name == 'warrior_2':
             return f'warrior_{self.direction_to}'
-        elif field_name == 'warrior_1_rating':
-            return f'warrior_{self.direction_from}_rating'
-        elif field_name == 'warrior_2_rating':
-            return f'warrior_{self.direction_to}_rating'
         else:
             return None
 
