@@ -67,18 +67,28 @@
         <tbody>
           {% for battle in battles %}
             <tr>
-              <td>{{ battle.scheduled_at }}</td>
+              <td>{% include 'time.html' with time=battle.scheduled_at %}</td>
               <td><a href="{% url 'warrior_detail' battle.warrior_2.id %}">{{ battle.warrior_2 }}</a></td>
               <td>
                 <a href="{% url 'battle_detail' battle.id %}?{{ request.GET.urlencode }}#{{ battle.game_1_id }}">
                   {% if not battle.resolved_at_1_2 %}<span aria-busy="true"></span>
-                  {% else %}{{ battle.game_1_2.score|floatformat:3 }}{% endif %}
+                  {% else %}
+                    <meter min="0" max="1" value="{{ battle.game_1_2.score|floatformat:3 }}"
+                      low="0.33" high="0.66" optimum="1">
+                      {{ battle.game_1_2.score|floatformat:3 }}
+                    </meter>
+                  {% endif %}
                 </a>
               </td>
               <td>
                 <a href="{% url 'battle_detail' battle.id %}?{{ request.GET.urlencode }}#{{ battle.game_2_id }}">
                   {% if not battle.resolved_at_2_1 %}<span aria-busy="true"></span>
-                  {% else %}{{ battle.game_2_1.score_rev|floatformat:3 }}{% endif %}
+                  {% else %}
+                    <meter min="0" max="1" value="{{ battle.game_2_1.score_rev|floatformat:3 }}"
+                      low="0.33" high="0.66" optimum="1">
+                      {{ battle.game_2_1.score_rev|floatformat:3 }}
+                    </meter>
+                  {% endif %}
                 </a>
               </td>
               <td>
