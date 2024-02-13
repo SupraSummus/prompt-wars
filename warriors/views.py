@@ -24,6 +24,7 @@ class WarriorCreateView(CreateView):
 
 class WarriorDetailView(DetailView):
     model = Warrior
+    context_object_name = 'warrior'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

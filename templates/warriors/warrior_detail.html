@@ -1,18 +1,18 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ object }}{% endblock %}
+{% block title %}{{ warrior }}{% endblock %}
 
 {% block content %}
   <main class="container">
-    <h1>{{ object }}</h1>
+    <h1>{{ warrior }}</h1>
 
-    {% if object.moderation_passed is None %}
+    {% if warrior.moderation_passed is None %}
       <p>
         Hold on for a second, please. We are checking if this warrior is battleworthy.
       </p>
       <a href="" role="button">Reload the page</a> to see the results.
 
-    {% elif not object.moderation_passed %}
+    {% elif not warrior.moderation_passed %}
       <p>
         Sorry, but we cannot battle this warrior.
         Our AI moderator flagged it as not appropriate.
@@ -25,29 +25,29 @@
       <dl>
         {% if show_secrets %}
           <dt>Body</dt>
-          <dd>{% include 'exact_text.html' with text=object.body %}</dd>
+          <dd>{% include 'exact_text.html' with text=warrior.body %}</dd>
         {% endif %}
-        {% if object.name %}
+        {% if warrior.name %}
           <dt>Name</dt>
-          <dd>{{ object.name }}</dd>
+          <dd>{{ warrior.name }}</dd>
         {% endif %}
-        {% if object.author_name %}
+        {% if warrior.author_name %}
           <dt>Author</dt>
-          <dd>{{ object.author_name }}</dd>
+          <dd>{{ warrior.author_name }}</dd>
         {% endif %}
         <dt>Created at</dt>
-        <dd>{% include 'time.html' with time=object.created_at %}</dd>
+        <dd>{% include 'time.html' with time=warrior.created_at %}</dd>
         <dt>Rating points</dt>
-        <dd>{{ object.rating|floatformat:3 }}</dd>
+        <dd>{{ warrior.rating|floatformat:3 }}</dd>
         <dt>Games played</dt>
-        <dd>{{ object.games_played }}</dd>
+        <dd>{{ warrior.games_played }}</dd>
         <dt>Id</dt>
-        <dd><code>{{ object.id }}</code></dd>
+        <dd><code>{{ warrior.id }}</code></dd>
         <dt>Next battle</dt>
         <dd>
-          {% if object.next_battle_schedule %}
-            at {% include 'time.html' with time=object.next_battle_schedule %}<br/>
-            in {{ object.next_battle_schedule|timeuntil }}
+          {% if warrior.next_battle_schedule %}
+            at {% include 'time.html' with time=warrior.next_battle_schedule %}<br/>
+            in {{ warrior.next_battle_schedule|timeuntil }}
           {% else %}
             unknown
           {% endif %}
