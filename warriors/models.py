@@ -229,6 +229,11 @@ class Warrior(models.Model):
         except BadSignature:
             return False
 
+    def is_user_authorized(self, user):
+        if not user.is_authenticated:
+            return False
+        return self.users.filter(id=user.id).exists()
+
 
 class WarriorUserPermission(models.Model):
     id = models.UUIDField(

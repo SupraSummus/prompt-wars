@@ -57,13 +57,7 @@ class WarriorDetailView(DetailView):
 
     @cached_property
     def is_user_authorized(self):
-        user = self.request.user
-        if not user.is_authenticated:
-            return False
-        return WarriorUserPermission.objects.filter(
-            warrior=self.object,
-            user=user,
-        ).exists()
+        return self.object.is_user_authorized(self.request.user)
 
 
 class BattleDetailView(DetailView):
@@ -74,8 +68,14 @@ class BattleDetailView(DetailView):
         context = super().get_context_data(**kwargs)
 
         secret = self.request.GET.get('secret', default='')
-        context['show_secrets_1'] = self.object.warrior_1.is_secret_valid(secret)
-        context['show_secrets_2'] = self.object.warrior_2.is_secret_valid(secret)
+        context['show_secrets_1'] = (
+            self.object.warrior_1.is_secret_valid(secret) or  # noqa: W504
+            self.object.warrior_1.is_user_authorized(self.request.user)
+        )
+        context['show_secrets_2'] = (
+            self.object.warrior_2.is_secret_valid(secret) or  # noqa: W504
+            self.object.warrior_2.is_user_authorized(self.request.user)
+        )
         context['show_secrets'] = context['show_secrets_1'] or context['show_secrets_2']
 
         return context
