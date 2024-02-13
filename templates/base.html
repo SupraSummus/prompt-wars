@@ -11,7 +11,30 @@
     />
   </head>
   <body>
+
+    <header class="container">
+      {% block header %}
+        <nav>
+          <ul>
+            <li><strong>Prompt wars</strong></li>
+          </ul>
+          <ul>
+            {% if user.is_authenticated %}
+              <li>
+                Hi, {{ user.username }}!
+                <a href="{% url 'logout' %}" class="contrast">Log out</a>
+              </li>
+            {% else %}
+              <li><a href="{% url 'login' %}" class="contrast">Log in</a></li>
+              <li><a href="{% url 'signup' %}" class="contrast">Sign up</a></li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endblock %}
+    </header>
+
     {% block content %}{% endblock %}
+
     <footer class="container">
       <small>
         <a href="{% url 'warrior_leaderboard' %}">Leaderboard</a>
@@ -25,5 +48,6 @@
         <span>For the glory of mankind!</span>
       </small>
     </footer>
+
   </body>
 </html>
