@@ -36,7 +36,7 @@
           <dd>{{ object.author }}</dd>
         {% endif %}
         <dt>Created at</dt>
-        <dd><time>{{ object.created_at }}</time></dd>
+        <dd>{% include 'time.html' with time=object.created_at %}</dd>
         <dt>Rating points</dt>
         <dd>{{ object.rating|floatformat:3 }}</dd>
         <dt>Games played</dt>
@@ -44,7 +44,13 @@
         <dt>Id</dt>
         <dd><code>{{ object.id }}</code></dd>
         <dt>Next battle scheduled at</dt>
-        <dd><time>{{ object.next_battle_schedule }}</time></dd>
+        <dd>
+          {% if object.next_battle_schedule %}
+            {% include 'time.html' with time=object.next_battle_schedule %}
+          {% else %}
+            unknown
+          {% endif %}
+        </dd>
       </dl>
 
       <h2>Battles</h2>
