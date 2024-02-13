@@ -50,11 +50,11 @@ class Warrior(models.Model):
         default=timezone.now,
     )
     name = models.CharField(
-        max_length=100,
+        max_length=40,
         blank=True,
     )
     author = models.CharField(
-        max_length=100,
+        max_length=40,
         blank=True,
     )
 
