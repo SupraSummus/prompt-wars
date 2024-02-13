@@ -1,9 +1,11 @@
+from functools import cached_property
+
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import CreateView
 from django.views.generic.list import ListView
 
 from .forms import WarriorCreateForm
-from .models import Battle, Warrior
+from .models import Battle, Warrior, WarriorUserPermission
 
 
 class WarriorCreateView(CreateView):
@@ -37,10 +39,31 @@ class WarriorDetailView(DetailView):
             for battle in battles_qs
         ]
 
-        secret = self.request.GET.get('secret', default='')
-        context['show_secrets'] = self.object.is_secret_valid(secret)
+        show_secrets = self.is_secret_valid or self.is_user_authorized
+        user = self.request.user
+        if show_secrets and not self.is_user_authorized and user.is_authenticated:
+            WarriorUserPermission.objects.create(
+                warrior=self.object,
+                user=user,
+            )
+        context['show_secrets'] = show_secrets
 
         return context
+
+    @cached_property
+    def is_secret_valid(self):
+        secret = self.request.GET.get('secret', default='')
+        return self.object.is_secret_valid(secret)
+
+    @cached_property
+    def is_user_authorized(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return False
+        return WarriorUserPermission.objects.filter(
+            warrior=self.object,
+            user=user,
+        ).exists()
 
 
 class BattleDetailView(DetailView):

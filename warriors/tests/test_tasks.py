@@ -114,6 +114,9 @@ def test_resolve_battle(battle, monkeypatch):
     'lcs_len_2_1_2': 31,
 }], indirect=True)
 def test_transfer_rating(battle):
+    assert battle.warrior_1.next_battle_schedule is None
+    assert battle.warrior_2.next_battle_schedule is None
+
     transfer_rating(battle.id)
     battle.refresh_from_db()
     assert battle.rating_transferred_at is not None

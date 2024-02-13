@@ -132,6 +132,16 @@ def test_warrior_details_secret(client, warrior, good_secret, battle):
 
 
 @pytest.mark.django_db
+def test_warrior_details_creates_user_permission(user, user_client, warrior):
+    assert user not in warrior.users.all()
+    response = user_client.get(
+        reverse('warrior_detail', args=(warrior.id,)) + '?secret=' + warrior.secret
+    )
+    assert response.status_code == 200
+    assert user in warrior.users.all()
+
+
+@pytest.mark.django_db
 def test_battle_details(client, battle):
     response = client.get(
         reverse('battle_detail', args=(battle.id,))
