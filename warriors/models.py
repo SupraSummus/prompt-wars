@@ -190,6 +190,8 @@ class Warrior(models.Model):
         n = self.games_played - 1
         if n < 0:
             return datetime.timedelta()
+        if n > 25:
+            n = 25
         return datetime.timedelta(
             minutes=2 ** n,
         )
@@ -203,7 +205,10 @@ class Warrior(models.Model):
         """
         rating = 0.0
         games_played = 0
-        for b in Battle.objects.with_warrior(self).select_related('warrior_1', 'warrior_2'):
+        for b in Battle.objects.with_warrior(self).resolved().select_related(
+            'warrior_1',
+            'warrior_2',
+        ):
             b = b.get_warrior_viewpoint(self)
             rating += b.rating_gained
             games_played += 1
@@ -256,6 +261,13 @@ class BattleQuerySet(models.QuerySet):
     def with_warrior(self, warrior):
         return self.filter(
             models.Q(warrior_1=warrior) | models.Q(warrior_2=warrior),
+        )
+
+    def resolved(self):
+        return self.exclude(
+            resolved_at_1_2=None,
+        ).exclude(
+            resolved_at_2_1=None,
         )
 
 

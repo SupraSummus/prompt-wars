@@ -1,3 +1,4 @@
+import datetime
 from unittest import mock
 
 import pytest
@@ -8,7 +9,7 @@ from ..tasks import (
     do_moderation, openai_client, resolve_battle, schedule_battles,
     transfer_rating,
 )
-from .factories import WarriorFactory
+from .factories import BattleFactory, WarriorFactory
 
 
 @pytest.mark.django_db
@@ -120,3 +121,30 @@ def test_transfer_rating(battle):
     # warriors are put back into matchmaking queue
     assert battle.warrior_1.next_battle_schedule is not None
     assert battle.warrior_2.next_battle_schedule is not None
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('battle', [{
+    'resolved_at_1_2': timezone.now(),
+    'lcs_len_1_2_1': 31,
+    'lcs_len_1_2_2': 31,
+    'resolved_at_2_1': timezone.now(),
+    'lcs_len_2_1_1': 31,
+    'lcs_len_2_1_2': 31,
+}], indirect=True)
+def test_transfer_rating_lots_of_games_played(battle, warrior):
+    BattleFactory.create_batch(
+        100,
+        warrior_1=battle.warrior_1,
+        warrior_2=battle.warrior_2,
+        resolved_at_1_2=timezone.now(),
+        lcs_len_1_2_1=31,
+        lcs_len_1_2_2=31,
+        resolved_at_2_1=timezone.now(),
+        lcs_len_2_1_1=31,
+        lcs_len_2_1_2=31,
+    )
+    transfer_rating(battle.id)
+    warrior.refresh_from_db()
+    assert warrior.games_played == 101
+    assert warrior.next_battle_schedule > timezone.now() + datetime.timedelta(days=365 * 10)
