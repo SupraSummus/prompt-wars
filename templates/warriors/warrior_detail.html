@@ -31,9 +31,9 @@
           <dt>Name</dt>
           <dd>{{ object.name }}</dd>
         {% endif %}
-        {% if object.author %}
+        {% if object.author_name %}
           <dt>Author</dt>
-          <dd>{{ object.author }}</dd>
+          <dd>{{ object.author_name }}</dd>
         {% endif %}
         <dt>Created at</dt>
         <dd>{% include 'time.html' with time=object.created_at %}</dd>

@@ -19,7 +19,7 @@ def do_moderation(warrior_id):
     moderation_results = openai_client.moderations.create(
         input='\n'.join([
             warrior.name,
-            warrior.author,
+            warrior.author_name,
             warrior.body,
         ]),
     )

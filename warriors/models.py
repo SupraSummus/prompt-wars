@@ -5,6 +5,7 @@ from functools import cached_property, partial
 from urllib.parse import urlencode
 
 import django_q
+from django.conf import settings
 from django.contrib.postgres.functions import TransactionNow
 from django.core.signing import BadSignature, Signer
 from django.db import models, transaction
@@ -49,11 +50,17 @@ class Warrior(models.Model):
     created_at = models.DateTimeField(
         default=timezone.now,
     )
+    created_by = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     name = models.CharField(
         max_length=40,
         blank=True,
     )
-    author = models.CharField(
+    author_name = models.CharField(
         max_length=40,
         blank=True,
     )
@@ -210,6 +217,33 @@ class Warrior(models.Model):
             return True
         except BadSignature:
             return False
+
+
+class WarriorUserPermission(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    warrior = models.ForeignKey(
+        to=Warrior,
+        on_delete=models.CASCADE,
+    )
+    user = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
+    created_at = models.DateTimeField(
+        default=timezone.now,
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['warrior', 'user'],
+                name='warrior_user_unique',
+            ),
+        ]
 
 
 class BattleQuerySet(models.QuerySet):

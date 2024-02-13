@@ -22,7 +22,7 @@ def test_create_warrior(client, mocked_recaptcha):
             reverse('warrior_create'),
             data={
                 'name': 'Test Warrior',
-                'author': 'Test Author',
+                'author_name': 'Test Author',
                 'body': 'Test Body',
                 'g-recaptcha-response': 'PASSED',
             },
@@ -34,7 +34,7 @@ def test_create_warrior(client, mocked_recaptcha):
     # right database state
     warrior = Warrior.objects.get(id=warrior_id)
     assert warrior.name == 'Test Warrior'
-    assert warrior.author == 'Test Author'
+    assert warrior.author_name == 'Test Author'
     assert warrior.body == 'Test Body'
     assert len(warrior.body_sha_256) == 32
     assert warrior.rating == 0.0
@@ -52,11 +52,10 @@ def test_create_warrior(client, mocked_recaptcha):
 
 @pytest.mark.django_db
 def test_create_warrior_duplicate(client, warrior, mocked_recaptcha):
+    """It is not possible to create a warrior that has the same body as another."""
     response = client.post(
         reverse('warrior_create'),
         data={
-            'name': warrior.name,
-            'author': warrior.author,
             'body': warrior.body,
             'g-recaptcha-response': 'PASSED',
         },

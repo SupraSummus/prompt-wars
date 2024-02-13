@@ -27,14 +27,14 @@ class WarriorAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
     list_filter = (
         'moderation_passed',
     )
-    search_fields = ('id', 'name', 'author')
+    search_fields = ('id', 'name', 'author_name')
     date_hierarchy = 'created_at'
 
     fieldsets = (
         (None, {
             'fields': (
                 'name',
-                'author',
+                'author_name',
                 'body',
                 'created_at',
                 'secret_link',

@@ -24,12 +24,12 @@ class WarriorCreateForm(forms.ModelForm):
         fields = (
             'body',
             'name',
-            'author',
+            'author_name',
             'captcha',
         )
         labels = {
             'name': 'Warrior name (optional)',
-            'author': 'Author (optional, but recommended for eternal glory)',
+            'author_name': 'Author (optional, but recommended for eternal glory)',
         }
 
     def __init__(self, *args, **kwargs):

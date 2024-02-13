@@ -14,13 +14,11 @@ from .factories import WarriorFactory
 @pytest.mark.django_db
 @pytest.mark.parametrize('warrior', [{
     'name': 'Test Warrior',
-    'author': 'Test Author',
+    'author_name': 'Test Author',
 }], indirect=True)
 @pytest.mark.parametrize('moderation_flagged', [True, False])
 def test_do_moderation(warrior, monkeypatch, moderation_flagged):
     assert warrior.body
-    assert warrior.name
-    assert warrior.author
 
     moderation_result_mock = mock.MagicMock()
     moderation_result_mock.flagged = moderation_flagged
