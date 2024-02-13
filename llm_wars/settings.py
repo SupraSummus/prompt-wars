@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     'django_recaptcha',
     'django_q',
+    'users',
     'warriors',
 ]
 
@@ -131,6 +132,9 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+
+
+AUTH_USER_MODEL = 'users.User'
 
 
 OPENAI_API_KEY = env.str('OPENAI_API_KEY', default='')
