@@ -89,6 +89,12 @@ class Warrior(models.Model):
         blank=True,
     )
 
+    users = models.ManyToManyField(
+        to=settings.AUTH_USER_MODEL,
+        through='WarriorUserPermission',
+        related_name='warriors',
+    )
+
     objects = WarriorQuerySet.as_manager()
     secret_signer = Signer(salt='warrior')
 

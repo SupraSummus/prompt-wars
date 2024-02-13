@@ -65,4 +65,13 @@ class Migration(migrations.Migration):
                 fields=('warrior', 'user'), name='warrior_user_unique'
             ),
         ),
+        migrations.AddField(
+            model_name='warrior',
+            name='users',
+            field=models.ManyToManyField(
+                related_name='warriors',
+                through='warriors.WarriorUserPermission',
+                to=settings.AUTH_USER_MODEL,
+            ),
+        ),
     ]

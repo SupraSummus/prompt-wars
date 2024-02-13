@@ -6,7 +6,7 @@ from django.utils.translation import gettext as _
 from django_q.tasks import async_task
 from django_recaptcha.fields import ReCaptchaField
 
-from .models import MAX_WARRIOR_LENGTH, Warrior
+from .models import MAX_WARRIOR_LENGTH, Warrior, WarriorUserPermission
 from .tasks import do_moderation
 
 
@@ -32,9 +32,10 @@ class WarriorCreateForm(forms.ModelForm):
             'author_name': 'Author (optional, but recommended for eternal glory)',
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.label_suffix = ''
+        self.user = user
 
     def clean_body(self):
         body = self.cleaned_data['body']
@@ -52,8 +53,17 @@ class WarriorCreateForm(forms.ModelForm):
 
     def save(self, commit=True):
         warrior = super().save(commit=False)
+
+        if self.user.is_authenticated:
+            warrior.created_by = self.user
+
         warrior.body_sha_256 = self.cleaned_data['body_sha_256']
         assert commit
         warrior.save()
+        if self.user.is_authenticated:
+            WarriorUserPermission.objects.create(
+                warrior=warrior,
+                user=self.user,
+            )
         async_task(do_moderation, warrior.id)
         return warrior

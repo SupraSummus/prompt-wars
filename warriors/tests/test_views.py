@@ -79,6 +79,21 @@ def test_create_no_strip(client, mocked_recaptcha):
 
 
 @pytest.mark.django_db
+def test_create_authenticated(user, user_client, mocked_recaptcha):
+    response = user_client.post(
+        reverse('warrior_create'),
+        data={
+            'body': 'Test Warrior',
+            'g-recaptcha-response': 'PASSED',
+        },
+    )
+    assert response.status_code == 302
+    warrior = Warrior.objects.get()
+    assert warrior.created_by == user
+    assert user in warrior.users.all()
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize('warrior', [
     {'moderation_passed': False},
     {'moderation_passed': True},
