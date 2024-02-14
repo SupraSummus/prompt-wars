@@ -16,17 +16,20 @@
       {% block header %}
         <nav>
           <ul>
-            <li><strong>Prompt wars</strong></li>
+            <li><strong>
+              <a href="{% url 'warrior_create' %}" class="contrast">Prompt wars</a>
+            </strong></li>
+            <li><a href="{% url 'warrior_leaderboard' %}">Leaderboard</a></li>
           </ul>
           <ul>
             {% if user.is_authenticated %}
               <li>
                 Hi, {{ user.username }}!
-                <a href="{% url 'logout' %}" class="contrast">Log out</a>
+                <a href="{% url 'logout' %}">Log out</a>
               </li>
             {% else %}
-              <li><a href="{% url 'login' %}" class="contrast">Log in</a></li>
-              <li><a href="{% url 'signup' %}" class="contrast">Sign up</a></li>
+              <li><a href="{% url 'login' %}">Log in</a></li>
+              <li><a href="{% url 'signup' %}">Sign up</a></li>
             {% endif %}
           </ul>
         </nav>
