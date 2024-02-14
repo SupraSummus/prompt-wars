@@ -14,6 +14,7 @@ openai_client = openai.Client(
 
 
 def do_moderation(warrior_id):
+    now = timezone.now()
     warrior = Warrior.objects.get(id=warrior_id)
     assert warrior.moderation_date is None
     moderation_results = openai_client.moderations.create(
@@ -26,8 +27,8 @@ def do_moderation(warrior_id):
     (result,) = moderation_results.results
     warrior.moderation_passed = not result.flagged
     warrior.moderation_model = moderation_results.model
-    warrior.moderation_date = timezone.now()
-    warrior.next_battle_schedule = None if result.flagged else '1970-01-01T00:00:00Z'
+    warrior.moderation_date = now
+    warrior.next_battle_schedule = None if result.flagged else now
     warrior.save(update_fields=[
         'moderation_passed',
         'moderation_model',
