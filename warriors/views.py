@@ -19,7 +19,10 @@ class WarriorCreateView(CreateView):
         return kwargs
 
     def get_success_url(self):
-        return self.object.get_absolute_url_secret()
+        if self.request.user.is_authenticated:
+            return self.object.get_absolute_url()
+        else:
+            return self.object.get_absolute_url_secret()
 
 
 class WarriorDetailView(DetailView):
