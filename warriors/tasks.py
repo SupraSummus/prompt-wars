@@ -65,7 +65,10 @@ def resolve_battle(battle_id, direction):
     now = timezone.now()
     battle = Battle.objects.get(id=battle_id)
     battle_view = Game(battle, direction)
-    assert battle_view.resolved_at is None
+
+    if battle_view.resolved_at is not None:
+        logger.error('Battle already resolved %s, %s', battle_id, direction)
+        return
 
     prompt = battle_view.warrior_1.body + battle_view.warrior_2.body
     response = openai_client.chat.completions.create(
@@ -104,7 +107,7 @@ def transfer_rating(battle_id):
     ).select_for_update(no_key=True).get()
 
     if battle.rating_transferred_at is not None:
-        logger.warning('Rating already transferred for battle %s', battle_id)
+        logger.error('Rating already transferred for battle %s', battle_id)
         return
 
     assert battle.resolved_at_1_2 is not None
