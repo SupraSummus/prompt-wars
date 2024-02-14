@@ -118,15 +118,24 @@ def transfer_rating(battle_id):
         'rating_transferred_at',
     ])
 
-    battle.warrior_1.update_rating(save=False)
-    battle.warrior_2.update_rating(save=False)
+    battle.warrior_1.update_rating()
+    battle.warrior_2.update_rating()
     battle.warrior_1.next_battle_schedule = TransactionNow() + battle.warrior_1.get_next_battle_delay()
     battle.warrior_2.next_battle_schedule = TransactionNow() + battle.warrior_2.get_next_battle_delay()
     Warrior.objects.bulk_update(
         [battle.warrior_1, battle.warrior_2],
         [
-            'rating',
-            'games_played',
             'next_battle_schedule',
         ],
     )
+
+
+def update_rating(n=10):
+    for _ in range(n):
+        with transaction.atomic():
+            warrior = Warrior.objects.filter(
+                rating_error__gt=0,
+            ).order_by('-rating_error').first()
+            if warrior is None:
+                return
+            warrior.update_rating()

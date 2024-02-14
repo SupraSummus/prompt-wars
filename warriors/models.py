@@ -89,6 +89,10 @@ class Warrior(models.Model):
         null=True,
         blank=True,
     )
+    rating_error = models.FloatField(
+        db_index=True,
+        default=0.0,
+    )
 
     users = models.ManyToManyField(
         to=settings.AUTH_USER_MODEL,
@@ -199,7 +203,7 @@ class Warrior(models.Model):
             minutes=2 ** n,
         )
 
-    def update_rating(self, save=True):
+    def update_rating(self):
         """
         Compute rating based on games played.
 
@@ -208,6 +212,7 @@ class Warrior(models.Model):
         """
         rating = 0.0
         games_played = 0
+        opponents = set()
         for b in Battle.objects.with_warrior(self).resolved().select_related(
             'warrior_1',
             'warrior_2',
@@ -215,10 +220,18 @@ class Warrior(models.Model):
             b = b.get_warrior_viewpoint(self)
             rating += b.rating_gained
             games_played += 1
+            opponents.add(b.warrior_2.id)
+
+        rating_error = abs(rating - self.rating)
+        if rating_error > 10e-6:
+            Warrior.objects.filter(id__in=opponents).update(
+                rating_error=models.F('rating_error') + rating_error,
+            )
+
+        self.rating_error = 0.0
         self.rating = rating
         self.games_played = games_played
-        if save:
-            self.save(update_fields=['rating', 'games_played'])
+        self.save(update_fields=['rating', 'games_played', 'rating_error'])
 
     @cached_property
     def secret(self):

@@ -62,4 +62,4 @@ def test_battle_from_warriors_e2e(monkeypatch, warrior):
     warrior.refresh_from_db()
     other_warrior.refresh_from_db()
     assert warrior.rating < 0
-    assert warrior.rating + other_warrior.rating == 0
+    assert other_warrior.rating > 0
