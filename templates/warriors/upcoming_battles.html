@@ -2,7 +2,11 @@
 
 {% block content %}
   <main class="container">
-    <h1>Upcoming battles</h1>
+    {% if request.user.is_authenticated %}
+      <h1>Your upcoming battles</h1>
+    {% else %}
+      <h1>Upcoming battles</h1>
+    {% endif %}
     <table>
       <thead>
         <tr>
