@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import path
 
+import warriors.views
 from users.views import SignupView
 from warriors.views import (
     BattleDetailView, WarriorCreateView, WarriorDetailView, WarriorLeaderboard,
@@ -26,10 +27,13 @@ from warriors.views import (
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+
     path('', WarriorCreateView.as_view(), name='warrior_create'),
     path('warrior/<uuid:pk>', WarriorDetailView.as_view(), name='warrior_detail'),
     path('battle/<uuid:pk>', BattleDetailView.as_view(), name='battle_detail'),
     path('leaderboard/', WarriorLeaderboard.as_view(), name='warrior_leaderboard'),
+    path('upcoming_battles/', warriors.views.UpcomingBattlesView.as_view(), name='upcoming_battles'),
+
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('signup/', SignupView.as_view(), name='signup'),

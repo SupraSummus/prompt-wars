@@ -1,11 +1,22 @@
 import pytest
 
-from .factories import BattleFactory, WarriorFactory
+from .factories import (
+    BattleFactory, WarriorFactory, WarriorUserPermissionFactory,
+)
 
 
 @pytest.fixture
 def warrior(request):
     return WarriorFactory(
+        **getattr(request, 'param', {}),
+    )
+
+
+@pytest.fixture
+def warrior_user_permission(request, warrior, user):
+    return WarriorUserPermissionFactory(
+        warrior=warrior,
+        user=user,
         **getattr(request, 'param', {}),
     )
 

@@ -92,3 +92,18 @@ class WarriorLeaderboard(ListView):
 
     def get_queryset(self):
         return Warrior.objects.battleworthy().order_by('-rating')[:100]
+
+
+class UpcomingBattlesView(ListView):
+    model = Warrior
+    template_name = 'warriors/upcoming_battles.html'
+    context_object_name = 'warriors'
+
+    def get_queryset(self):
+        qs = Warrior.objects.battleworthy().exclude(
+            next_battle_schedule=None,
+        )
+        user = self.request.user
+        if user.is_authenticated:
+            qs = qs.filter(users=user)
+        return qs.order_by('next_battle_schedule')[:100]

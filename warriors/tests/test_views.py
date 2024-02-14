@@ -154,3 +154,11 @@ def test_leaderboard(client, warrior):
     response = client.get(reverse('warrior_leaderboard'))
     assert response.status_code == 200
     assert warrior in response.context['warriors']
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('warrior', [{'next_battle_schedule': timezone.now()}], indirect=True)
+def test_upcoming_battles(user_client, warrior, warrior_user_permission):
+    response = user_client.get(reverse('upcoming_battles'))
+    assert response.status_code == 200
+    assert warrior in response.context['warriors']
