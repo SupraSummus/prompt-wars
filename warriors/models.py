@@ -1,5 +1,6 @@
 import datetime
 import math
+import random
 import uuid
 from functools import cached_property, partial
 from urllib.parse import urlencode
@@ -190,6 +191,8 @@ class Warrior(models.Model):
         n = self.games_played - 1
         if n < 0:
             return datetime.timedelta()
+        # add some jitter
+        n -= random.random()
         if n > 25:
             n = 25
         return datetime.timedelta(
