@@ -1,3 +1,5 @@
+import logging
+
 import openai
 from django.conf import settings
 from django.contrib.postgres.functions import TransactionNow
@@ -7,6 +9,8 @@ from django.utils import timezone
 from .lcs import lcs_len
 from .models import MAX_WARRIOR_LENGTH, Battle, Game, Warrior
 
+
+logger = logging.getLogger(__name__)
 
 openai_client = openai.Client(
     api_key=settings.OPENAI_API_KEY,
@@ -98,7 +102,11 @@ def transfer_rating(battle_id):
         'warrior_1',
         'warrior_2',
     ).select_for_update(no_key=True).get()
-    assert battle.rating_transferred_at is None
+
+    if battle.rating_transferred_at is not None:
+        logger.warning('Rating already transferred for battle %s', battle_id)
+        return
+
     assert battle.resolved_at_1_2 is not None
     assert battle.resolved_at_2_1 is not None
 
