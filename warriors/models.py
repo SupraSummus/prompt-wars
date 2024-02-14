@@ -286,6 +286,7 @@ class Battle(models.Model):
         editable=False
     )
     scheduled_at = models.DateTimeField(
+        db_index=True,
         default=timezone.now,
     )
     warrior_1 = models.ForeignKey(

@@ -162,3 +162,10 @@ def test_upcoming_battles(user_client, warrior, warrior_user_permission):
     response = user_client.get(reverse('upcoming_battles'))
     assert response.status_code == 200
     assert warrior in response.context['warriors']
+
+
+@pytest.mark.django_db
+def test_recent_battles(user_client, battle, warrior_user_permission):
+    response = user_client.get(reverse('recent_battles'))
+    assert response.status_code == 200
+    assert battle in response.context['battles']

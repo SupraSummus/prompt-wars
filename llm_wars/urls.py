@@ -32,7 +32,8 @@ urlpatterns = [
     path('warrior/<uuid:pk>', WarriorDetailView.as_view(), name='warrior_detail'),
     path('battle/<uuid:pk>', BattleDetailView.as_view(), name='battle_detail'),
     path('leaderboard/', WarriorLeaderboard.as_view(), name='warrior_leaderboard'),
-    path('upcoming_battles/', warriors.views.UpcomingBattlesView.as_view(), name='upcoming_battles'),
+    path('upcoming-battles/', warriors.views.UpcomingBattlesView.as_view(), name='upcoming_battles'),
+    path('recent-battles/', warriors.views.RecentBattlesView.as_view(), name='recent_battles'),
 
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),

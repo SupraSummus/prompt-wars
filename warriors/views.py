@@ -1,5 +1,6 @@
 from functools import cached_property
 
+from django.db.models import Q
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import CreateView
 from django.views.generic.list import ListView
@@ -107,3 +108,22 @@ class UpcomingBattlesView(ListView):
         if user.is_authenticated:
             qs = qs.filter(users=user)
         return qs.order_by('next_battle_schedule')[:100]
+
+
+class RecentBattlesView(ListView):
+    model = Battle
+    template_name = 'warriors/recent_battles.html'
+    context_object_name = 'battles'
+
+    def get_queryset(self):
+        qs = Battle.objects.all()
+        if self.request.user.is_authenticated:
+            qs = qs.filter(
+                Q(warrior_1__users=self.request.user) |  # noqa: W504
+                Q(warrior_2__users=self.request.user)
+            )
+        qs = qs.order_by('-scheduled_at').select_related(
+            'warrior_1',
+            'warrior_2',
+        )
+        return qs[:100]
