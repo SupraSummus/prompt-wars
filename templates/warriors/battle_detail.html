@@ -12,7 +12,7 @@
         {% endif %}
       </p>
     </hgroup>
-    {% include 'warriors/partials/game.html' with id="1_2" game=battle.game_1_2 %}
-    {% include 'warriors/partials/game.html' with id="2_1" game=battle.game_2_1 %}
+    {% include 'warriors/partials/game.html' with heading="Game 1" id="1_2" game=battle.game_1_2 %}
+    {% include 'warriors/partials/game.html' with heading="Game 2" id="2_1" game=battle.game_2_1 %}
   </main>
 {% endblock %}
