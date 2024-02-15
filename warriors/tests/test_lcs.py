@@ -17,3 +17,12 @@ def test_lcs_len():
     assert lcs_len('abc', 'abbc') == 3
     assert lcs_len('abc', 'abcc') == 3
     assert lcs_len('abc', 'aabbcc') == 3
+
+
+def test_emoiji():
+    # "A" and "pen" look different, but both are in fact two characters long and the second one common.
+    # This second char is a "variation selector": b'\xef\xb8\x8f'.
+    assert lcs_len('🅰️', '🖋️') == 1
+
+    # So two "A" emoijs have LCS length of 2.
+    assert lcs_len('🅰️', '🅰️') == 2
