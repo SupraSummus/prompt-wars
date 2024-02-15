@@ -70,7 +70,7 @@ def test_resolve_battle(battle, monkeypatch):
 
     completion_mock = mock.MagicMock()
     completion_mock.message.content = 'Some result'
-    completion_mock.message.finish_reason = 'stop'
+    completion_mock.finish_reason = 'stop'
     completions_mock = mock.MagicMock()
     completions_mock.choices = [completion_mock]
     completions_mock.model = 'gpt-3.5'
