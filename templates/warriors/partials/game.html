@@ -18,16 +18,17 @@
       {% endif %}
     </dd>
 
-    <dt>Result</dt>
-    <dd>
-      {% if not game.resolved_at %}
-        <i>Battle is not resolved yet</i>
-      {% elif show_secrets %}
-        {% include 'exact_text.html' with text=game.result %}
-      {% else %}
-        <i>Hidden. Only the warriors' authors can see it.</i>
-      {% endif %}
-    </dd>
-
   </dl>
+
+  <details>
+    <summary role="button" class="outline">Result</summary>
+    {% if not game.resolved_at %}
+      <i>Battle is not resolved yet</i>
+    {% elif show_secrets %}
+      {% include 'exact_text.html' with text=game.result %}
+    {% else %}
+      <i>Hidden. Only the warriors' authors can see it.</i>
+    {% endif %}
+  </details>
+
 </section>

@@ -45,11 +45,15 @@
       </p>
 
     {% else %}
+
+      {% if show_secrets %}
+        <details>
+          <summary role="button" class="outline">Body</summary>
+          {% include 'exact_text.html' with text=warrior.body %}
+        </details>
+      {% endif %}
+
       <dl>
-        {% if show_secrets %}
-          <dt>Body</dt>
-          <dd>{% include 'exact_text.html' with text=warrior.body %}</dd>
-        {% endif %}
         {% if warrior.name %}
           <dt>Name</dt>
           <dd>{{ warrior.name }}</dd>
