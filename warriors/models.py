@@ -319,12 +319,10 @@ class Battle(models.Model):
         blank=True,
     )
     lcs_len_1_2_1 = models.PositiveIntegerField(
-        null=True,
-        blank=True,
+        default=0.0,
     )
     lcs_len_1_2_2 = models.PositiveIntegerField(
-        null=True,
-        blank=True,
+        default=0.0,
     )
     finish_reason_1_2 = models.CharField(
         max_length=20,
@@ -344,12 +342,10 @@ class Battle(models.Model):
         blank=True,
     )
     lcs_len_2_1_1 = models.PositiveIntegerField(
-        null=True,
-        blank=True,
+        default=0.0,
     )
     lcs_len_2_1_2 = models.PositiveIntegerField(
-        null=True,
-        blank=True,
+        default=0.0,
     )
     finish_reason_2_1 = models.CharField(
         max_length=20,
