@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib.postgres.functions import TransactionNow
 from django.core.signing import BadSignature, Signer
 from django.db import models, transaction
+from django.db.models import F
 from django.urls import reverse
 from django.utils import timezone
 from django_q.tasks import async_chain
@@ -203,14 +204,14 @@ class Warrior(models.Model):
             minutes=2 ** n,
         )
 
-    def update_rating(self):
+    def update_rating(self, step=0.5):
         """
         Compute rating based on games played.
 
         We assume all battles form a tournament
-        and starting rating of this warrior is 0.
+        and starting rating of this warrior is previous rating.
         """
-        rating = 0.0
+        new_rating = 0.0
         games_played = 0
         opponents = set()
         for b in Battle.objects.with_warrior(self).resolved().select_related(
@@ -218,18 +219,18 @@ class Warrior(models.Model):
             'warrior_2',
         ):
             b = b.get_warrior_viewpoint(self)
-            rating += b.rating_gained
+            new_rating += b.rating_gained
             games_played += 1
             opponents.add(b.warrior_2.id)
 
-        rating_error = abs(rating - self.rating)
+        rating_error = abs(new_rating - self.rating) * step
         if rating_error > 0:
             Warrior.objects.filter(id__in=opponents).update(
-                rating_error=models.F('rating_error') + rating_error,
+                rating_error=F('rating_error') + rating_error / F('games_played')
             )
 
-        self.rating_error = 0.0
-        self.rating = rating
+        self.rating_error = 0.0  # this only moves current warrior back in the recalculating queue
+        self.rating = self.rating * (1 - step) + new_rating * step
         self.games_played = games_played
         self.save(update_fields=['rating', 'games_played', 'rating_error'])
 
@@ -522,9 +523,8 @@ class Game:
     def rating_gained(self):
         '''
         Rating points transfered from warrior 2 to warrior 1.
-        We assume that the warrior_1 rating is 0.
         '''
-        expected_score = 1 / (1 + math.exp(self.warrior_2.rating))
+        expected_score = 1 / (1 + math.exp(self.warrior_2.rating - self.warrior_1.rating))
         return RATING_TRANSFER_COEFFICIENT * (self.score - expected_score)
 
     @cached_property
