@@ -226,7 +226,7 @@ class Warrior(models.Model):
         rating_error = abs(new_rating - self.rating) * step
         if rating_error > 0:
             Warrior.objects.filter(id__in=opponents).update(
-                rating_error=F('rating_error') + rating_error / F('games_played')
+                rating_error=F('rating_error') + rating_error / (F('games_played') + 1),
             )
 
         self.rating_error = 0.0  # this only moves current warrior back in the recalculating queue
