@@ -70,6 +70,7 @@ def test_resolve_battle(battle, monkeypatch):
 
     completion_mock = mock.MagicMock()
     completion_mock.message.content = 'Some result'
+    completion_mock.message.finish_reason = 'stop'
     completions_mock = mock.MagicMock()
     completions_mock.choices = [completion_mock]
     completions_mock.model = 'gpt-3.5'
@@ -98,6 +99,7 @@ def test_resolve_battle(battle, monkeypatch):
     # DB state is correct
     battle.refresh_from_db()
     assert battle.result_2_1 == 'Some result'
+    assert battle.finish_reason_2_1 == 'stop'
     assert battle.resolved_at_2_1 is not None
     assert battle.llm_version_2_1 == 'gpt-3.5/1234'
     assert battle.lcs_len_2_1_1 == 23

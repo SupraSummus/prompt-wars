@@ -87,6 +87,7 @@ def resolve_battle(battle_id, direction):
     battle_view.result = resp_choice.message.content[:MAX_WARRIOR_LENGTH]
     battle_view.lcs_len_1 = lcs_len(battle_view.warrior_1.body, battle_view.result)
     battle_view.lcs_len_2 = lcs_len(battle_view.warrior_2.body, battle_view.result)
+    battle_view.finish_reason = resp_choice.message.finish_reason
     battle_view.llm_version = response.model + '/' + (response.system_fingerprint or '')
 
     battle_view.resolved_at = now
@@ -94,6 +95,7 @@ def resolve_battle(battle_id, direction):
         'result',
         'lcs_len_1',
         'lcs_len_2',
+        'finish_reason',
         'llm_version',
         'resolved_at',
     ])

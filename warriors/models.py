@@ -325,6 +325,10 @@ class Battle(models.Model):
         null=True,
         blank=True,
     )
+    finish_reason_1_2 = models.CharField(
+        max_length=20,
+        blank=True,
+    )
     llm_version_1_2 = models.CharField(
         max_length=100,
         blank=True,
@@ -344,6 +348,10 @@ class Battle(models.Model):
     )
     lcs_len_2_1_2 = models.PositiveIntegerField(
         null=True,
+        blank=True,
+    )
+    finish_reason_2_1 = models.CharField(
+        max_length=20,
         blank=True,
     )
     llm_version_2_1 = models.CharField(
@@ -494,6 +502,7 @@ class Game:
     def map_field_name(self, field_name):
         if field_name in (
             'result',
+            'finish_reason',
             'llm_version',
             'resolved_at',
         ):
