@@ -2,6 +2,7 @@
 
 {% block content %}
   <main class="container">
+
     <hgroup>
       <h1>A battle</h1>
       <p>
@@ -14,5 +15,23 @@
     </hgroup>
     {% include 'warriors/partials/game.html' with heading="Game 1" id="1_2" game=battle.game_1_2 %}
     {% include 'warriors/partials/game.html' with heading="Game 2" id="2_1" game=battle.game_2_1 %}
+
+    <section>
+      <nav>
+        <ul>
+          <li>
+            {% if previous_battle %}
+              <a href="{% url 'battle_detail' previous_battle.id %}">↶ Older battle</a>
+            {% endif %}
+          </li>
+          <li>
+            {% if next_battle %}
+              <a href="{% url 'battle_detail' next_battle.id %}">Newer battle ↷</a>
+            {% endif %}
+          </li>
+        </ul>
+      </nav>
+    </section>
+
   </main>
 {% endblock %}

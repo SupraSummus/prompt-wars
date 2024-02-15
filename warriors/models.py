@@ -10,7 +10,7 @@ from django.conf import settings
 from django.contrib.postgres.functions import TransactionNow
 from django.core.signing import BadSignature, Signer
 from django.db import models, transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django.urls import reverse
 from django.utils import timezone
 from django_q.tasks import async_chain
@@ -290,6 +290,14 @@ class BattleQuerySet(models.QuerySet):
             resolved_at_1_2=None,
         ).exclude(
             resolved_at_2_1=None,
+        )
+
+    def for_user(self, user):
+        if not user.is_authenticated:
+            return self
+        return self.filter(
+            Q(warrior_1__users=user) |  # noqa: W504
+            Q(warrior_2__users=user)
         )
 
 
