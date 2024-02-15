@@ -223,7 +223,7 @@ class Warrior(models.Model):
             opponents.add(b.warrior_2.id)
 
         rating_error = abs(rating - self.rating)
-        if rating_error > 10e-6:
+        if rating_error > 0:
             Warrior.objects.filter(id__in=opponents).update(
                 rating_error=models.F('rating_error') + rating_error,
             )
