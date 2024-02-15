@@ -12,23 +12,7 @@
         {% endif %}
       </p>
     </hgroup>
-    <section id="1_2">
-      <hgroup>
-        <h2>Game 1</h2>
-        <p>{{ battle.game_1_2.warrior_1 }} || {{ battle.game_1_2.warrior_2 }}</p>
-      </hgroup>
-      {% if show_secrets %}
-        {% include 'exact_text.html' with text=battle.game_1_2.result %}
-      {% endif %}
-    </section>
-    <section id="2_1">
-      <hgroup>
-        <h2>Game 2</h2>
-        <p>{{ battle.game_2_1.warrior_1 }} || {{ battle.game_2_1.warrior_2 }}</p>
-      </hgroup>
-      {% if show_secrets %}
-        {% include 'exact_text.html' with text=battle.game_2_1.result %}
-      {% endif %}
-    </section>
+    {% include 'warriors/partials/game.html' with id="1_2" game=battle.game_1_2 %}
+    {% include 'warriors/partials/game.html' with id="2_1" game=battle.game_2_1 %}
   </main>
 {% endblock %}

@@ -1,0 +1,39 @@
+<section id="{{ id }}">
+  <hgroup>
+    <h2>Game 1</h2>
+  </hgroup>
+  <dl>
+
+    <dt>First warrior</dt>
+    <dd>
+      <a href="{% url 'warrior_detail' game.warrior_1.id %}">
+        {{ game.warrior_1 }}
+      </a>
+      {% if game.resolved_at %}
+        {% include 'warriors/partials/score.html' with score=game.score %}
+      {% endif %}
+    </dd>
+
+    <dt>Second warrior</dt>
+    <dd>
+      <a href="{% url 'warrior_detail' game.warrior_2.id %}">
+        {{ game.warrior_2 }}
+      </a>
+      {% if game.resolved_at %}
+        {% include 'warriors/partials/score.html' with score=game.score_rev %}
+      {% endif %}
+    </dd>
+
+    <dt>Result</dt>
+    <dd>
+      {% if not game.resolved_at %}
+        Battle is not resolved yet
+      {% elif show_secrets %}
+        {% include 'exact_text.html' with text=game.result %}
+      {% else %}
+        Log in to see the result
+      {% endif %}
+    </dd>
+
+  </dl>
+</section>
