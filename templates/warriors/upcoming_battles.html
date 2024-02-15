@@ -11,6 +11,7 @@
       <thead>
         <tr>
           <th>Warrior</th>
+          <th>Rating</th>
           <th>Next battle at</th>
           <th>Time until</th>
         </tr>
@@ -21,6 +22,7 @@
             <td>
               <a href="{% url 'warrior_detail' warrior.id %}">{{ warrior }}</a>
             </td>
+            <td>{{ warrior.rating|floatformat:3 }}</td>
             <td>{% include 'time.html' with time=warrior.next_battle_schedule %}</td>
             <td>{{ warrior.next_battle_schedule|timeuntil }}</td>
           </tr>
