@@ -219,7 +219,8 @@ class Warrior(models.Model):
             'warrior_2',
         ):
             b = b.get_warrior_viewpoint(self)
-            new_rating += b.rating_gained
+            if b.rating_gained is not None:
+                new_rating += b.rating_gained
             games_played += 1
             opponents.add(b.warrior_2.id)
 
@@ -286,15 +287,11 @@ class BattleQuerySet(models.QuerySet):
         )
 
     def resolved(self):
-        """Battles that have well-defined result"""
+        """Battles that are fully computed"""
         return self.exclude(
             resolved_at_1_2=None,
         ).exclude(
             resolved_at_2_1=None,
-        ).exclude(
-            finish_reason_1_2='error',
-        ).exclude(
-            finish_reason_2_1='error',
         )
 
     def for_user(self, user):
@@ -428,13 +425,18 @@ class Battle(models.Model):
         '''
         Rating points transfered from warrior 2 to warrior 1
         '''
-        return (self.game_1_2.rating_gained - self.game_2_1.rating_gained) / 2
+        rating_1_2 = self.game_1_2.rating_gained
+        rating_2_1 = self.game_2_1.rating_gained
+        if rating_1_2 is None or rating_2_1 is None:
+            return None
+        return (rating_1_2 - rating_2_1) / 2
 
     @property
     def rating_gained_str(self):
-        if self.game_1_2.finish_reason == 'error' or self.game_2_1.finish_reason == 'error':
+        rating_gained = self.rating_gained
+        if rating_gained is None:
             return 'none'
-        return f'{self.rating_gained:+.3f}'
+        return f'{rating_gained:+.3f}'
 
     @cached_property
     def game_1_2(self):
@@ -535,8 +537,11 @@ class Game:
         '''
         Rating points transfered from warrior 2 to warrior 1.
         '''
+        score = self.score
+        if score is None:
+            return None
         expected_score = 1 / (1 + math.exp(self.warrior_2.rating - self.warrior_1.rating))
-        return RATING_TRANSFER_COEFFICIENT * (self.score - expected_score)
+        return RATING_TRANSFER_COEFFICIENT * (score - expected_score)
 
     @cached_property
     def score(self):
@@ -560,6 +565,7 @@ class Game:
 
     @property
     def score_rev(self):
-        if self.score is None:
+        score = self.score
+        if score is None:
             return None
-        return 1.0 - self.score
+        return 1.0 - score
