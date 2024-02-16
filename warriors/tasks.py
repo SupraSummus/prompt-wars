@@ -71,24 +71,29 @@ def resolve_battle(battle_id, direction):
         return
 
     prompt = battle_view.warrior_1.body + battle_view.warrior_2.body
-    response = openai_client.chat.completions.create(
-        messages=[
-            {'role': 'user', 'content': prompt},
-        ],
-        model='gpt-3.5-turbo',
-        temperature=0,
-        # Completion length limit is in tokens, so when measured in chars we will likely get more.
-        # Other way arund is I think possible also - exotic unicode symbols
-        # may be multiple LLM tokens, but a single char.
-        # But this is a marginal case, so lets forget it for now.
-        max_tokens=MAX_WARRIOR_LENGTH,
-    )
-    (resp_choice,) = response.choices
-    battle_view.result = resp_choice.message.content[:MAX_WARRIOR_LENGTH]
-    battle_view.lcs_len_1 = lcs_len(battle_view.warrior_1.body, battle_view.result)
-    battle_view.lcs_len_2 = lcs_len(battle_view.warrior_2.body, battle_view.result)
-    battle_view.finish_reason = resp_choice.finish_reason
-    battle_view.llm_version = response.model + '/' + (response.system_fingerprint or '')
+    try:
+        response = openai_client.chat.completions.create(
+            messages=[
+                {'role': 'user', 'content': prompt},
+            ],
+            model='gpt-3.5-turbo',
+            temperature=0,
+            # Completion length limit is in tokens, so when measured in chars we will likely get more.
+            # Other way arund is I think possible also - exotic unicode symbols
+            # may be multiple LLM tokens, but a single char.
+            # But this is a marginal case, so lets forget it for now.
+            max_tokens=MAX_WARRIOR_LENGTH,
+        )
+    except openai.APIStatusError:
+        logger.exception('OpenAI API call failed')
+        battle_view.finish_reason = 'error'
+    else:
+        (resp_choice,) = response.choices
+        battle_view.result = resp_choice.message.content[:MAX_WARRIOR_LENGTH]
+        battle_view.lcs_len_1 = lcs_len(battle_view.warrior_1.body, battle_view.result)
+        battle_view.lcs_len_2 = lcs_len(battle_view.warrior_2.body, battle_view.result)
+        battle_view.finish_reason = resp_choice.finish_reason
+        battle_view.llm_version = response.model + '/' + (response.system_fingerprint or '')
 
     battle_view.resolved_at = now
     battle_view.save(update_fields=[

@@ -290,6 +290,10 @@ class BattleQuerySet(models.QuerySet):
             resolved_at_1_2=None,
         ).exclude(
             resolved_at_2_1=None,
+        ).exclude(
+            finish_reason_1_2='error',
+        ).exclude(
+            finish_reason_2_1='error',
         )
 
     def for_user(self, user):

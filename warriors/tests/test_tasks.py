@@ -1,6 +1,8 @@
 import datetime
 from unittest import mock
 
+import httpx
+import openai
 import pytest
 from django.utils import timezone
 
@@ -104,6 +106,23 @@ def test_resolve_battle(battle, monkeypatch):
     assert battle.llm_version_2_1 == 'gpt-3.5/1234'
     assert battle.lcs_len_2_1_1 == 23
     assert battle.lcs_len_2_1_2 == 14
+
+
+@pytest.mark.django_db
+def test_resolve_battle_bad_request(battle, monkeypatch):
+    create_mock = mock.Mock(side_effect=openai.APIStatusError(
+        'Bad request bro',
+        response=httpx.Response(400, request=httpx.Request('POST', 'https://openai.com')),
+        body=None,
+    ))
+    monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
+
+    resolve_battle(battle.id, '2_1')
+
+    # DB state is correct
+    battle.refresh_from_db()
+    assert battle.finish_reason_2_1 == 'error'
+    assert battle.resolved_at_2_1 is not None
 
 
 @pytest.mark.django_db
