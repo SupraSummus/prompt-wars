@@ -460,12 +460,14 @@ class Battle(models.Model):
                 result_1_2=self.result_2_1,
                 lcs_len_1_2_1=self.lcs_len_2_1_2,
                 lcs_len_1_2_2=self.lcs_len_2_1_1,
+                finish_reason_1_2=self.finish_reason_2_1,
                 llm_version_1_2=self.llm_version_2_1,
                 resolved_at_1_2=self.resolved_at_2_1,
 
                 result_2_1=self.result_1_2,
                 lcs_len_2_1_1=self.lcs_len_1_2_2,
                 lcs_len_2_1_2=self.lcs_len_1_2_1,
+                finish_reason_2_1=self.finish_reason_1_2,
                 llm_version_2_1=self.llm_version_1_2,
                 resolved_at_2_1=self.resolved_at_1_2,
 
