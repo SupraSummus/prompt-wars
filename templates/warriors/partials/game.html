@@ -23,6 +23,11 @@
       <dd>{{ game.finish_reason }}</dd>
     {% endif %}
 
+    {% if game.llm_version %}
+      <dt>LLM version</dt>
+      <dd>{{ game.llm_version }}</dd>
+    {% endif %}
+
   </dl>
 
   <details>
