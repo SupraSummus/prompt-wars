@@ -25,6 +25,7 @@ def get_performance_rating(
     score: float,
     opponent_ratings: list[float],
     precision: float = 0.001,
+    allowed_rating_range: tuple[float, float] = (-4000, 4000),
 ) -> float:
     """
     Calculate mathematically perfect performance rating from a set of games.
@@ -34,7 +35,7 @@ def get_performance_rating(
     """
 
     # we use binary search
-    lo, hi = -4000, 4000
+    lo, hi = allowed_rating_range
 
     while hi - lo > precision:
         mid = (lo + hi) / 2

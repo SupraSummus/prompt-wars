@@ -20,6 +20,7 @@ from .rating import get_expected_game_score, get_performance_rating
 MAX_WARRIOR_LENGTH = 1000
 
 MATCHMAKING_MAX_RATING_DIFF = 100  # rating diff of 100 means expected score is 64%
+MAX_ALLOWED_RATING_PER_GAME = 200
 
 # once two warriors battled we want to wait for a while before they can be matched again
 MATCHMAKING_COOLDOWN = datetime.timedelta(days=28)
@@ -220,7 +221,12 @@ class Warrior(models.Model):
 
         score = sum(score for score, _ in scores.values())
         opponent_ratings = [rating for _, rating in scores.values()]
-        new_rating = get_performance_rating(score, opponent_ratings)
+        # we limit rating range for warriors with few games played
+        max_allowed_rating = MAX_ALLOWED_RATING_PER_GAME * len(scores)
+        new_rating = get_performance_rating(
+            score, opponent_ratings,
+            allowed_rating_range=(-max_allowed_rating, max_allowed_rating),
+        )
         rating_error = new_rating - self.rating
 
         # update related warriors

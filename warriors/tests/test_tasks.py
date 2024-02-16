@@ -178,7 +178,7 @@ def test_transfer_rating_lots_of_games_played(battle, warrior):
 @pytest.mark.parametrize('battle', [{
     'resolved_at_1_2': timezone.now(),
     'lcs_len_1_2_1': 31,
-    'lcs_len_1_2_2': 1,
+    'lcs_len_1_2_2': 32,
     'resolved_at_2_1': timezone.now(),
     'lcs_len_2_1_1': 23,
     'lcs_len_2_1_2': 18,
