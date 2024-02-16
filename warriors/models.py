@@ -20,7 +20,7 @@ from .rating import get_expected_game_score, get_performance_rating
 MAX_WARRIOR_LENGTH = 1000
 
 MATCHMAKING_MAX_RATING_DIFF = 100  # rating diff of 100 means expected score is 64%
-MAX_ALLOWED_RATING_PER_GAME = 200
+MAX_ALLOWED_RATING_PER_GAME = 100
 
 # once two warriors battled we want to wait for a while before they can be matched again
 MATCHMAKING_COOLDOWN = datetime.timedelta(days=28)
