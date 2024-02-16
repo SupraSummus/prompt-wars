@@ -17,7 +17,7 @@ from django_q.tasks import async_chain
 
 
 MAX_WARRIOR_LENGTH = 1000
-RATING_TRANSFER_COEFFICIENT = 0.3
+RATING_TRANSFER_COEFFICIENT = 0.4
 
 # Matchaking max rating diff makes sure that equal players after one fully wins (scores 1) wont be matched again.
 # 1. assume warriors of equal rating -> expected match score is 0.5
