@@ -36,6 +36,7 @@ def get_performance_rating(
 
     # we use binary search
     lo, hi = allowed_rating_range
+    mid = (lo + hi) / 2
 
     while hi - lo > precision:
         mid = (lo + hi) / 2
