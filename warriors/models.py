@@ -286,6 +286,7 @@ class BattleQuerySet(models.QuerySet):
         )
 
     def resolved(self):
+        """Battles that have well-defined result"""
         return self.exclude(
             resolved_at_1_2=None,
         ).exclude(
@@ -431,6 +432,8 @@ class Battle(models.Model):
 
     @property
     def rating_gained_str(self):
+        if self.game_1_2.finish_reason == 'error' or self.game_2_1.finish_reason == 'error':
+            return 'none'
         return f'{self.rating_gained:+.3f}'
 
     @cached_property
@@ -541,6 +544,8 @@ class Game:
         Score of warrior 1
         Score of warrior 2 is `1 - score`
         '''
+        if self.finish_reason == 'error':
+            return None
         s1 = self.lcs_len_1 / max(
             len(self.warrior_1.body),
             len(self.result),
@@ -555,4 +560,6 @@ class Game:
 
     @property
     def score_rev(self):
+        if self.score is None:
+            return None
         return 1.0 - self.score

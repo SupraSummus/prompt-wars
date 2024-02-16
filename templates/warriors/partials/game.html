@@ -18,6 +18,11 @@
       {% endif %}
     </dd>
 
+    {% if game.finish_reason %}
+      <dt>Finish reason</dt>
+      <dd>{{ game.finish_reason }}</dd>
+    {% endif %}
+
   </dl>
 
   <details>
