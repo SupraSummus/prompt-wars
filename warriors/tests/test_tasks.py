@@ -9,7 +9,7 @@ from django.utils import timezone
 from ..models import Battle, Warrior
 from ..tasks import (
     do_moderation, openai_client, resolve_battle, schedule_battles,
-    transfer_rating,
+    transfer_rating, update_rating,
 )
 from .factories import BattleFactory, WarriorFactory
 
@@ -172,3 +172,29 @@ def test_transfer_rating_lots_of_games_played(battle, warrior):
     warrior.refresh_from_db()
     assert warrior.games_played == 101
     assert warrior.next_battle_schedule > timezone.now() + datetime.timedelta(days=365 * 10)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('battle', [{
+    'resolved_at_1_2': timezone.now(),
+    'lcs_len_1_2_1': 31,
+    'lcs_len_1_2_2': 1,
+    'resolved_at_2_1': timezone.now(),
+    'lcs_len_2_1_1': 23,
+    'lcs_len_2_1_2': 18,
+}], indirect=True)
+@pytest.mark.parametrize('warrior', [{'rating_error': 1}], indirect=True)
+@pytest.mark.parametrize('other_warrior', [{'rating_error': 1}], indirect=True)
+def test_update_rating(warrior, other_warrior, battle):
+    assert warrior.rating == 0.0
+    assert other_warrior.rating == 0.0
+
+    update_rating(n=2)
+
+    warrior.refresh_from_db()
+    other_warrior.refresh_from_db()
+    assert warrior.rating != 0.0
+    assert other_warrior.rating != 0.0
+    assert warrior.rating_error == pytest.approx(0, abs=0.01)
+    assert other_warrior.rating_error == pytest.approx(0.0, abs=0.01)
+    assert warrior.rating + other_warrior.rating == pytest.approx(0.0, abs=0.01)

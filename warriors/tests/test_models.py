@@ -3,7 +3,7 @@ from uuid import UUID
 
 import pytest
 
-from ..models import RATING_TRANSFER_COEFFICIENT, Battle
+from ..models import Battle
 from .factories import BattleFactory, WarriorFactory
 
 
@@ -78,7 +78,7 @@ def test_schedule_battle_no_warriors(warrior):
 
 
 @pytest.mark.django_db
-def test_battle_rating_gained():
+def test_battle_score():
     battle = BattleFactory(
         warrior_1__id=UUID(int=1),
         warrior_1__body='asdf',
@@ -95,12 +95,9 @@ def test_battle_rating_gained():
     # lets consider a single game there - the one where propmt is warrior_1 || warrior_2
     game = battle.game_1_2
     assert game.score == 0  # this means that warrior_1 was totaly erased, and warrior_2 totally preserved
-    # warrior_1 lost as many points as possible to an equaly skilled opponent
-    assert game.rating_gained == -RATING_TRANSFER_COEFFICIENT * 0.5
 
     # second game - warrior_2 || warrior_1
     assert battle.game_2_1.score == 1
-    assert battle.game_2_1.rating_gained == RATING_TRANSFER_COEFFICIENT * 0.5
 
-    # overall we have maximum rating gain
-    assert battle.rating_gained == -RATING_TRANSFER_COEFFICIENT * 0.5
+    assert battle.score == 0
+    assert battle.performance == -0.5  # it could have been closer to -1 if there was a discrepancy in the ratings

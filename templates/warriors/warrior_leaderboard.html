@@ -19,7 +19,7 @@
             <td>
               <a href="{% url 'warrior_detail' warrior.id %}">{{ warrior }}</a>
             </td>
-            <td>{{ warrior.rating|floatformat:3 }}</td>
+            <td>{{ warrior.rating|floatformat:0 }}</td>
             <td>{{ warrior.games_played }}</td>
           </tr>
         {% endfor %}

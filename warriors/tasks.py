@@ -126,6 +126,7 @@ def transfer_rating(battle_id):
     ])
 
     battle.warrior_1.update_rating()
+    battle.warrior_2.refresh_from_db()
     battle.warrior_2.update_rating()
     battle.warrior_1.next_battle_schedule = TransactionNow() + battle.warrior_1.get_next_battle_delay()
     battle.warrior_2.next_battle_schedule = TransactionNow() + battle.warrior_2.get_next_battle_delay()

@@ -1,5 +1,4 @@
 import datetime
-import math
 import random
 import uuid
 from functools import cached_property, partial
@@ -15,17 +14,14 @@ from django.urls import reverse
 from django.utils import timezone
 from django_q.tasks import async_chain
 
+from .rating import get_expected_game_score, get_performance_rating
+
 
 MAX_WARRIOR_LENGTH = 1000
-RATING_TRANSFER_COEFFICIENT = 0.3
 
-# Matchaking max rating diff makes sure that equal players after one fully wins (scores 1) wont be matched again.
-# 1. assume warriors of equal rating -> expected match score is 0.5
-# 2. assume one of them wins fully -> scores 1, other scores 0
-# 3. rating transfered is RATING_TRANSFER_COEFFICIENT * (1 - 0.5) -> their diff after the battle is twice that
-MATCHMAKING_MAX_RATING_DIFF = RATING_TRANSFER_COEFFICIENT
+MATCHMAKING_MAX_RATING_DIFF = 100  # rating diff of 100 means expected score is 64%
 
-# once to warriors battled we want to wait for a while before they can be matched again
+# once two warriors battled we want to wait for a while before they can be matched again
 MATCHMAKING_COOLDOWN = datetime.timedelta(days=28)
 
 
@@ -204,34 +200,39 @@ class Warrior(models.Model):
             minutes=2 ** n,
         )
 
-    def update_rating(self, step=0.5):
+    def update_rating(self):
         """
         Compute rating based on games played.
 
-        We assume all battles form a tournament
-        and starting rating of this warrior is previous rating.
+        We assume all battles form a tournament.
         """
-        new_rating = 0.0
+        # compute rating
+        scores = {}  # opponent_id -> (score, opponent_rating)
         games_played = 0
-        opponents = set()
         for b in Battle.objects.with_warrior(self).resolved().select_related(
             'warrior_1',
             'warrior_2',
         ):
             b = b.get_warrior_viewpoint(self)
-            if b.rating_gained is not None:
-                new_rating += b.rating_gained
+            if (game_score := b.score) is not None:
+                scores[b.warrior_2.id] = (game_score, b.warrior_2.rating)
             games_played += 1
-            opponents.add(b.warrior_2.id)
 
-        rating_error = abs(new_rating - self.rating) * step
-        if rating_error > 0:
-            Warrior.objects.filter(id__in=opponents).update(
-                rating_error=F('rating_error') + rating_error / (F('games_played') + 1),
+        score = sum(score for score, _ in scores.values())
+        opponent_ratings = [rating for _, rating in scores.values()]
+        new_rating = get_performance_rating(score, opponent_ratings)
+        rating_error = new_rating - self.rating
+
+        # update related warriors
+        if rating_error and len(scores) > 0:
+            error_per_opponent = rating_error / len(scores) / 2
+            Warrior.objects.filter(id__in=scores.keys()).update(
+                rating=F('rating') - error_per_opponent,
+                rating_error=F('rating_error') + abs(error_per_opponent),
             )
 
-        self.rating_error = 0.0  # this only moves current warrior back in the recalculating queue
-        self.rating = self.rating * (1 - step) + new_rating * step
+        self.rating_error = 0.0
+        self.rating += rating_error / 2
         self.games_played = games_played
         self.save(update_fields=['rating', 'games_played', 'rating_error'])
 
@@ -421,22 +422,36 @@ class Battle(models.Model):
         self.game_2_id = game_2_id
 
     @property
-    def rating_gained(self):
+    def score(self):
         '''
-        Rating points transfered from warrior 2 to warrior 1
+        Score of warrior 1
+        Score of warrior 2 is `1 - score`
         '''
-        rating_1_2 = self.game_1_2.rating_gained
-        rating_2_1 = self.game_2_1.rating_gained
-        if rating_1_2 is None or rating_2_1 is None:
+        game_1_2_score = self.game_1_2.score
+        game_2_1_score = self.game_2_1.score_rev
+        if game_1_2_score is None or game_2_1_score is None:
             return None
-        return (rating_1_2 - rating_2_1) / 2
+        return (game_1_2_score + game_2_1_score) / 2
 
     @property
-    def rating_gained_str(self):
-        rating_gained = self.rating_gained
-        if rating_gained is None:
+    def performance(self):
+        '''
+        How well warrior 1 performed in this battle adjusted the strength of both warriors.
+        '''
+        score = self.score
+        if score is None:
+            return None
+        return score - get_expected_game_score(
+            self.warrior_1.rating,
+            self.warrior_2.rating,
+        )
+
+    @property
+    def performance_str(self):
+        performance = self.performance
+        if performance is None:
             return 'none'
-        return f'{rating_gained:+.3f}'
+        return f'{performance:+.3f}'
 
     @cached_property
     def game_1_2(self):
@@ -533,17 +548,6 @@ class Game:
             return f'warrior_{self.direction_to}'
         else:
             return None
-
-    @property
-    def rating_gained(self):
-        '''
-        Rating points transfered from warrior 2 to warrior 1.
-        '''
-        score = self.score
-        if score is None:
-            return None
-        expected_score = 1 / (1 + math.exp(self.warrior_2.rating - self.warrior_1.rating))
-        return RATING_TRANSFER_COEFFICIENT * (score - expected_score)
 
     @cached_property
     def score(self):
