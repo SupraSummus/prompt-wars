@@ -33,9 +33,11 @@ def get_performance_rating(
     :param score: tournament score (sum of all game scores)
     :param opponent_ratings: list of opponent ratings in tournament games
     """
+    assert precision > 0
 
     # we use binary search
     lo, hi = allowed_rating_range
+    assert lo <= hi
     mid = (lo + hi) / 2
 
     while hi - lo > precision:
