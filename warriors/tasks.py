@@ -89,10 +89,14 @@ def resolve_battle(battle_id, direction):
         battle_view.finish_reason = 'error'
     else:
         (resp_choice,) = response.choices
-        battle_view.result = resp_choice.message.content[:MAX_WARRIOR_LENGTH]
+        result = resp_choice.message.content
+        battle_view.result = result[:MAX_WARRIOR_LENGTH]
         battle_view.lcs_len_1 = lcs_len(battle_view.warrior_1.body, battle_view.result)
         battle_view.lcs_len_2 = lcs_len(battle_view.warrior_2.body, battle_view.result)
         battle_view.finish_reason = resp_choice.finish_reason
+        # but the API finish reason doesn't matter if we cut the response
+        if len(result) > MAX_WARRIOR_LENGTH:
+            battle_view.finish_reason = 'character_limit'
         battle_view.llm_version = response.model + '/' + (response.system_fingerprint or '')
 
     battle_view.resolved_at = now

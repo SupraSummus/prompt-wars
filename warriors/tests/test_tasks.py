@@ -6,7 +6,7 @@ import openai
 import pytest
 from django.utils import timezone
 
-from ..models import Battle, Warrior
+from ..models import MAX_WARRIOR_LENGTH, Battle, Warrior
 from ..tasks import (
     do_moderation, openai_client, resolve_battle, schedule_battles,
     transfer_rating, update_rating,
@@ -123,6 +123,27 @@ def test_resolve_battle_bad_request(battle, monkeypatch):
     battle.refresh_from_db()
     assert battle.finish_reason_2_1 == 'error'
     assert battle.resolved_at_2_1 is not None
+
+
+@pytest.mark.django_db
+def test_resolve_battle_character_limit(battle, monkeypatch):
+    completion_mock = mock.MagicMock()
+    completion_mock.message.content = 'Some result' * 100
+    completion_mock.finish_reason = 'stop'
+    completions_mock = mock.MagicMock()
+    completions_mock.choices = [completion_mock]
+    completions_mock.model = 'gpt-3.5'
+    completions_mock.system_fingerprint = '1234'
+    create_mock = mock.Mock(return_value=completions_mock)
+    monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
+
+    resolve_battle(battle.id, '1_2')
+
+    # DB state is correct
+    battle.refresh_from_db()
+    assert battle.finish_reason_1_2 == 'character_limit'
+    assert battle.resolved_at_1_2 is not None
+    assert len(battle.result_1_2) == MAX_WARRIOR_LENGTH
 
 
 @pytest.mark.django_db
