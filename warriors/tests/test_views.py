@@ -5,6 +5,8 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
+from users.tests.factories import UserFactory
+
 from ..models import Warrior
 from ..tasks import do_moderation
 
@@ -169,3 +171,17 @@ def test_recent_battles(user_client, battle, warrior_user_permission):
     response = user_client.get(reverse('recent_battles'))
     assert response.status_code == 200
     assert battle in response.context['battles']
+
+
+@pytest.mark.django_db
+def test_recent_battles_no_duplicates(user, user_client, battle):
+    # this user has access to both warriors
+    battle.warrior_1.users.add(user)
+    battle.warrior_2.users.add(user)
+    # and there is another user with access to both warriors
+    another_user = UserFactory()
+    battle.warrior_1.users.add(another_user)
+    battle.warrior_2.users.add(another_user)
+    response = user_client.get(reverse('recent_battles'))
+    assert response.status_code == 200
+    assert len(response.context['battles']) == 1

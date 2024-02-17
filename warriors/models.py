@@ -307,7 +307,7 @@ class BattleQuerySet(models.QuerySet):
         return self.filter(
             Q(warrior_1__users=user) |  # noqa: W504
             Q(warrior_2__users=user)
-        )
+        ).distinct()
 
 
 class Battle(models.Model):
