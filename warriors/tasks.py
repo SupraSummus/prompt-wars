@@ -7,7 +7,9 @@ from django.db import transaction
 from django.utils import timezone
 
 from .lcs import lcs_len
-from .models import MAX_WARRIOR_LENGTH, Battle, Game, Warrior
+from .models import (
+    MATCHMAKING_COOLDOWN, MAX_WARRIOR_LENGTH, Battle, Game, Warrior,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -62,17 +64,13 @@ def schedule_battle(now=None):
 
 
 def schedule_battle_top():
-    """
-    Try warriors from the top of the ranking first.
-    Schedule a battle for a warrior if it possible. If not try the one lower in ranking.
-    """
-    rating = None
+    rating = 4000  # arbitrary value, higer than any real rating
+    warriors_above = set()
     while True:
         with transaction.atomic():
-            qs = Warrior.objects.battleworthy().order_by('-rating')
-            if rating is not None:
-                qs = qs.filter(rating__lt=rating)
-            warrior = qs.select_for_update(
+            warrior = Warrior.objects.battleworthy().filter(
+                rating__lt=rating,
+            ).order_by('-rating').select_for_update(
                 no_key=True,
                 skip_locked=True,
             ).first()
@@ -80,9 +78,26 @@ def schedule_battle_top():
                 # we are at the bottom of the ranking
                 return None
             rating = warrior.rating
-            battle = warrior.schedule_battle(max_rating_diff=200)
-            if battle is not None:
-                return battle
+            if warrior.id in warriors_above:
+                # may happen becuase of concurrent updates, just skip
+                continue
+
+            # try find and opponent among the warriors above
+            historic_battles = Battle.objects.with_warrior(warrior).filter(
+                scheduled_at__gt=timezone.now() - MATCHMAKING_COOLDOWN,
+            )
+            opponent = Warrior.objects.filter(
+                id__in=warriors_above,
+            ).exclude(
+                id__in=historic_battles.values('warrior_1'),
+            ).exclude(
+                id__in=historic_battles.values('warrior_2'),
+            ).order_by('?').first()
+
+            if opponent is not None:
+                return warrior.create_battle(opponent)
+
+            warriors_above.add(warrior.id)
 
 
 def resolve_battle(battle_id, direction):

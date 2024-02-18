@@ -153,6 +153,9 @@ class Warrior(models.Model):
             self.save(update_fields=['next_battle_schedule'])
             return None
 
+        return self.create_battle(opponent)
+
+    def create_battle(self, opponent):
         battle = Battle.create_from_warriors(self, opponent)
         self.next_battle_schedule = None
         opponent.next_battle_schedule = None
