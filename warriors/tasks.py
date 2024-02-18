@@ -80,7 +80,7 @@ def schedule_battle_top():
                 # we are at the bottom of the ranking
                 return None
             rating = warrior.rating
-            battle = warrior.schedule_battle()
+            battle = warrior.schedule_battle(max_rating_diff=200)
             if battle is not None:
                 return battle
 

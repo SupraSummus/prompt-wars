@@ -8,8 +8,8 @@ from django.utils import timezone
 
 from ..models import MAX_WARRIOR_LENGTH, Battle, Warrior
 from ..tasks import (
-    do_moderation, openai_client, resolve_battle, schedule_battles,
-    transfer_rating, update_rating,
+    do_moderation, openai_client, resolve_battle, schedule_battle_top,
+    schedule_battles, transfer_rating, update_rating,
 )
 from .factories import BattleFactory, WarriorFactory
 
@@ -63,6 +63,15 @@ def test_schedule_battles():
         participants.add(b.warrior_1)
         participants.add(b.warrior_2)
     assert participants == warriors
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('warrior', [{'rating': 100}], indirect=True)
+@pytest.mark.parametrize('other_warrior', [{'rating': 250}], indirect=True)
+def test_schedule_battle_top(warrior, other_warrior):
+    battle = schedule_battle_top()
+    assert battle is not None
+    assert {warrior, other_warrior} == {battle.warrior_1, battle.warrior_2}
 
 
 @pytest.mark.django_db
