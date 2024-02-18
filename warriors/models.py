@@ -142,7 +142,10 @@ class Warrior(models.Model):
             'secret': self.secret,
         })
 
-    def schedule_battle(self, now, **kwargs):
+    def schedule_battle(self, now=None, **kwargs):
+        if now is None:
+            now = timezone.now()
+
         opponent = self.find_opponent(**kwargs)
 
         if opponent is None:
