@@ -98,7 +98,9 @@
               <td><a href="{% url 'battle_detail' battle.id %}?{{ request.GET.urlencode }}">
                 {% include 'time.html' with time=battle.scheduled_at %}
               </a></td>
-              <td><a href="{% url 'warrior_detail' battle.warrior_2.id %}">{{ battle.warrior_2 }}</a></td>
+              <td><a href="{% url 'battle_detail' battle.id %}?{{ request.GET.urlencode }}">
+                {{ battle.warrior_2 }}
+              </a></td>
               <td>
                 <a href="{% url 'battle_detail' battle.id %}?{{ request.GET.urlencode }}#{{ battle.game_1_id }}">
                   {% if not battle.resolved_at_1_2 %}
