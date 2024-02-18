@@ -5,28 +5,6 @@
 {% block content %}
   <main class="container">
 
-    {# intrusive dialog to remind the user to save the URL if this is the only way of authorization #}
-    {% if not request.user.is_authenticated and show_secrets and warrior.moderation_passed %}
-      <dialog open><article>
-        <p>
-          <strong>Important! Save the URL of this page or bookmark it.</strong>
-          You won't be able to see warrior's details and battle results without it.
-        </p>
-        <p>
-          <small>
-            If only you had an account, we could assign this warrior to you and
-            authorize you to see its details and battle results without the need
-            for secret URLs. But secret URLs are fine, too.
-          </small>
-        </p>
-        <footer>
-          <form method="dialog">
-            <button>OK</button>
-          </form>
-        </footer>
-      </article></dialog>
-    {% endif %}
-
     <h1>{{ warrior }}</h1>
 
     {% if warrior.moderation_passed is None %}

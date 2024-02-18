@@ -1,5 +1,4 @@
 from unittest.mock import patch
-from urllib.parse import parse_qs
 
 import pytest
 from django.urls import reverse
@@ -30,7 +29,7 @@ def test_create_warrior(client, mocked_recaptcha):
             },
         )
     assert response.status_code == 302, response.context['form'].errors
-    path, query = response.url.split('?')
+    path = response.url
     warrior_id = path.split('/')[-1]
 
     # right database state
@@ -47,9 +46,8 @@ def test_create_warrior(client, mocked_recaptcha):
     # moderation task scheduled
     mocked_async_task.assert_called_once_with(do_moderation, warrior.id)
 
-    # user is redirected with secret key
-    get_args = parse_qs(query)
-    assert warrior.is_secret_valid(get_args['secret'][0])
+    # session is athorized for new warrior
+    assert str(warrior.id) in response.client.session['authorized_warriors']
 
 
 @pytest.mark.django_db
@@ -141,6 +139,20 @@ def test_warrior_details_creates_user_permission(user, user_client, warrior):
     )
     assert response.status_code == 200
     assert user in warrior.users.all()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('session_authorized', [True, False])
+def test_warrior_details_authorized_session(client, warrior, session_authorized):
+    session = client.session
+    session['authorized_warriors'] = [str(warrior.id)] if session_authorized else []
+    session.save()
+    response = client.get(
+        reverse('warrior_detail', args=(warrior.id,))
+    )
+    assert response.status_code == 200
+    assert response.context['show_secrets'] == session_authorized
+    assert (warrior.body in response.content.decode()) == session_authorized
 
 
 @pytest.mark.django_db

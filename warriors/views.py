@@ -1,5 +1,3 @@
-from functools import cached_property
-
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import CreateView
 from django.views.generic.list import ListView
@@ -16,13 +14,8 @@ class WarriorCreateView(CreateView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['user'] = self.request.user
+        kwargs['session'] = self.request.session
         return kwargs
-
-    def get_success_url(self):
-        if self.request.user.is_authenticated:
-            return self.object.get_absolute_url()
-        else:
-            return self.object.get_absolute_url_secret()
 
 
 class WarriorDetailView(DetailView):
@@ -43,25 +36,26 @@ class WarriorDetailView(DetailView):
             for battle in battles_qs
         ]
 
-        show_secrets = self.is_secret_valid or self.is_user_authorized
+        show_secrets = is_request_authorized(self.object, self.request)
+        context['show_secrets'] = show_secrets
+
+        # save the authorization for user if it's not already saved
         user = self.request.user
-        if show_secrets and not self.is_user_authorized and user.is_authenticated:
-            WarriorUserPermission.objects.create(
+        if show_secrets and not self.object.is_user_authorized(user) and user.is_authenticated:
+            WarriorUserPermission.objects.get_or_create(
                 warrior=self.object,
                 user=user,
             )
-        context['show_secrets'] = show_secrets
 
         return context
 
-    @cached_property
-    def is_secret_valid(self):
-        secret = self.request.GET.get('secret', default='')
-        return self.object.is_secret_valid(secret)
 
-    @cached_property
-    def is_user_authorized(self):
-        return self.object.is_user_authorized(self.request.user)
+def is_request_authorized(warrior, request):
+    return (
+        warrior.is_secret_valid(request.GET.get('secret', default='')) or  # noqa: W504
+        warrior.is_user_authorized(request.user) or  # noqa: W504
+        str(warrior.id) in request.session.get('authorized_warriors', [])
+    )
 
 
 class BattleDetailView(DetailView):
@@ -71,15 +65,8 @@ class BattleDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        secret = self.request.GET.get('secret', default='')
-        context['show_secrets_1'] = (
-            self.object.warrior_1.is_secret_valid(secret) or  # noqa: W504
-            self.object.warrior_1.is_user_authorized(self.request.user)
-        )
-        context['show_secrets_2'] = (
-            self.object.warrior_2.is_secret_valid(secret) or  # noqa: W504
-            self.object.warrior_2.is_user_authorized(self.request.user)
-        )
+        context['show_secrets_1'] = is_request_authorized(self.object.warrior_1, self.request)
+        context['show_secrets_2'] = is_request_authorized(self.object.warrior_2, self.request)
         context['show_secrets'] = context['show_secrets_1'] or context['show_secrets_2']
 
         battles_qs = Battle.objects.for_user(self.request.user)

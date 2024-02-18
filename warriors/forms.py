@@ -32,10 +32,11 @@ class WarriorCreateForm(forms.ModelForm):
             'author_name': 'Author (optional, but recommended for eternal glory)',
         }
 
-    def __init__(self, *args, user=None, **kwargs):
+    def __init__(self, *args, user=None, session=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.label_suffix = ''
         self.user = user
+        self.session = session
 
     def clean_body(self):
         body = self.cleaned_data['body']
@@ -65,5 +66,9 @@ class WarriorCreateForm(forms.ModelForm):
                 warrior=warrior,
                 user=self.user,
             )
+        else:
+            authorized_warriors = self.session.setdefault('authorized_warriors', [])
+            if str(warrior.id) not in authorized_warriors:
+                authorized_warriors.append(str(warrior.id))
         async_task(do_moderation, warrior.id)
         return warrior

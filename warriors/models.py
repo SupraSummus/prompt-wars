@@ -1,7 +1,7 @@
 import datetime
 import random
 import uuid
-from functools import cached_property, partial
+from functools import cached_property, lru_cache, partial
 from urllib.parse import urlencode
 
 import django_q
@@ -259,6 +259,7 @@ class Warrior(models.Model):
         except BadSignature:
             return False
 
+    @lru_cache(maxsize=16)
     def is_user_authorized(self, user):
         if not user.is_authenticated:
             return False
