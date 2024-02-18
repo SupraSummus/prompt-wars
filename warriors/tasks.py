@@ -167,6 +167,7 @@ def transfer_rating(battle_id):
 
 
 def update_rating(n=10):
+    errors = []
     for _ in range(n):
         with transaction.atomic():
             warrior = Warrior.objects.filter(
@@ -174,4 +175,6 @@ def update_rating(n=10):
             ).order_by('-rating_error').first()
             if warrior is None:
                 return
-            warrior.update_rating()
+            error = warrior.update_rating()
+            errors.append(error)
+    return sum(errors) / len(errors) if errors else 0

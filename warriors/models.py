@@ -245,6 +245,8 @@ class Warrior(models.Model):
         self.games_played = games_played
         self.save(update_fields=['rating', 'games_played', 'rating_error'])
 
+        return rating_error
+
     @cached_property
     def secret(self):
         return self.secret_signer.sign(str(self.id)).split(':')[1]
