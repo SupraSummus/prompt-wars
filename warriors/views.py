@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import CreateView
 from django.views.generic.list import ListView
@@ -101,6 +102,10 @@ class UpcomingBattlesView(ListView):
         user = self.request.user
         if user.is_authenticated:
             qs = qs.filter(users=user)
+        else:
+            qs = qs.filter(
+                id__in=self.request.session.get('authorized_warriors', []),
+            )
         return qs.order_by('next_battle_schedule')[:100]
 
 
@@ -110,7 +115,16 @@ class RecentBattlesView(ListView):
     context_object_name = 'battles'
 
     def get_queryset(self):
-        qs = Battle.objects.for_user(self.request.user)
+        qs = Battle.objects.all()
+        if self.request.user.is_authenticated:
+            qs = qs.for_user(self.request.user)
+        else:
+            authorized_warriors = self.request.session.get('authorized_warriors', [])
+            qs = qs.filter(Q(
+                warrior_1__id__in=authorized_warriors,
+            ) | Q(
+                warrior_2__id__in=authorized_warriors,
+            )).distinct()
         qs = qs.order_by('-scheduled_at').select_related(
             'warrior_1',
             'warrior_2',
