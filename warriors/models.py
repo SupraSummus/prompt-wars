@@ -120,7 +120,7 @@ class Warrior(models.Model):
             models.Index(
                 fields=['rating'],
                 name='rating_index',
-                condition=models.Q(moderation_flagged=False),
+                condition=models.Q(moderation_passed=True),
             ),
             models.Index(
                 fields=['next_battle_schedule'],
