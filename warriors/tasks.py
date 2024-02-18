@@ -192,4 +192,4 @@ def update_rating(n=10):
                 return
             error = warrior.update_rating()
             errors.append(error)
-    return sum(errors) / len(errors) if errors else 0
+    return max(abs(e) for e in errors) if errors else 0
