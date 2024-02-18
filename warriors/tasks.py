@@ -68,20 +68,21 @@ def schedule_battle_top():
     """
     rating = None
     while True:
-        qs = Warrior.objects.battleworthy().order_by('-rating')
-        if rating is not None:
-            qs = qs.filter(rating__lt=rating)
-        warrior = qs.select_for_update(
-            no_key=True,
-            skip_locked=True,
-        ).first()
-        if warrior is None:
-            # we are at the bottom of the ranking
-            return None
-        rating = warrior.rating
-        battle = warrior.schedule_battle()
-        if battle is not None:
-            return battle
+        with transaction.atomic():
+            qs = Warrior.objects.battleworthy().order_by('-rating')
+            if rating is not None:
+                qs = qs.filter(rating__lt=rating)
+            warrior = qs.select_for_update(
+                no_key=True,
+                skip_locked=True,
+            ).first()
+            if warrior is None:
+                # we are at the bottom of the ranking
+                return None
+            rating = warrior.rating
+            battle = warrior.schedule_battle()
+            if battle is not None:
+                return battle
 
 
 def resolve_battle(battle_id, direction):
