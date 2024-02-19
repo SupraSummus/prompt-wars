@@ -92,7 +92,7 @@ def schedule_battle_top():
                 id__in=historic_battles.values('warrior_1'),
             ).exclude(
                 id__in=historic_battles.values('warrior_2'),
-            ).order_by('?').first()
+            ).order_by('rating').first()
 
             if opponent is not None:
                 return warrior.create_battle(opponent)
