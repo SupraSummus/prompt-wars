@@ -17,7 +17,12 @@ def test_create_warrior_get(client):
 
 
 @pytest.mark.django_db
-def test_create_warrior(client, mocked_recaptcha):
+@pytest.mark.parametrize('has_authorized_warriors', [True, False])
+def test_create_warrior(client, mocked_recaptcha, has_authorized_warriors):
+    if has_authorized_warriors:
+        session = client.session
+        session['authorized_warriors'] = []
+        session.save()
     with patch('warriors.forms.async_task') as mocked_async_task:
         response = client.post(
             reverse('warrior_create'),

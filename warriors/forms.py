@@ -70,5 +70,6 @@ class WarriorCreateForm(forms.ModelForm):
             authorized_warriors = self.session.setdefault('authorized_warriors', [])
             if str(warrior.id) not in authorized_warriors:
                 authorized_warriors.append(str(warrior.id))
+                self.session.save()
         async_task(do_moderation, warrior.id)
         return warrior
