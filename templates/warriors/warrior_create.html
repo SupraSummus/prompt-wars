@@ -38,6 +38,7 @@
     <section>
       <h2>Create a Warrior</h2>
       <form method="post">
+        <strong>Don't share any private, secret or classified information!</strong>
         {% csrf_token %}
         {{ form.as_div }}
         <input type="submit" value="Create">
