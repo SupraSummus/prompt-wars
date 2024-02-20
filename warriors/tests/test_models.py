@@ -78,6 +78,24 @@ def test_schedule_battle_no_warriors(warrior):
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    ('warrior', 'min_delay_minutes', 'max_delay_minutes'),
+    [
+        ({'games_played': 0}, 0, 0),
+        ({'games_played': 1}, 0, 1),
+        ({'games_played': 2}, 1, 3),
+        ({'games_played': 3}, 3, 7),
+        ({'games_played': 4}, 7, 15),
+    ],
+    indirect=['warrior'],
+)
+def test_next_battle_delay(warrior, min_delay_minutes, max_delay_minutes):
+    delay = warrior.get_next_battle_delay()
+    assert delay >= datetime.timedelta(minutes=min_delay_minutes)
+    assert delay <= datetime.timedelta(minutes=max_delay_minutes)
+
+
+@pytest.mark.django_db
 def test_battle_score():
     battle = BattleFactory(
         warrior_1__id=UUID(int=1),

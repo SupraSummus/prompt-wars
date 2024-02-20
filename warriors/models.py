@@ -196,16 +196,20 @@ class Warrior(models.Model):
         )
 
     def get_next_battle_delay(self):
-        n = self.games_played - 1
-        if n < 0:
-            return datetime.timedelta()
-        # add some jitter
-        n -= random.random()
-        if n > 25:
-            n = 25
-        return datetime.timedelta(
-            minutes=2 ** n,
-        )
+        # delay = max(
+        #   K ** (games_played jittered) - 1,
+        #   0,
+        # ) * time unit
+        K = 2
+        time_unit = datetime.timedelta(minutes=1)
+        exponent = self.games_played - random.random()
+        if exponent > 25:
+            # avoid overflow
+            exponent = 25
+        return max(
+            K ** exponent - 1,
+            0,
+        ) * time_unit
 
     def update_rating(self):
         """
