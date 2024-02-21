@@ -13,3 +13,10 @@ def lcs_len(a, b):
             else:
                 dp[i + 1][j + 1] = max(dp[i][j + 1], dp[i + 1][j])
     return dp[n][m]
+
+
+def lcs_ranges(a, b):
+    """
+    Return a list of ranges of matching characters indexed in a.
+    """
+    raise NotImplementedError()

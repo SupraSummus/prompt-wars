@@ -1,4 +1,6 @@
-from warriors.lcs import lcs_len
+import pytest
+
+from warriors.lcs import lcs_len, lcs_ranges
 
 
 def test_lcs_len():
@@ -26,3 +28,12 @@ def test_emoiji():
 
     # So two "A" emoijs have LCS length of 2.
     assert lcs_len('🅰️', '🅰️') == 2
+
+
+@pytest.mark.skip(reason="Not implemented")
+def test_lcs_ranges():
+    assert lcs_ranges('abc', 'abc') == [(0, 2)]
+    assert lcs_ranges('abc', 'def') == []
+    assert lcs_ranges('abc', 'ab') == [(0, 1)]
+    assert lcs_ranges('abc', 'bc') == [(1, 2)]
+    assert lcs_ranges('abc', 'ac') == [(0, 0), (2, 2)]

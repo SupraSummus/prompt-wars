@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import path
+from django.views.generic import TemplateView
 
 import warriors.views
 from users.views import SignupView
@@ -26,9 +27,10 @@ from warriors.views import (
 
 
 urlpatterns = [
+    path('', TemplateView.as_view(template_name="home.html"), name='home'),
     path("admin/", admin.site.urls),
 
-    path('', WarriorCreateView.as_view(), name='warrior_create'),
+    path('create/', WarriorCreateView.as_view(), name='warrior_create'),
     path('warrior/<uuid:pk>', WarriorDetailView.as_view(), name='warrior_detail'),
     path('battle/<uuid:pk>', BattleDetailView.as_view(), name='battle_detail'),
     path('leaderboard/', WarriorLeaderboard.as_view(), name='warrior_leaderboard'),

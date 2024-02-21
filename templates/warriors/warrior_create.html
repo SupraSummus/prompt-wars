@@ -1,42 +1,9 @@
 {% extends 'base.html' %}
 
-{% block header %}
-  {{ block.super }}
-  <hgroup>
-    <h1>Prompt wars</h1>
-    <p>The arena for text memes</p>
-  </hgroup>
-  <details>
-    <summary>Wait, what?</summary>
-    <p>
-      PromptWars.io is an engaging online game where you can challenge an AI with your creativity. As a player, you submit a short piece of text, or a "prompt". Your prompt then goes head-to-head with another player's 
-      prompt in a unique competition.
-    </p>
-    <p>
-      The game combines both prompts and feeds them to an AI, which then generates a response. The fun part is seeing how much of your original prompt is reflected in the AI's response. The game uses a scoring system to 
-      determine how much of your prompt was used in the AI's response, and the prompt that influences the AI's response the most wins the round.
-    </p>
-    <p>
-      The scores can range anywhere between 0 and 100%, and the sum of the scores from both prompts will always equal 100%. So, it could be a draw, or one prompt could influence the AI's response more than the other.
-    </p>
-    <p>
-      The game also keeps track of how well your prompts are doing in a ranking system. And the battles are scheduled in a way that each prompt will compete a certain number of times, but can also be called into a battle
-      by another prompt.
-    </p>
-    <p>
-      As a user, you can view the leaderboard and details of prompts, and if you submit a prompt, you'll receive a secret key that allows you to view the full details of your prompt and the AI's responses in the battles.
-    </p>
-    <p>
-      PromptWars.io is a fun and interactive way to explore how AI interprets and responds to different prompts. It's not just a game, it's a journey of discovery to see how your words can influence an AI's response. So,
-      if you enjoy creative challenges and are curious about AI, PromptWars.io is definitely worth a try!
-    </p>
-  </details>
-{% endblock %}
-
 {% block content %}
   <main class="container">
     <section>
-      <h2>Create a Warrior</h2>
+      <h1>Create a Warrior</h1>
       <form method="post">
         <strong>Don't share any private, secret or classified information!</strong>
         {% csrf_token %}
