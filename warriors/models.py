@@ -12,8 +12,10 @@ from django.db import models, transaction
 from django.db.models import F, Q
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.html import escape, format_html, mark_safe
 from django_q.tasks import async_chain
 
+from .lcs import lcs_ranges
 from .rating import get_expected_game_score, get_performance_rating
 
 
@@ -568,7 +570,21 @@ class Game:
         else:
             return None
 
-    @cached_property
+    @property
+    def warrior_1_preserved_ratio(self):
+        return self.lcs_len_1 / max(
+            len(self.warrior_1.body),
+            len(self.result),
+        )
+
+    @property
+    def warrior_2_preserved_ratio(self):
+        return self.lcs_len_2 / max(
+            len(self.warrior_2.body),
+            len(self.result),
+        )
+
+    @property
     def score(self):
         '''
         Score of warrior 1
@@ -576,14 +592,8 @@ class Game:
         '''
         if self.finish_reason == 'error':
             return None
-        s1 = self.lcs_len_1 / max(
-            len(self.warrior_1.body),
-            len(self.result),
-        )
-        s2 = self.lcs_len_2 / max(
-            len(self.warrior_2.body),
-            len(self.result),
-        )
+        s1 = self.warrior_1_preserved_ratio
+        s2 = self.warrior_2_preserved_ratio
         if s1 + s2 == 0:
             return 0.5
         return s1 / (s1 + s2)
@@ -594,3 +604,28 @@ class Game:
         if score is None:
             return None
         return 1.0 - score
+
+    @cached_property
+    def result_marked_for_1(self):
+        return lcs_mark(self.result, self.warrior_1.body)
+
+    @cached_property
+    def result_marked_for_2(self):
+        return lcs_mark(self.result, self.warrior_2.body)
+
+
+def lcs_mark(result, warrior_body):
+    mark_ranges = lcs_ranges(result, warrior_body)
+    i = 0
+    parts = []
+    for start, end in mark_ranges:
+        unmarked = result[i:start]
+        marked = result[start:end]
+        i = end
+        parts.append(format_html(
+            '{}<mark>{}</mark>',
+            escape(unmarked),
+            escape(marked),
+        ))
+    parts.append(escape(result[i:]))
+    return mark_safe(''.join(parts))

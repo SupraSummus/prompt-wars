@@ -66,9 +66,12 @@ class BattleDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context['show_secrets_1'] = is_request_authorized(self.object.warrior_1, self.request)
-        context['show_secrets_2'] = is_request_authorized(self.object.warrior_2, self.request)
-        context['show_secrets'] = context['show_secrets_1'] or context['show_secrets_2']
+        show_secrets_1 = is_request_authorized(self.object.warrior_1, self.request)
+        show_secrets_2 = is_request_authorized(self.object.warrior_2, self.request)
+        self.object.game_1_2.show_secrets_1 = show_secrets_1
+        self.object.game_1_2.show_secrets_2 = show_secrets_2
+        self.object.game_2_1.show_secrets_1 = show_secrets_2
+        self.object.game_2_1.show_secrets_2 = show_secrets_1
 
         battles_qs = Battle.objects.for_user(self.request.user)
         context['next_battle'] = battles_qs.filter(

@@ -34,11 +34,37 @@
     <summary role="button" class="outline">Result</summary>
     {% if not game.resolved_at %}
       <i>Battle is not resolved yet</i>
-    {% elif show_secrets %}
+    {% elif game.show_secrets_1 or game.show_secrets_2 %}
       {% include 'exact_text.html' with text=game.result %}
     {% else %}
       <i>Hidden. Only the warriors' authors can see it.</i>
     {% endif %}
   </details>
+
+  {% if game.resolved_at %}
+    <details>
+      <summary role="button" class="outline">
+        Result common with warrior 1 - {{ game.warrior_1_preserved_ratio|floatformat:3 }}
+      </summary>
+      {% if game.show_secrets_1 %}
+        {% include 'exact_text.html' with text=game.result_marked_for_1 %}
+      {% else %}
+        <i>Hidden. Only the warrior's author can see it.</i>
+      {% endif %}
+    </details>
+  {% endif %}
+
+  {% if game.resolved_at %}
+    <details>
+      <summary role="button" class="outline">
+        Result common with warrior 2 - {{ game.warrior_2_preserved_ratio|floatformat:3 }}
+      </summary>
+      {% if game.show_secrets_2 %}
+        {% include 'exact_text.html' with text=game.result_marked_for_2 %}
+      {% else %}
+        <i>Hidden. Only the warrior's author can see it.</i>
+      {% endif %}
+    </details>
+  {% endif %}
 
 </div>
