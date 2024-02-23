@@ -1,3 +1,5 @@
+{% load percentage %}
+
 <div id="{{ id }}">
   <h2>{{ heading }}</h2>
   <dl>
@@ -44,7 +46,8 @@
   {% if game.resolved_at %}
     <details>
       <summary role="button" class="outline">
-        Result common with warrior 1 - {{ game.warrior_1_preserved_ratio|floatformat:3 }}
+        Result common with warrior 1 &mdash; {{ game.warrior_1_preserved_ratio|percentage }}
+        (relative {{ game.score|percentage }})
       </summary>
       {% if game.show_secrets_1 %}
         {% include 'exact_text.html' with text=game.result_marked_for_1 %}
@@ -57,7 +60,8 @@
   {% if game.resolved_at %}
     <details>
       <summary role="button" class="outline">
-        Result common with warrior 2 - {{ game.warrior_2_preserved_ratio|floatformat:3 }}
+        Result common with warrior 2 &mdash; {{ game.warrior_2_preserved_ratio|percentage }}
+        (relative {{ game.score_rev|percentage }})
       </summary>
       {% if game.show_secrets_2 %}
         {% include 'exact_text.html' with text=game.result_marked_for_2 %}

@@ -472,7 +472,7 @@ class Battle(models.Model):
         performance = self.performance
         if performance is None:
             return 'none'
-        return f'{performance:+.3f}'
+        return f'{performance:+.2f}'
 
     @cached_property
     def game_1_2(self):
