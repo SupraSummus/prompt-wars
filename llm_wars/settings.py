@@ -155,7 +155,7 @@ Q_CLUSTER = {
     'timeout': 60,  # openai is slow handling word-repeating prompts
     # task is tried again when there is no result in set time
     'retry': 120,
-    'workers': env.int('DJANGO_Q_WORKERS', default=4),
+    'workers': env.int('DJANGO_Q_WORKERS', default=2),
     'catch_up': False,
 }
 

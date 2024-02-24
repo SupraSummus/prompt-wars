@@ -1,3 +1,2 @@
 release: python manage.py migrate --no-input
-web: gunicorn llm_wars.wsgi
-worker: python manage.py qcluster
+web: trap '' SIGTERM; gunicorn llm_wars.wsgi & python manage.py qcluster & wait -n; kill -SIGTERM -$$; wait
