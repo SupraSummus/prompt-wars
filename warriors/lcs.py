@@ -29,6 +29,7 @@ def lcs_ranges(a, b):
 
     For example:
     lcs_ranges("abcde", "xaxdex") -> [(0, 1), (3, 5)]
+    lcs_ranges("aaa", "a") -> [(0, 1)]
     """
     dp = lcs_len_matrix(a, b)
 
@@ -37,12 +38,12 @@ def lcs_ranges(a, b):
     j = len(b)
     a_indexes = []
     while i > 0 and j > 0:
-        if a[i - 1] == b[j - 1]:
+        if dp[i - 1][j] > dp[i][j - 1]:
+            i -= 1
+        elif a[i - 1] == b[j - 1]:
             a_indexes.append(i - 1)
             i -= 1
             j -= 1
-        elif dp[i - 1][j] > dp[i][j - 1]:
-            i -= 1
         else:
             j -= 1
     a_indexes = list(reversed(a_indexes))

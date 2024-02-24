@@ -35,3 +35,8 @@ def test_lcs_ranges():
     assert lcs_ranges('abc', 'ab') == [(0, 2)]
     assert lcs_ranges('abc', 'bc') == [(1, 3)]
     assert lcs_ranges('abc', 'ac') == [(0, 1), (2, 3)]
+
+
+def test_lcs_ranges_eager():
+    """It selects LCS that is at the front"""
+    assert lcs_ranges('aaabbbccc', 'abc') == [(0, 1), (3, 4), (6, 7)]
