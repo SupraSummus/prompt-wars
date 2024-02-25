@@ -115,7 +115,7 @@ def resolve_battle(battle_id, direction):
         return
 
     messages = []
-    if battle_view.arena and battle_view.arena.prompt:
+    if battle_view.arena.prompt:
         messages.append({'role': 'system', 'content': battle_view.arena.prompt})
     messages.append({
         'role': 'user',
