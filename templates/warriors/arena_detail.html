@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ arena }}{% endblock %}
+
+{% block content %}
+  <main class="container">
+
+    <h1>{{ arena }}</h1>
+    <ul>
+        <li><a href="{% url 'arena_warrior_create' arena.id %}">Submit a warrior</a></li>
+        <li><a href="{% url 'arena_leaderboard' arena.id %}">Leaderboard</a></li>
+    </ul>
+
+  </main>
+{% endblock %}

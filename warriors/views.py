@@ -21,6 +21,14 @@ class ArenaViewMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
+class ArenaDetailView(ArenaViewMixin, DetailView):
+    context_object_name = 'arena'
+    template_name = 'warriors/arena_detail.html'
+
+    def get_object(self):
+        return self.arena
+
+
 class WarriorCreateView(ArenaViewMixin, CreateView):
     model = Warrior
     form_class = WarriorCreateForm

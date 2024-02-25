@@ -11,6 +11,14 @@ from ..tasks import do_moderation
 
 
 @pytest.mark.django_db
+def test_arena_detail(client, arena):
+    response = client.get(
+        reverse('arena_detail', args=(arena.id,))
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
 def test_create_warrior_get(client, default_arena):
     response = client.get(reverse('warrior_create'))
     assert response.status_code == 200
