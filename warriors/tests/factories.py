@@ -4,7 +4,14 @@ import factory
 
 from users.tests.factories import UserFactory
 
-from ..models import Battle, Warrior, WarriorUserPermission
+from ..models import Arena, Battle, Warrior, WarriorUserPermission
+
+
+class ArenaFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Arena
+
+    name = factory.Sequence(lambda n: f'factory-made arena {n}')
 
 
 class WarriorFactory(factory.django.DjangoModelFactory):

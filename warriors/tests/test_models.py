@@ -4,34 +4,32 @@ from uuid import UUID
 import pytest
 
 from ..models import Battle
-from .factories import BattleFactory, WarriorFactory
+from .factories import BattleFactory
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('warrior', [{'rating': 0.0}], indirect=True)
-@pytest.mark.parametrize(
-    ('other_rating', 'matched'),
-    [
-        (2, False),
-        (1.2, False),
-        (-1.2, False),
-        (0, True),
-        (1, True),
-        (-1, True),
-    ],
-)
-def test_find_opponents_max_rating_diff(warrior, other_rating, matched):
-    other = WarriorFactory(rating=other_rating)
+@pytest.mark.parametrize(('other_warrior', 'matched'), [
+    ({'rating': 2}, False),
+    ({'rating': 1.2}, False),
+    ({'rating': -1.2}, False),
+    ({'rating': 0}, True),
+    ({'rating': 1}, True),
+    ({'rating': -1}, True),
+], indirect=['other_warrior'])
+def test_find_opponents_max_rating_diff(warrior, other_warrior, matched):
     opponents = warrior.find_opponents(max_rating_diff=1.2)
-    assert (other in opponents) is matched
+    assert (other_warrior in opponents) is matched
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('moderation_passed', [False, None])
-def test_find_opponents_exclude_not_worthy(warrior, moderation_passed):
-    other = WarriorFactory(moderation_passed=moderation_passed)
+@pytest.mark.parametrize('other_warrior', [
+    {'moderation_passed': False},
+    {'moderation_passed': None},
+], indirect=True)
+def test_find_opponents_exclude_not_worthy(warrior, other_warrior):
     opponents = warrior.find_opponents()
-    assert other not in opponents
+    assert other_warrior not in opponents
 
 
 @pytest.mark.django_db
@@ -48,18 +46,22 @@ def test_find_opponents_exclude_already_battled(warrior, other_warrior, battle_e
 @pytest.mark.parametrize('warrior', [{
     'next_battle_schedule': datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
 }], indirect=True)
-def test_schedule_battle_clears_next_battle_schedule(warrior):
-    other = WarriorFactory(next_battle_schedule=warrior.next_battle_schedule)
+@pytest.mark.parametrize('other_warrior', [{
+    'next_battle_schedule': datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+}], indirect=True)
+def test_schedule_battle(arena, warrior, other_warrior):
     assert warrior.next_battle_schedule is not None
-    assert other.next_battle_schedule is not None
+    assert other_warrior.next_battle_schedule is not None
 
     battle = warrior.schedule_battle(now=warrior.next_battle_schedule)
     assert battle is not None
+    assert battle.arena == arena
 
     warrior.refresh_from_db()
-    other.refresh_from_db()
+    other_warrior.refresh_from_db()
+    # it clears the next_battle_schedule
     assert warrior.next_battle_schedule is None
-    assert other.next_battle_schedule is None
+    assert other_warrior.next_battle_schedule is None
 
 
 @pytest.mark.django_db

@@ -1,19 +1,37 @@
+from django.conf import settings
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import CreateView
 from django.views.generic.list import ListView
 
 from .forms import WarriorCreateForm
-from .models import Battle, Warrior, WarriorUserPermission
+from .models import Arena, Battle, Warrior, WarriorUserPermission
 
 
-class WarriorCreateView(CreateView):
+class ArenaViewMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.arena = None
+
+    def dispatch(self, request, *args, arena_id=None, **kwargs):
+        if arena_id is None:
+            arena_id = settings.DEFAULT_ARENA_ID
+        if arena_id is None:
+            self.arena = None
+        else:
+            self.arena = get_object_or_404(Arena, id=arena_id)
+        return super().dispatch(request, *args, **kwargs)
+
+
+class WarriorCreateView(ArenaViewMixin, CreateView):
     model = Warrior
     form_class = WarriorCreateForm
     template_name = 'warriors/warrior_create.html'
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
+        kwargs['arena'] = self.arena
         kwargs['user'] = self.request.user
         kwargs['session'] = self.request.session
         return kwargs
@@ -84,13 +102,15 @@ class BattleDetailView(DetailView):
         return context
 
 
-class WarriorLeaderboard(ListView):
+class WarriorLeaderboard(ArenaViewMixin, ListView):
     model = Warrior
     template_name = 'warriors/warrior_leaderboard.html'
     context_object_name = 'warriors'
 
     def get_queryset(self):
-        return Warrior.objects.battleworthy().order_by('-rating')[:100]
+        return Warrior.objects.battleworthy().filter(
+            arena=self.arena,
+        ).order_by('-rating')[:100]
 
 
 class UpcomingBattlesView(ListView):

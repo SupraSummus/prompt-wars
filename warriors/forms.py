@@ -32,9 +32,10 @@ class WarriorCreateForm(forms.ModelForm):
             'author_name': 'Author (optional, but recommended for eternal glory)',
         }
 
-    def __init__(self, *args, user=None, session=None, **kwargs):
+    def __init__(self, *args, arena=None, user=None, session=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.label_suffix = ''
+        self.arena = arena
         self.user = user
         self.session = session
 
@@ -55,6 +56,7 @@ class WarriorCreateForm(forms.ModelForm):
     def save(self, commit=True):
         warrior = super().save(commit=False)
 
+        warrior.arena = self.arena
         if self.user.is_authenticated:
             warrior.created_by = self.user
 

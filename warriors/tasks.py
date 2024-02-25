@@ -102,19 +102,27 @@ def schedule_battle_top():
 
 def resolve_battle(battle_id, direction):
     now = timezone.now()
-    battle = Battle.objects.get(id=battle_id)
+    battle = Battle.objects.filter(id=battle_id).select_related(
+        'arena',
+        'warrior_1',
+        'warrior_2',
+    ).get()
     battle_view = Game(battle, direction)
 
     if battle_view.resolved_at is not None:
         logger.error('Battle already resolved %s, %s', battle_id, direction)
         return
 
-    prompt = battle_view.warrior_1.body + battle_view.warrior_2.body
+    messages = []
+    if battle_view.arena and battle_view.arena.prompt:
+        messages.append({'role': 'system', 'content': battle_view.arena.prompt})
+    messages.append({
+        'role': 'user',
+        'content': battle_view.warrior_1.body + battle_view.warrior_2.body,
+    })
     try:
         response = openai_client.chat.completions.create(
-            messages=[
-                {'role': 'user', 'content': prompt},
-            ],
+            messages=messages,
             model='gpt-3.5-turbo',
             temperature=0,
             # Completion length limit is in tokens, so when measured in chars we will likely get more.

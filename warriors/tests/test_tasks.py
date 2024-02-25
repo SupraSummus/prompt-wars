@@ -75,7 +75,11 @@ def test_schedule_battle_top(warrior, other_warrior):
 
 
 @pytest.mark.django_db
-def test_resolve_battle(battle, monkeypatch):
+@pytest.mark.parametrize('arena', [
+    {'prompt': 'arena specific prompt'},
+    {'prompt': ''},
+], indirect=True)
+def test_resolve_battle(arena, battle, monkeypatch):
     assert battle.warrior_1.body
     assert battle.warrior_2.body
 
@@ -97,10 +101,19 @@ def test_resolve_battle(battle, monkeypatch):
 
     # LLM was properly invoked
     assert create_mock.call_count == 1
-    assert create_mock.call_args.kwargs['messages'] == [{
-        'role': 'user',
-        'content': battle.warrior_2.body + battle.warrior_1.body,
-    }]
+    if arena.prompt:
+        assert create_mock.call_args.kwargs['messages'] == [{
+            'role': 'system',
+            'content': arena.prompt,
+        }, {
+            'role': 'user',
+            'content': battle.warrior_2.body + battle.warrior_1.body,
+        }]
+    else:
+        assert create_mock.call_args.kwargs['messages'] == [{
+            'role': 'user',
+            'content': battle.warrior_2.body + battle.warrior_1.body,
+        }]
 
     # lcs_len was properly invoked
     assert lcs_len_mock.call_count == 2

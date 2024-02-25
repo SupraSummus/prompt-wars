@@ -28,6 +28,27 @@ MAX_ALLOWED_RATING_PER_GAME = 100
 MATCHMAKING_COOLDOWN = datetime.timedelta(days=28)
 
 
+class Arena(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    name = models.CharField(
+        max_length=40,
+        unique=True,
+    )
+    prompt = models.TextField(
+        max_length=MAX_WARRIOR_LENGTH,
+    )
+
+    class Meta:
+        ordering = ('name',)
+
+    def __str__(self):
+        return self.name
+
+
 class WarriorQuerySet(models.QuerySet):
     def battleworthy(self):
         return self.filter(
@@ -40,6 +61,11 @@ class Warrior(models.Model):
         primary_key=True,
         default=uuid.uuid4,
         editable=False
+    )
+    arena = models.ForeignKey(
+        to=Arena,
+        on_delete=models.CASCADE,
+        null=True,
     )
     body = models.TextField(
         max_length=MAX_WARRIOR_LENGTH,
@@ -187,6 +213,7 @@ class Warrior(models.Model):
         )
 
         return battle_worthy_qs.filter(
+            arena_id=self.arena_id,
             rating__lt=top_rating,
             rating__gt=bottom_rating,
         ).exclude(
@@ -331,6 +358,11 @@ class Battle(models.Model):
         default=uuid.uuid4,
         editable=False
     )
+    arena = models.ForeignKey(
+        to=Arena,
+        on_delete=models.CASCADE,
+        null=True,
+    )
     scheduled_at = models.DateTimeField(
         db_index=True,
         default=timezone.now,
@@ -415,9 +447,11 @@ class Battle(models.Model):
 
     @classmethod
     def create_from_warriors(cls, warrior_1, warrior_2):
+        assert warrior_1.arena_id == warrior_2.arena_id
         if warrior_1.id > warrior_2.id:
             warrior_1, warrior_2 = warrior_2, warrior_1
         battle = cls.objects.create(
+            arena_id=warrior_1.arena_id,
             warrior_1=warrior_1,
             warrior_2=warrior_2,
             scheduled_at=TransactionNow(),
@@ -489,6 +523,7 @@ class Battle(models.Model):
         elif warrior == self.warrior_2:
             return Battle(
                 id=self.id,
+                arena=self.arena,
                 scheduled_at=self.scheduled_at,
                 warrior_1=self.warrior_2,
                 warrior_2=self.warrior_1,
@@ -567,6 +602,8 @@ class Game:
             return f'warrior_{self.direction_from}'
         elif field_name == 'warrior_2':
             return f'warrior_{self.direction_to}'
+        elif field_name == 'arena':
+            return field_name
         else:
             return None
 

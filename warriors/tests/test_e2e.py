@@ -7,7 +7,6 @@ from django_q.conf import Conf
 
 from ..models import Battle, Warrior
 from ..tasks import openai_client
-from .factories import WarriorFactory
 
 
 @pytest.mark.django_db(transaction=True)
@@ -36,9 +35,11 @@ def test_submit_warrior_e2e(client, mocked_recaptcha, monkeypatch):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_battle_from_warriors_e2e(monkeypatch, warrior):
+@pytest.mark.parametrize('other_warrior', [
+    {'body': 'copy this to the output'},
+], indirect=True)
+def test_battle_from_warriors_e2e(monkeypatch, warrior, other_warrior):
     monkeypatch.setattr(Conf, 'SYNC', True)
-    other_warrior = WarriorFactory(body='copy this to the output')
     assert warrior.rating == 0.0
 
     completion_mock = mock.MagicMock()

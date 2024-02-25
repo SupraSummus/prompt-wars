@@ -165,3 +165,6 @@ if SENTRY_DSN := env.str('SENTRY_DSN', default=''):
         traces_sample_rate=0.01,
         profiles_sample_rate=0.01,
     )
+
+
+DEFAULT_ARENA_ID = env.str('DEFAULT_ARENA_ID', default=None)

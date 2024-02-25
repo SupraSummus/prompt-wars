@@ -56,6 +56,20 @@ def test_create_warrior(client, mocked_recaptcha, has_authorized_warriors):
 
 
 @pytest.mark.django_db
+def test_create_warrior_arena(client, mocked_recaptcha, arena):
+    response = client.post(
+        reverse('arena_warrior_create', args=(arena.id,)),
+        data={
+            'body': 'Test Warrior',
+            'g-recaptcha-response': 'PASSED',
+        },
+    )
+    assert response.status_code == 302
+    warrior = Warrior.objects.get()
+    assert warrior.arena == arena
+
+
+@pytest.mark.django_db
 def test_create_warrior_duplicate(client, warrior, mocked_recaptcha):
     """It is not possible to create a warrior that has the same body as another."""
     response = client.post(
@@ -169,7 +183,8 @@ def test_battle_details(client, battle):
 
 
 @pytest.mark.django_db
-def test_leaderboard(client, warrior):
+def test_leaderboard(client, arena, settings, warrior):
+    settings.DEFAULT_ARENA_ID = str(arena.id)
     response = client.get(reverse('warrior_leaderboard'))
     assert response.status_code == 200
     assert warrior in response.context['warriors']
