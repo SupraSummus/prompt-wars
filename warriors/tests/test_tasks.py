@@ -52,9 +52,10 @@ def test_schedule_battles_no_match(warrior):
 
 
 @pytest.mark.django_db
-def test_schedule_battles():
+def test_schedule_battles(arena):
     warriors = set(WarriorFactory.create_batch(
         3,
+        arena=arena,
         next_battle_schedule=timezone.now(),
     ))
     schedule_battles()

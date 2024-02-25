@@ -17,10 +17,7 @@ class ArenaViewMixin:
     def dispatch(self, request, *args, arena_id=None, **kwargs):
         if arena_id is None:
             arena_id = settings.DEFAULT_ARENA_ID
-        if arena_id is None:
-            self.arena = None
-        else:
-            self.arena = get_object_or_404(Arena, id=arena_id)
+        self.arena = get_object_or_404(Arena, id=arena_id)
         return super().dispatch(request, *args, **kwargs)
 
 

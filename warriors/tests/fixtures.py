@@ -13,6 +13,12 @@ def arena(request):
 
 
 @pytest.fixture
+def default_arena(arena, settings):
+    settings.DEFAULT_ARENA_ID = str(arena.id)
+    return arena
+
+
+@pytest.fixture
 def warrior(request, arena):
     return WarriorFactory(
         arena=arena,

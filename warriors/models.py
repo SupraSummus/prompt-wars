@@ -66,14 +66,12 @@ class Warrior(models.Model):
     arena = models.ForeignKey(
         to=Arena,
         on_delete=models.CASCADE,
-        null=True,
     )
     body = models.TextField(
         max_length=MAX_WARRIOR_LENGTH,
     )
     body_sha_256 = models.BinaryField(
         max_length=32,
-        unique=True,
     )
     created_at = models.DateTimeField(
         default=timezone.now,
@@ -143,6 +141,10 @@ class Warrior(models.Model):
                     function='sha256',
                 )),
                 name='body_sha_256',
+            ),
+            models.UniqueConstraint(
+                fields=['arena_id', 'body_sha_256'],
+                name='arena_body_sha_256_unique',
             ),
         ]
         indexes = [
@@ -362,7 +364,6 @@ class Battle(models.Model):
     arena = models.ForeignKey(
         to=Arena,
         on_delete=models.CASCADE,
-        null=True,
     )
     scheduled_at = models.DateTimeField(
         db_index=True,

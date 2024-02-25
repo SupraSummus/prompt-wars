@@ -11,14 +11,14 @@ from ..tasks import do_moderation
 
 
 @pytest.mark.django_db
-def test_create_warrior_get(client):
+def test_create_warrior_get(client, default_arena):
     response = client.get(reverse('warrior_create'))
     assert response.status_code == 200
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('has_authorized_warriors', [True, False])
-def test_create_warrior(client, mocked_recaptcha, has_authorized_warriors):
+def test_create_warrior(client, mocked_recaptcha, has_authorized_warriors, default_arena):
     if has_authorized_warriors:
         session = client.session
         session['authorized_warriors'] = []
@@ -39,6 +39,7 @@ def test_create_warrior(client, mocked_recaptcha, has_authorized_warriors):
 
     # right database state
     warrior = Warrior.objects.get(id=warrior_id)
+    assert warrior.arena == default_arena
     assert warrior.name == 'Test Warrior'
     assert warrior.author_name == 'Test Author'
     assert warrior.body == 'Test Body'
@@ -70,7 +71,7 @@ def test_create_warrior_arena(client, mocked_recaptcha, arena):
 
 
 @pytest.mark.django_db
-def test_create_warrior_duplicate(client, warrior, mocked_recaptcha):
+def test_create_warrior_duplicate(client, warrior, mocked_recaptcha, default_arena):
     """It is not possible to create a warrior that has the same body as another."""
     response = client.post(
         reverse('warrior_create'),
@@ -84,7 +85,7 @@ def test_create_warrior_duplicate(client, warrior, mocked_recaptcha):
 
 
 @pytest.mark.django_db
-def test_create_no_strip(client, mocked_recaptcha):
+def test_create_no_strip(client, mocked_recaptcha, default_arena):
     response = client.post(
         reverse('warrior_create'),
         data={
@@ -98,7 +99,7 @@ def test_create_no_strip(client, mocked_recaptcha):
 
 
 @pytest.mark.django_db
-def test_create_authenticated(user, user_client, mocked_recaptcha):
+def test_create_authenticated(user, user_client, mocked_recaptcha, default_arena):
     response = user_client.post(
         reverse('warrior_create'),
         data={
@@ -128,6 +129,7 @@ def test_warrior_details(client, warrior, battle):
         reverse('warrior_detail', args=(warrior.id,))
     )
     assert response.status_code == 200
+    assert battle in response.context['battles']
 
 
 @pytest.mark.django_db
@@ -198,8 +200,7 @@ def test_battle_details_error(user_client, battle, warrior_user_permission):
 
 
 @pytest.mark.django_db
-def test_leaderboard(client, arena, settings, warrior):
-    settings.DEFAULT_ARENA_ID = str(arena.id)
+def test_leaderboard(client, arena, settings, warrior, default_arena):
     response = client.get(reverse('warrior_leaderboard'))
     assert response.status_code == 200
     assert warrior in response.context['warriors']

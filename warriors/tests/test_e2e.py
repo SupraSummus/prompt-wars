@@ -10,7 +10,7 @@ from ..tasks import openai_client
 
 
 @pytest.mark.django_db(transaction=True)
-def test_submit_warrior_e2e(client, mocked_recaptcha, monkeypatch):
+def test_submit_warrior_e2e(client, mocked_recaptcha, monkeypatch, default_arena):
     monkeypatch.setattr(Conf, 'SYNC', True)
 
     moderation_result_mock = mock.MagicMock()

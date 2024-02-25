@@ -45,7 +45,10 @@ class WarriorCreateForm(forms.ModelForm):
 
         body_sha_256 = hashlib.sha256(body.encode('utf-8')).digest()
         self.cleaned_data['body_sha_256'] = body_sha_256
-        if Warrior.objects.filter(body_sha_256=body_sha_256).exists():
+        if Warrior.objects.filter(
+            arena=self.arena,
+            body_sha_256=body_sha_256,
+        ).exists():
             self.add_error('body', forms.ValidationError(
                 _('This warrior already exists'),
                 code='duplicate',
