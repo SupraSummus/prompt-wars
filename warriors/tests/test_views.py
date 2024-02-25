@@ -183,6 +183,21 @@ def test_battle_details(client, battle):
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize('battle', [{
+    'resolved_at_1_2': timezone.now(),
+    'result_1_2': '',
+    'finish_reason_1_2': 'error',
+}], indirect=True)
+def test_battle_details_error(user_client, battle, warrior_user_permission):
+    response = user_client.get(
+        reverse('battle_detail', args=(battle.id,))
+    )
+    assert response.status_code == 200
+    game = response.context['battle'].game_1_2
+    assert game.show_secrets_1 or game.show_secrets_2
+
+
+@pytest.mark.django_db
 def test_leaderboard(client, arena, settings, warrior):
     settings.DEFAULT_ARENA_ID = str(arena.id)
     response = client.get(reverse('warrior_leaderboard'))
