@@ -40,6 +40,7 @@ class Arena(models.Model):
     )
     prompt = models.TextField(
         max_length=MAX_WARRIOR_LENGTH,
+        blank=True,
     )
 
     class Meta:

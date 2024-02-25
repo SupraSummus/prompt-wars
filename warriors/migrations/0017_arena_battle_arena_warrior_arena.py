@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ('name', models.CharField(max_length=40, unique=True)),
-                ('prompt', models.TextField(max_length=1000)),
+                ('prompt', models.TextField(max_length=1000, blank=True)),
             ],
             options={
                 'ordering': ('name',),
