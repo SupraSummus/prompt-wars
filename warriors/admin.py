@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import Battle, Warrior
+from .models import Battle, Warrior, Arena
 
 
 class ReadOnlyModelAdminMixin:
@@ -13,6 +13,12 @@ class ReadOnlyModelAdminMixin:
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(Arena)
+class ArenaAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name')
+    search_fields = ('id', 'name')
 
 
 @admin.register(Warrior)
