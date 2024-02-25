@@ -69,6 +69,7 @@ def schedule_battle_top():
     while True:
         with transaction.atomic():
             warrior = Warrior.objects.battleworthy().filter(
+                arena_id=settings.DEFAULT_ARENA_ID,
                 rating__lt=rating,
             ).order_by('-rating').select_for_update(
                 no_key=True,
