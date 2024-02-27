@@ -6,7 +6,7 @@ from django.utils.translation import gettext as _
 from django_q.tasks import async_task
 from django_recaptcha.fields import ReCaptchaField
 
-from .models import MAX_WARRIOR_LENGTH, Warrior, WarriorUserPermission
+from .models import MAX_WARRIOR_LENGTH, Battle, Warrior, WarriorUserPermission
 from .tasks import do_moderation
 
 
@@ -77,4 +77,36 @@ class WarriorCreateForm(forms.ModelForm):
                 authorized_warriors.append(str(warrior.id))
                 self.session.save()
         async_task(do_moderation, warrior.id)
+        return warrior
+
+
+class ChallengeWarriorForm(forms.Form):
+    warrior = forms.ModelChoiceField(
+        queryset=Warrior.objects.all(),
+        label=_('Choose your warrior'),
+    )
+
+    def __init__(self, *args, opponent=None, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.opponent = opponent
+        self.user = user
+
+        self.fields['warrior'].queryset = Warrior.objects.filter(
+            arena_id=self.opponent.arena_id,
+            users=self.user,
+        ).exclude(
+            id=self.opponent.id,
+        )
+
+    def clean_warrior(self):
+        warrior = self.cleaned_data['warrior']
+        earlier_battle = Battle.objects.with_warriors(
+            self.opponent,
+            warrior,
+        ).recent().exists()
+        if earlier_battle:
+            raise forms.ValidationError(
+                _('You already battled this warrior'),
+                code='duplicate',
+            )
         return warrior

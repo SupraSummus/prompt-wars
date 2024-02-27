@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from users.tests.factories import UserFactory
 
-from ..models import Warrior
+from ..models import Battle, Warrior
 from ..tasks import do_moderation
 
 
@@ -182,6 +182,27 @@ def test_warrior_details_authorized_session(client, warrior, session_authorized)
     assert response.status_code == 200
     assert response.context['show_secrets'] == session_authorized
     assert (warrior.body in response.content.decode()) == session_authorized
+
+
+@pytest.mark.django_db
+def test_challenge_warrior_get(user_client, warrior, warrior_user_permission, other_warrior):
+    response = user_client.get(
+        reverse('challenge_warrior', args=(other_warrior.id,))
+    )
+    assert response.status_code == 200
+    assert warrior in response.context['form'].fields['warrior'].queryset
+
+
+@pytest.mark.django_db
+def test_challenge_warrior_post(user_client, warrior, warrior_user_permission, other_warrior):
+    response = user_client.post(
+        reverse('challenge_warrior', args=(other_warrior.id,)),
+        data={
+            'warrior': warrior.id,
+        },
+    )
+    assert response.status_code == 302
+    assert Battle.objects.with_warriors(warrior, other_warrior).exists()
 
 
 @pytest.mark.django_db

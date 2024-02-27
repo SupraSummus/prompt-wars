@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}Challenge{% endblock %}
+
+{% block content %}
+  <main class="container">
+
+    <hgroup>
+      <h1>Challenge to a duel</h1>
+      <p>{{ warrior }}</p>
+    </hgroup>
+
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_div }}
+      <input type="submit" value="Select">
+    </form>
+
+  </main>
+{% endblock %}

@@ -205,15 +205,12 @@ class Warrior(models.Model):
     def find_opponents(
         self,
         max_rating_diff=MATCHMAKING_MAX_RATING_DIFF,
-        cooldown=MATCHMAKING_COOLDOWN,
     ):
         battle_worthy_qs = Warrior.objects.battleworthy()
         top_rating = self.rating + max_rating_diff
         bottom_rating = self.rating - max_rating_diff
 
-        historic_battles = Battle.objects.with_warrior(self).filter(
-            scheduled_at__gt=timezone.now() - cooldown,
-        )
+        historic_battles = Battle.objects.with_warrior(self).recent()
 
         return battle_worthy_qs.filter(
             arena_id=self.arena_id,
@@ -338,6 +335,14 @@ class BattleQuerySet(models.QuerySet):
             models.Q(warrior_1=warrior) | models.Q(warrior_2=warrior),
         )
 
+    def with_warriors(self, warrior_1, warrior_2):
+        if warrior_1.id > warrior_2.id:
+            warrior_1, warrior_2 = warrior_2, warrior_1
+        return self.filter(
+            warrior_1=warrior_1,
+            warrior_2=warrior_2,
+        )
+
     def resolved(self):
         """Battles that are fully computed"""
         return self.exclude(
@@ -353,6 +358,11 @@ class BattleQuerySet(models.QuerySet):
             Q(warrior_1__users=user) |  # noqa: W504
             Q(warrior_2__users=user)
         ).distinct()
+
+    def recent(self):
+        return self.filter(
+            scheduled_at__gt=timezone.now() - MATCHMAKING_COOLDOWN,
+        )
 
 
 class Battle(models.Model):
@@ -477,6 +487,9 @@ class Battle(models.Model):
         super().__init__(*args, **kwargs)
         self.game_1_id = game_1_id
         self.game_2_id = game_2_id
+
+    def get_absolute_url(self):
+        return reverse('battle_detail', args=[str(self.id)])
 
     @property
     def score(self):

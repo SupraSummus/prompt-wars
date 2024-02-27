@@ -60,6 +60,9 @@
       </dl>
 
       <h2>Battles</h2>
+      {% if request.user.is_authenticated %}
+        <a href="{% url 'challenge_warrior' warrior.id %}" role="button">Challenge to a duel</a>
+      {% endif %}
       <table>
         <thead>
           <tr>

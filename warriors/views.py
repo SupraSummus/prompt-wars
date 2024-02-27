@@ -2,10 +2,10 @@ from django.conf import settings
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.views.generic.detail import DetailView
-from django.views.generic.edit import CreateView
+from django.views.generic.edit import CreateView, FormView
 from django.views.generic.list import ListView
 
-from .forms import WarriorCreateForm
+from .forms import ChallengeWarriorForm, WarriorCreateForm
 from .models import Arena, Battle, Warrior, WarriorUserPermission
 
 
@@ -42,9 +42,21 @@ class WarriorCreateView(ArenaViewMixin, CreateView):
         return kwargs
 
 
-class WarriorDetailView(DetailView):
-    model = Warrior
+class WarriorViewMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.warrior = None
+
+    def dispatch(self, request, *args, pk=None, **kwargs):
+        self.warrior = get_object_or_404(Warrior, id=pk)
+        return super().dispatch(request, *args, **kwargs)
+
+
+class WarriorDetailView(WarriorViewMixin, DetailView):
     context_object_name = 'warrior'
+
+    def get_object(self):
+        return self.warrior
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -72,6 +84,28 @@ class WarriorDetailView(DetailView):
             )
 
         return context
+
+
+class ChallengeWarriorView(WarriorViewMixin, DetailView, FormView):
+    context_object_name = 'warrior'
+    form_class = ChallengeWarriorForm
+    template_name = 'warriors/challenge_warrior.html'
+
+    def get_object(self):
+        return self.warrior
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['opponent'] = self.warrior
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        self.battle = Battle.create_from_warriors(self.warrior, form.cleaned_data['warrior'])
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return self.battle.get_absolute_url()
 
 
 def is_request_authorized(warrior, request):
