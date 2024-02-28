@@ -48,21 +48,18 @@
         <dd>{{ warrior.games_played }}</dd>
         <dt>Id</dt>
         <dd><code>{{ warrior.id }}</code></dd>
-        <dt>Next battle</dt>
-        <dd>
-          {% if warrior.next_battle_schedule %}
-            at {% include 'time.html' with time=warrior.next_battle_schedule %}<br/>
-            in {{ warrior.next_battle_schedule|timeuntil }}
-          {% else %}
-            unknown
-          {% endif %}
-        </dd>
       </dl>
 
       <h2>Battles</h2>
-      {% if request.user.is_authenticated %}
-        <a href="{% url 'challenge_warrior' warrior.id %}" role="button">Challenge to a duel</a>
-      {% endif %}
+      <p>
+        {% if request.user.is_authenticated %}
+          <a href="{% url 'challenge_warrior' warrior.id %}" role="button">Challenge this warrior to a duel</a>
+        {% endif %}
+      </p>
+      <p>
+        Next auto battle: {% include 'time.html' with time=warrior.next_battle_schedule %}
+        (in {{ warrior.next_battle_schedule|timeuntil }})
+      </p>
       <table>
         <thead>
           <tr>
