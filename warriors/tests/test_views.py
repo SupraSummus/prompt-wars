@@ -206,6 +206,18 @@ def test_challenge_warrior_post(user_client, warrior, warrior_user_permission, o
 
 
 @pytest.mark.django_db
+def test_challenge_warrior_post_duplicate(user_client, warrior, warrior_user_permission, other_warrior, battle):
+    response = user_client.post(
+        reverse('challenge_warrior', args=(other_warrior.id,)),
+        data={
+            'warrior': warrior.id,
+        },
+    )
+    assert response.status_code == 200
+    assert 'already happened' in response.context['form'].errors['warrior'][0]
+
+
+@pytest.mark.django_db
 def test_battle_details(client, battle):
     response = client.get(
         reverse('battle_detail', args=(battle.id,))

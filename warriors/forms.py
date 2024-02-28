@@ -83,6 +83,7 @@ class WarriorCreateForm(forms.ModelForm):
 class ChallengeWarriorForm(forms.Form):
     warrior = forms.ModelChoiceField(
         queryset=Warrior.objects.all(),
+        widget=forms.RadioSelect,
         label=_('Choose your warrior'),
     )
 
@@ -98,15 +99,15 @@ class ChallengeWarriorForm(forms.Form):
             id=self.opponent.id,
         )
 
-    def clean_warrior(self):
+    def clean(self):
         warrior = self.cleaned_data['warrior']
         earlier_battle = Battle.objects.with_warriors(
             self.opponent,
             warrior,
         ).recent().exists()
         if earlier_battle:
-            raise forms.ValidationError(
-                _('You already battled this warrior'),
+            self.add_error('warrior', forms.ValidationError(
+                _('This battle already happened'),
                 code='duplicate',
-            )
-        return warrior
+            ))
+        return self.cleaned_data

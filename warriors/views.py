@@ -86,19 +86,20 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
         return context
 
 
-class ChallengeWarriorView(WarriorViewMixin, DetailView, FormView):
-    context_object_name = 'warrior'
+class ChallengeWarriorView(WarriorViewMixin, FormView):
     form_class = ChallengeWarriorForm
     template_name = 'warriors/challenge_warrior.html'
-
-    def get_object(self):
-        return self.warrior
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['opponent'] = self.warrior
         kwargs['user'] = self.request.user
         return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['opponent'] = self.warrior
+        return context
 
     def form_valid(self, form):
         self.battle = Battle.create_from_warriors(self.warrior, form.cleaned_data['warrior'])
