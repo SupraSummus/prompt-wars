@@ -43,7 +43,10 @@
         <dt>Created at</dt>
         <dd>{% include 'time.html' with time=warrior.created_at %}</dd>
         <dt>Rating points</dt>
-        <dd>{{ warrior.rating|floatformat:0 }}</dd>
+        <dd>
+          {{ warrior.rating|floatformat:0 }}
+          <small>±{{ warrior.rating_error|floatformat:0 }}</small>
+        </dd>
         <dt>Games played</dt>
         <dd>{{ warrior.games_played }}</dd>
         <dt>Id</dt>

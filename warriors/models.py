@@ -146,6 +146,10 @@ class Warrior(models.Model):
                 fields=['arena_id', 'body_sha_256'],
                 name='arena_body_sha_256_unique',
             ),
+            models.CheckConstraint(
+                check=models.Q(rating_error__gte=0.0),
+                name='rating_error_non_negative',
+            ),
         ]
         indexes = [
             models.Index(
