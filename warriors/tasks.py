@@ -1,4 +1,5 @@
 import logging
+import random
 
 import openai
 from django.conf import settings
@@ -82,6 +83,10 @@ def schedule_battle_top():
             if warrior.id in warriors_above:
                 # may happen becuase of concurrent updates, just skip
                 continue
+            warriors_above.add(warrior.id)
+            if random.random() < 0.9:
+                # warrior gets picked only ocasionally
+                continue
 
             # try find and opponent among the warriors above
             historic_battles = Battle.objects.with_warrior(warrior).filter(
@@ -90,6 +95,8 @@ def schedule_battle_top():
             opponent = Warrior.objects.filter(
                 id__in=warriors_above,
             ).exclude(
+                id=warrior.id,
+            ).exclude(
                 id__in=historic_battles.values('warrior_1'),
             ).exclude(
                 id__in=historic_battles.values('warrior_2'),
@@ -97,8 +104,6 @@ def schedule_battle_top():
 
             if opponent is not None:
                 return warrior.create_battle(opponent)
-
-            warriors_above.add(warrior.id)
 
 
 def resolve_battle(battle_id, direction):

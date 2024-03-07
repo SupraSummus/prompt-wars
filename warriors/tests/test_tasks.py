@@ -69,7 +69,8 @@ def test_schedule_battles(arena):
 @pytest.mark.django_db
 @pytest.mark.parametrize('warrior', [{'rating': 100}], indirect=True)
 @pytest.mark.parametrize('other_warrior', [{'rating': 250}], indirect=True)
-def test_schedule_battle_top(warrior, other_warrior, default_arena):
+def test_schedule_battle_top(warrior, other_warrior, default_arena, monkeypatch):
+    monkeypatch.setattr('random.random', lambda: 0.9999)
     battle = schedule_battle_top()
     assert battle is not None
     assert {warrior, other_warrior} == {battle.warrior_1, battle.warrior_2}
