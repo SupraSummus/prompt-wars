@@ -218,6 +218,16 @@ def test_challenge_warrior_post_duplicate(user_client, warrior, warrior_user_per
 
 
 @pytest.mark.django_db
+def test_challenge_warrior_bad_data(user_client, warrior):
+    response = user_client.post(
+        reverse('challenge_warrior', args=(warrior.id,)),
+        data={},
+    )
+    assert response.status_code == 200
+    assert 'warrior' in response.context['form'].errors
+
+
+@pytest.mark.django_db
 def test_battle_details(client, battle):
     response = client.get(
         reverse('battle_detail', args=(battle.id,))

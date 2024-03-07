@@ -100,7 +100,10 @@ class ChallengeWarriorForm(forms.Form):
         )
 
     def clean(self):
-        warrior = self.cleaned_data['warrior']
+        if self.errors:
+            return
+        cleaned_data = super().clean()
+        warrior = cleaned_data['warrior']
         earlier_battle = Battle.objects.with_warriors(
             self.opponent,
             warrior,
@@ -110,4 +113,4 @@ class ChallengeWarriorForm(forms.Form):
                 _('This battle already happened'),
                 code='duplicate',
             ))
-        return self.cleaned_data
+        return cleaned_data
