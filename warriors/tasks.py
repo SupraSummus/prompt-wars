@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.postgres.functions import TransactionNow
 from django.db import transaction
 from django.utils import timezone
+from django_q.tasks import schedule
 
 from .lcs import lcs_len
 from .models import (
@@ -137,6 +138,16 @@ def resolve_battle(battle_id, direction):
             # But this is a marginal case, so lets forget it for now.
             max_tokens=MAX_WARRIOR_LENGTH,
         )
+    except openai.RateLimitError:
+        logger.exception('OpenAI API rate limit')
+        # try again in some time
+        schedule(
+            resolve_battle, battle_id, direction,
+            schedule_type='O',  # one-off
+            repeats=1,
+            next_run=now + timezone.timedelta(minutes=5),
+        )
+        return
     except openai.APIStatusError:
         logger.exception('OpenAI API call failed')
         battle_view.finish_reason = 'error'

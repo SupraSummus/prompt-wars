@@ -5,6 +5,7 @@ import httpx
 import openai
 import pytest
 from django.utils import timezone
+from django_q.tasks import schedule
 
 from ..models import MAX_WARRIOR_LENGTH, Battle, Warrior
 from ..tasks import (
@@ -147,6 +148,31 @@ def test_resolve_battle_bad_request(battle, monkeypatch):
     battle.refresh_from_db()
     assert battle.finish_reason_2_1 == 'error'
     assert battle.resolved_at_2_1 is not None
+
+
+@pytest.mark.django_db
+def test_resolve_battle_rate_limit(battle, monkeypatch):
+    create_mock = mock.Mock(side_effect=openai.RateLimitError(
+        'Rate limit bro',
+        response=httpx.Response(429, request=httpx.Request('POST', 'https://openai.com')),
+        body=None,
+    ))
+    monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
+    schedule_mock = mock.Mock(wraps=schedule)
+    monkeypatch.setattr('warriors.tasks.schedule', schedule_mock)
+
+    resolve_battle(battle.id, '2_1')
+
+    # DB state is correct
+    battle.refresh_from_db()
+    assert battle.finish_reason_2_1 == ''
+    assert battle.resolved_at_2_1 is None
+
+    # task was scheduled again
+    assert schedule_mock.call_count == 1
+    assert schedule_mock.call_args.args[0] == resolve_battle
+    assert schedule_mock.call_args.args[1] == battle.id
+    assert schedule_mock.call_args.args[2] == '2_1'
 
 
 @pytest.mark.django_db
