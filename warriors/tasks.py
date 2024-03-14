@@ -136,7 +136,9 @@ def resolve_battle(battle_id, direction):
         logger.exception('LLM API rate limit')
         # try again in some time
         schedule(
-            resolve_battle, battle_id, direction,
+            # function must be path, not the function itself
+            'warriors.tasks.resolve_battle',
+            battle_id, direction,
             schedule_type='O',  # one-off
             repeats=1,
             next_run=now + timezone.timedelta(minutes=5),

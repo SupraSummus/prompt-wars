@@ -170,7 +170,7 @@ def test_resolve_battle_rate_limit(battle, monkeypatch):
 
     # task was scheduled again
     assert schedule_mock.call_count == 1
-    assert schedule_mock.call_args.args[0] == resolve_battle
+    assert schedule_mock.call_args.args[0] == 'warriors.tasks.resolve_battle'
     assert schedule_mock.call_args.args[1] == battle.id
     assert schedule_mock.call_args.args[2] == '2_1'
 

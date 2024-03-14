@@ -3,10 +3,15 @@ from unittest import mock
 import pytest
 from django.db import transaction
 from django.urls import reverse
+from django.utils import timezone
 from django_q.conf import Conf
+from django_q.models import Schedule
+from django_q.scheduler import scheduler
+from freezegun import freeze_time
 
+from ..exceptions import RateLimitError
 from ..models import Battle, Warrior
-from ..tasks import openai_client
+from ..tasks import openai_client, resolve_battle
 
 
 @pytest.mark.django_db(transaction=True)
@@ -65,3 +70,35 @@ def test_battle_from_warriors_e2e(monkeypatch, warrior, other_warrior):
     other_warrior.refresh_from_db()
     assert warrior.rating < 0
     assert other_warrior.rating > 0
+
+
+@pytest.mark.django_db(transaction=True)
+def test_battle_retry(battle, monkeypatch):
+    monkeypatch.setattr(Conf, 'SYNC', True)
+
+    monkeypatch.setattr(
+        'warriors.tasks.resolve_battle_openai',
+        mock.MagicMock(side_effect=RateLimitError),
+    )
+    assert not Schedule.objects.exists()
+    resolve_battle(str(battle.id), '1_2')
+
+    # battle still not resolved
+    battle.refresh_from_db()
+    assert battle.resolved_at_1_2 is None
+
+    # we have a scheduled task for retrying the battle
+    assert Schedule.objects.exists()
+
+    # the task will be executed 10 minutes later
+    monkeypatch.setattr(
+        'warriors.tasks.resolve_battle_openai',
+        mock.MagicMock(return_value=('Some result', 'stop', 'gpt-3.5/1234')),
+    )
+    now = timezone.now()
+    with freeze_time(now + timezone.timedelta(minutes=10)):
+        scheduler()
+
+    # now battle is resolved
+    battle.refresh_from_db()
+    assert battle.resolved_at_1_2 is not None
