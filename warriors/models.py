@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 import django_q
 from django.conf import settings
 from django.contrib.postgres.functions import TransactionNow
+from django.contrib.sites.models import Site
 from django.core.signing import BadSignature, Signer
 from django.db import models, transaction
 from django.db.models import F, Q
@@ -33,6 +34,12 @@ class Arena(models.Model):
         primary_key=True,
         default=uuid.uuid4,
         editable=False
+    )
+    site = models.OneToOneField(
+        to=Site,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
     )
     name = models.CharField(
         max_length=40,

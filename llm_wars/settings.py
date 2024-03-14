@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "whitenoise.runserver_nostatic",
     "django.contrib.staticfiles",
+    'django.contrib.sites',
     'django_recaptcha',
     'django_q',
     'users',
@@ -168,3 +169,5 @@ if SENTRY_DSN := env.str('SENTRY_DSN', default=''):
 
 
 DEFAULT_ARENA_ID = env.str('DEFAULT_ARENA_ID', default=None)
+
+SITE_ID = 1
