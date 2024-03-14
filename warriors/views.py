@@ -133,7 +133,9 @@ class BattleDetailView(DetailView):
         self.object.game_2_1.show_secrets_1 = show_secrets_2
         self.object.game_2_1.show_secrets_2 = show_secrets_1
 
-        battles_qs = Battle.objects.for_user(self.request.user)
+        battles_qs = Battle.objects.for_user(self.request.user).filter(
+            arena_id=self.object.arena_id,
+        )
         context['next_battle'] = battles_qs.filter(
             scheduled_at__gt=self.object.scheduled_at,
         ).order_by('scheduled_at').only('id', 'scheduled_at').first()
