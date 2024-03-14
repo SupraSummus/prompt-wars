@@ -1,24 +1,20 @@
 import logging
 import random
 
-import openai
-from django.conf import settings
 from django.contrib.postgres.functions import TransactionNow
 from django.db import transaction
 from django.utils import timezone
 from django_q.tasks import schedule
 
+from .exceptions import RateLimitError
 from .lcs import lcs_len
 from .models import (
     MATCHMAKING_COOLDOWN, MAX_WARRIOR_LENGTH, Battle, Game, Warrior,
 )
+from .openai import openai_client, resolve_battle_openai
 
 
 logger = logging.getLogger(__name__)
-
-openai_client = openai.Client(
-    api_key=settings.OPENAI_API_KEY,
-)
 
 
 def do_moderation(warrior_id):
@@ -120,26 +116,18 @@ def resolve_battle(battle_id, direction):
         logger.error('Battle already resolved %s, %s', battle_id, direction)
         return
 
-    messages = []
-    if battle_view.arena.prompt:
-        messages.append({'role': 'system', 'content': battle_view.arena.prompt})
-    messages.append({
-        'role': 'user',
-        'content': battle_view.warrior_1.body + battle_view.warrior_2.body,
-    })
     try:
-        response = openai_client.chat.completions.create(
-            messages=messages,
-            model='gpt-3.5-turbo',
-            temperature=0,
-            # Completion length limit is in tokens, so when measured in chars we will likely get more.
-            # Other way arund is I think possible also - exotic unicode symbols
-            # may be multiple LLM tokens, but a single char.
-            # But this is a marginal case, so lets forget it for now.
-            max_tokens=MAX_WARRIOR_LENGTH,
+        (
+            result,
+            finish_reason,
+            llm_version,
+        ) = resolve_battle_openai(
+            battle_view.warrior_1.body,
+            battle_view.warrior_2.body,
+            battle_view.arena.prompt,
         )
-    except openai.RateLimitError:
-        logger.exception('OpenAI API rate limit')
+    except RateLimitError:
+        logger.exception('LLM API rate limit')
         # try again in some time
         schedule(
             resolve_battle, battle_id, direction,
@@ -148,20 +136,15 @@ def resolve_battle(battle_id, direction):
             next_run=now + timezone.timedelta(minutes=5),
         )
         return
-    except openai.APIStatusError:
-        logger.exception('OpenAI API call failed')
-        battle_view.finish_reason = 'error'
     else:
-        (resp_choice,) = response.choices
-        result = resp_choice.message.content
         battle_view.result = result[:MAX_WARRIOR_LENGTH]
         battle_view.lcs_len_1 = lcs_len(battle_view.warrior_1.body, battle_view.result)
         battle_view.lcs_len_2 = lcs_len(battle_view.warrior_2.body, battle_view.result)
-        battle_view.finish_reason = resp_choice.finish_reason
+        battle_view.finish_reason = finish_reason
         # but the API finish reason doesn't matter if we cut the response
         if len(result) > MAX_WARRIOR_LENGTH:
             battle_view.finish_reason = 'character_limit'
-        battle_view.llm_version = response.model + '/' + (response.system_fingerprint or '')
+        battle_view.llm_version = llm_version
 
     battle_view.resolved_at = now
     battle_view.save(update_fields=[

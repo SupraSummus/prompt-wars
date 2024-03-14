@@ -16,6 +16,7 @@ def arena(request):
 def default_arena(arena, settings):
     arena.site_id = 1
     arena.save(update_fields=['site_id'])
+    settings.SITE_ID = 1
     return arena
 
 
