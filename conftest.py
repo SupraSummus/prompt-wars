@@ -1,6 +1,8 @@
 from unittest.mock import patch
 
+import factory
 import pytest
+from django.contrib.sites.models import Site
 from django_recaptcha.client import RecaptchaResponse
 
 
@@ -22,3 +24,15 @@ def mocked_recaptcha(request):
 def user_client(client, user):
     client.force_login(user)
     return client
+
+
+class SiteFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Site
+
+    domain = factory.Sequence(lambda n: f'n{n}.example.com')
+
+
+@pytest.fixture
+def site():
+    return SiteFactory()

@@ -13,10 +13,10 @@ def arena(request):
 
 
 @pytest.fixture
-def default_arena(arena, settings):
-    arena.site_id = 1
-    arena.save(update_fields=['site_id'])
-    settings.SITE_ID = 1
+def default_arena(arena, site, settings):
+    arena.site = site
+    arena.save(update_fields=['site'])
+    settings.SITE_ID = site.id
     return arena
 
 
