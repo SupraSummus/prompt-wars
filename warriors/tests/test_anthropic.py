@@ -20,7 +20,7 @@ def anthropic_messages_create_mock(monkeypatch):
         ],
         role='assistant',
         type='message',
-        finish_reason='end_turn',
+        stop_reason='end_turn',
         model='claude-3-haiku-20240307',
         usage=anthropic.types.Usage(
             input_tokens=123,

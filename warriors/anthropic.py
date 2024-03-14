@@ -36,4 +36,4 @@ def resolve_battle(prompt_a, prompt_b, system_prompt=''):
         return '', 'error', ''
     else:
         text = ''.join(block.text for block in response.content)
-        return text, response.finish_reason, response.model
+        return text, response.stop_reason, response.model
