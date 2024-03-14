@@ -29,6 +29,11 @@ MAX_ALLOWED_RATING_PER_GAME = 100
 MATCHMAKING_COOLDOWN = datetime.timedelta(days=91)
 
 
+class LLM(models.TextChoices):
+    GPT_3_5_TURBO = 'gpt-3.5-turbo', 'GPT-3.5 Turbo'
+    CLAUDE_3_HAIKU = 'claude-3-haiku', 'Claude 3 Haiku'
+
+
 class Arena(models.Model):
     id = models.UUIDField(
         primary_key=True,
@@ -44,6 +49,11 @@ class Arena(models.Model):
     name = models.CharField(
         max_length=40,
         unique=True,
+    )
+    llm = models.CharField(
+        max_length=20,
+        choices=LLM.choices,
+        default=LLM.GPT_3_5_TURBO,
     )
     prompt = models.TextField(
         max_length=MAX_WARRIOR_LENGTH,

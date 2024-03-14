@@ -6,10 +6,11 @@ from django.db import transaction
 from django.utils import timezone
 from django_q.tasks import schedule
 
+from . import anthropic
 from .exceptions import RateLimitError
 from .lcs import lcs_len
 from .models import (
-    MATCHMAKING_COOLDOWN, MAX_WARRIOR_LENGTH, Battle, Game, Warrior,
+    LLM, MATCHMAKING_COOLDOWN, MAX_WARRIOR_LENGTH, Battle, Game, Warrior,
 )
 from .openai import openai_client, resolve_battle_openai
 
@@ -116,12 +117,17 @@ def resolve_battle(battle_id, direction):
         logger.error('Battle already resolved %s, %s', battle_id, direction)
         return
 
+    resolve_battle_function = {
+        LLM.GPT_3_5_TURBO: resolve_battle_openai,
+        LLM.CLAUDE_3_HAIKU: anthropic.resolve_battle,
+    }[battle_view.arena.llm]
+
     try:
         (
             result,
             finish_reason,
             llm_version,
-        ) = resolve_battle_openai(
+        ) = resolve_battle_function(
             battle_view.warrior_1.body,
             battle_view.warrior_2.body,
             battle_view.arena.prompt,
