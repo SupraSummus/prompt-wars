@@ -1,4 +1,4 @@
-from django.conf import settings
+from django.contrib.sites.shortcuts import get_current_site
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.views.generic.detail import DetailView
@@ -16,8 +16,10 @@ class ArenaViewMixin:
 
     def dispatch(self, request, *args, arena_id=None, **kwargs):
         if arena_id is None:
-            arena_id = settings.DEFAULT_ARENA_ID
-        self.arena = get_object_or_404(Arena, id=arena_id)
+            site = get_current_site(request)
+            self.arena = get_object_or_404(Arena, site=site)
+        else:
+            self.arena = get_object_or_404(Arena, id=arena_id)
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -153,7 +155,7 @@ class WarriorLeaderboard(ArenaViewMixin, ListView):
         ).order_by('-rating')[:100]
 
 
-class UpcomingBattlesView(ListView):
+class UpcomingBattlesView(ArenaViewMixin, ListView):
     model = Warrior
     template_name = 'warriors/upcoming_battles.html'
     context_object_name = 'warriors'
@@ -161,7 +163,7 @@ class UpcomingBattlesView(ListView):
     def get_queryset(self):
         qs = Warrior.objects.battleworthy().exclude(
             next_battle_schedule=None,
-        )
+        ).filter(arena=self.arena)
         user = self.request.user
         if user.is_authenticated:
             qs = qs.filter(users=user)
@@ -172,13 +174,15 @@ class UpcomingBattlesView(ListView):
         return qs.order_by('next_battle_schedule')[:100]
 
 
-class RecentBattlesView(ListView):
+class RecentBattlesView(ArenaViewMixin, ListView):
     model = Battle
     template_name = 'warriors/recent_battles.html'
     context_object_name = 'battles'
 
     def get_queryset(self):
-        qs = Battle.objects.all()
+        qs = Battle.objects.filter(
+            arena=self.arena,
+        )
         if self.request.user.is_authenticated:
             qs = qs.for_user(self.request.user)
         else:

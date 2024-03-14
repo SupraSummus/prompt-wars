@@ -259,21 +259,21 @@ def test_leaderboard(client, arena, settings, warrior, default_arena):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('warrior', [{'next_battle_schedule': timezone.now()}], indirect=True)
-def test_upcoming_battles(user_client, warrior, warrior_user_permission):
+def test_upcoming_battles(user_client, warrior, warrior_user_permission, default_arena):
     response = user_client.get(reverse('upcoming_battles'))
     assert response.status_code == 200
     assert warrior in response.context['warriors']
 
 
 @pytest.mark.django_db
-def test_recent_battles(user_client, battle, warrior_user_permission):
+def test_recent_battles(user_client, battle, warrior_user_permission, default_arena):
     response = user_client.get(reverse('recent_battles'))
     assert response.status_code == 200
     assert battle in response.context['battles']
 
 
 @pytest.mark.django_db
-def test_recent_battles_no_duplicates(user, user_client, battle):
+def test_recent_battles_no_duplicates(user, user_client, battle, default_arena):
     # this user has access to both warriors
     battle.warrior_1.users.add(user)
     battle.warrior_2.users.add(user)

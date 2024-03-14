@@ -14,7 +14,8 @@ def arena(request):
 
 @pytest.fixture
 def default_arena(arena, settings):
-    settings.DEFAULT_ARENA_ID = str(arena.id)
+    arena.site_id = 1
+    arena.save(update_fields=['site_id'])
     return arena
 
 

@@ -168,6 +168,5 @@ if SENTRY_DSN := env.str('SENTRY_DSN', default=''):
     )
 
 
-DEFAULT_ARENA_ID = env.str('DEFAULT_ARENA_ID', default=None)
-
-SITE_ID = 1
+# set none to select site based on request domain
+SITE_ID = env.int('SITE_ID', default=None)

@@ -65,13 +65,13 @@ def schedule_battle(now=None):
     warrior.schedule_battle(now=now)
 
 
-def schedule_battle_top():
+def schedule_battle_top(arena_id):
     rating = 4000  # arbitrary value, higer than any real rating
     warriors_above = set()
     while True:
         with transaction.atomic():
             warrior = Warrior.objects.battleworthy().filter(
-                arena_id=settings.DEFAULT_ARENA_ID,
+                arena_id=arena_id,
                 rating__lt=rating,
             ).order_by('-rating').select_for_update(
                 no_key=True,
