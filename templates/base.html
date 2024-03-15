@@ -24,9 +24,7 @@
             <li><strong>
               <a href="{% url 'home' %}" class="contrast">Prompt wars</a>
             </strong></li>
-            <li><a href="{% url 'warrior_leaderboard' %}">Leaderboard</a></li>
-            <li><a href="{% url 'upcoming_battles' %}">Upcoming battles</a></li>
-            <li><a href="{% url 'recent_battles' %}">Recent battles</a></li>
+            <li><a href="{% url 'arena_list' %}">Arenas</a></li>
           </ul>
           <ul>
             {% if user.is_authenticated %}

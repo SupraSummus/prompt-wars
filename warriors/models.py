@@ -50,6 +50,9 @@ class Arena(models.Model):
         max_length=40,
         unique=True,
     )
+    listed = models.BooleanField(
+        default=False,
+    )
     llm = models.CharField(
         max_length=20,
         choices=LLM.choices,

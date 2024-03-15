@@ -1,6 +1,8 @@
 from django.contrib.sites.shortcuts import get_current_site
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.template.response import TemplateResponse
+from django.views.generic.base import ContextMixin
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import CreateView, FormView
 from django.views.generic.list import ListView
@@ -9,7 +11,13 @@ from .forms import ChallengeWarriorForm, WarriorCreateForm
 from .models import Arena, Battle, Warrior, WarriorUserPermission
 
 
-class ArenaViewMixin:
+def arena_list(request):
+    return TemplateResponse(request, 'warriors/arena_list.html', {
+        'arenas': Arena.objects.filter(listed=True),
+    })
+
+
+class ArenaViewMixin(ContextMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.arena = None
@@ -21,6 +29,11 @@ class ArenaViewMixin:
         else:
             self.arena = get_object_or_404(Arena, id=arena_id)
         return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['arena'] = self.arena
+        return context
 
 
 class ArenaDetailView(ArenaViewMixin, DetailView):
@@ -44,7 +57,7 @@ class WarriorCreateView(ArenaViewMixin, CreateView):
         return kwargs
 
 
-class WarriorViewMixin:
+class WarriorViewMixin(ContextMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.warrior = None
@@ -52,6 +65,12 @@ class WarriorViewMixin:
     def dispatch(self, request, *args, pk=None, **kwargs):
         self.warrior = get_object_or_404(Warrior, id=pk)
         return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['arena'] = self.warrior.arena
+        context['warrior'] = self.warrior
+        return context
 
 
 class WarriorDetailView(WarriorViewMixin, DetailView):
@@ -142,6 +161,8 @@ class BattleDetailView(DetailView):
         context['previous_battle'] = battles_qs.filter(
             scheduled_at__lt=self.object.scheduled_at,
         ).order_by('-scheduled_at').only('id', 'scheduled_at').first()
+
+        context['arena'] = self.object.arena
 
         return context
 

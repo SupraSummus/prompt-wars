@@ -17,7 +17,10 @@ class ReadOnlyModelAdminMixin:
 
 @admin.register(Arena)
 class ArenaAdmin(admin.ModelAdmin):
-    list_display = ('id', 'site', 'name')
+    list_display = (
+        'name', 'listed',
+        'site',
+    )
     search_fields = ('id', 'name')
 
 
