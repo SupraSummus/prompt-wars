@@ -43,6 +43,8 @@ urlpatterns = [
     path('arena/<uuid:arena_id>/', ArenaDetailView.as_view(), name='arena_detail'),
     path('arena/<uuid:arena_id>/create/', WarriorCreateView.as_view(), name='arena_warrior_create'),
     path('arena/<uuid:arena_id>/leaderboard/', WarriorLeaderboard.as_view(), name='arena_leaderboard'),
+    path('arena/<uuid:arena_id>/upcoming-battles/', warriors.views.UpcomingBattlesView.as_view(), name='arena_upcoming_battles'),
+    path('arena/<uuid:arena_id>/recent-battles/', warriors.views.RecentBattlesView.as_view(), name='arena_recent_battles'),
 
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),

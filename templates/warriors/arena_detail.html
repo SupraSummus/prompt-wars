@@ -16,8 +16,8 @@
     <ul>
       <li><a href="{% url 'arena_warrior_create' arena.id %}">Submit a warrior</a></li>
       <li><a href="{% url 'arena_leaderboard' arena.id %}">Leaderboard</a></li>
-      <li><a href="{% url 'upcoming_battles' %}">Upcoming battles</a></li>
-      <li><a href="{% url 'recent_battles' %}">Recent battles</a></li>
+      <li><a href="{% url 'arena_upcoming_battles' arena.id %}">Upcoming battles</a></li>
+      <li><a href="{% url 'arena_recent_battles' arena.id %}">Recent battles</a></li>
     </ul>
 
   </main>
