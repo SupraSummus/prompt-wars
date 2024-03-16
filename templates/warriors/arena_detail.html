@@ -5,14 +5,11 @@
 {% block content %}
   <main class="container">
 
-    <nav aria-label="breadcrumb">
-      <ul>
-        <li><a href="{% url 'arena_list' %}">Arenas</a></li>
-        <li>{{ arena }}</li>
-      </ul>
-    </nav>
-
     <h1>{{ arena }}</h1>
+    <p>{{ arena.description }}</p>
+    <p>
+      Model: {{ arena.get_llm_display }}
+    </p>
     <ul>
       <li><a href="{% url 'arena_warrior_create' arena.id %}">Submit a warrior</a></li>
       <li><a href="{% url 'arena_leaderboard' arena.id %}">Leaderboard</a></li>

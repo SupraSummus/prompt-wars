@@ -62,6 +62,9 @@ class Arena(models.Model):
         max_length=MAX_WARRIOR_LENGTH,
         blank=True,
     )
+    description = models.TextField(
+        blank=True,
+    )
 
     class Meta:
         ordering = ('name',)

@@ -4,6 +4,10 @@
   <main class="container">
 
     <h1>Arenas</h1>
+    <p>
+      Each arena operates as a self-contained battlefield with its own leaderboard and unique settings.
+      Explore different arenas to discover variations in gameplay and fresh challenges.
+    </p>
     <ul>
       {% for arena in arenas %}
         <li><a href="{% url 'arena_detail' arena.id %}">{{ arena }}</a></li>
