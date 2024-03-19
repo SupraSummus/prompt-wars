@@ -41,6 +41,14 @@
       {% endblock %}
     </header>
 
+    {% if messages %}
+      <section class="container">
+        {% for message in messages %}
+          <article>{{ message }}</article>
+        {% endfor %}
+      </section>
+    {% endif %}
+
     {% block content %}{% endblock %}
 
     <footer class="container">

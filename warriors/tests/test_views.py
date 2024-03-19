@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from users.tests.factories import UserFactory
 
-from ..models import Battle, Warrior
+from ..models import Battle, Warrior, WarriorUserPermission
 from ..tasks import do_moderation
 
 
@@ -80,7 +80,10 @@ def test_create_warrior_arena(client, mocked_recaptcha, arena):
 
 @pytest.mark.django_db
 def test_create_warrior_duplicate(client, warrior, mocked_recaptcha, default_arena):
-    """It is not possible to create a warrior that has the same body as another."""
+    """
+    It is not possible to create a warrior that has the same body as another.
+    But we have a "discover" mechanics.
+    """
     response = client.post(
         reverse('warrior_create'),
         data={
@@ -88,8 +91,10 @@ def test_create_warrior_duplicate(client, warrior, mocked_recaptcha, default_are
             'g-recaptcha-response': 'PASSED',
         },
     )
-    assert response.status_code == 200
-    assert 'body' in response.context['form'].errors
+    assert response.status_code == 302
+    warrior_id = response.url.split('/')[-1]
+    assert warrior_id == str(warrior.id)
+    assert str(warrior.id) in response.client.session['authorized_warriors']
 
 
 @pytest.mark.django_db
@@ -119,6 +124,30 @@ def test_create_authenticated(user, user_client, mocked_recaptcha, default_arena
     warrior = Warrior.objects.get()
     assert warrior.created_by == user
     assert user in warrior.users.all()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('warrior', [{'name': 'strongest'}], indirect=True)
+def test_create_authenticated_duplicate(user, user_client, warrior, mocked_recaptcha, default_arena):
+    response = user_client.post(
+        reverse('warrior_create'),
+        data={
+            'body': warrior.body,
+            'name': 'surely a duplicate',
+            'g-recaptcha-response': 'PASSED',
+        },
+    )
+    assert response.status_code == 302
+    warrior_id = response.url.split('/')[-1]
+    assert warrior_id == str(warrior.id)
+
+    # name is not changed
+    warrior.refresh_from_db()
+    assert warrior.name == 'strongest'
+
+    # user has access to the warrior
+    warrior_user_permission = WarriorUserPermission.objects.get(warrior=warrior, user=user)
+    assert warrior_user_permission.name == 'surely a duplicate'
 
 
 @pytest.mark.django_db

@@ -346,6 +346,10 @@ class WarriorUserPermission(models.Model):
     created_at = models.DateTimeField(
         default=timezone.now,
     )
+    name = models.CharField(
+        max_length=40,
+        blank=True,
+    )
 
     class Meta:
         constraints = [

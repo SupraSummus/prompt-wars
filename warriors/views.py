@@ -54,6 +54,7 @@ class WarriorCreateView(ArenaViewMixin, CreateView):
         kwargs['arena'] = self.arena
         kwargs['user'] = self.request.user
         kwargs['session'] = self.request.session
+        kwargs['request'] = self.request
         return kwargs
 
 
