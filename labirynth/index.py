@@ -1,14 +1,12 @@
-from django import forms
-from django.db import transaction
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
+from django.contrib.auth.decorators import login_required
 from django.template.response import TemplateResponse
-from django.utils import timezone
 
 from djsfc import Router, get_template_block, parse_template
 
+from .models import Player
 
-router = Router()
+
+router = Router(__name__)
 
 
 template_str = """\
@@ -80,7 +78,6 @@ template_str = """\
         {% elif current_visit.state == 'embedding' %}
           <p>You hear...</p>
           {% include 'excat_text.html' with text=current_visit.echo %}
-        {% 
 
         {% elif current_visit.state == 'embedding' %}
           <p>It's getting embedded...</p>
@@ -88,7 +85,7 @@ template_str = """\
         {% else %}
           <p>It's done! The door is open.</p>
 
-        {% endif %
+        {% endif %}
 
       {% endif %}
     {% endblock %}
@@ -103,3 +100,29 @@ template_str = """\
 
 </main>{% endblock %}
 """
+template = parse_template(template_str, router)
+content_block_template = get_template_block(template, 'content')
+
+
+@router.route('GET', '')
+@login_required
+def root(request):
+    room = get_room(request)
+    return TemplateResponse(request, template, {
+        'current_room': room,
+    })
+
+
+@router.route('POST', 'start')
+def start(request):
+    player, created = Player.objects.get_or_create(user=request.user)
+    return TemplateResponse(request, template, {
+        'current_room': player.current_room,
+    })
+
+
+def get_room(request):
+    player = Player.objects.filter(user=request.user).first()
+    if not player:
+        return None
+    return player.current_room

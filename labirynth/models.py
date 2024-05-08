@@ -1,9 +1,10 @@
-from django.db import models
-from django.contrib.auth import get_user_model
-from django.utils import timezone
 import uuid
-from django.contrib.postgres.fields import ArrayField
 
+from django.contrib.auth import get_user_model
+from django.contrib.postgres.fields import ArrayField
+from django.db import models
+from django.db.models.expressions import CombinedExpression
+from django.utils import timezone
 
 
 User = get_user_model()
@@ -35,7 +36,7 @@ class Room(models.Model):
         size=6,  # one for each direction
         base_field=ArrayField(
             size=EMBEDDING_DIM,
-            models.FloatField(),
+            base_field=models.FloatField(),
         ),
     )
 
@@ -49,7 +50,12 @@ class Room(models.Model):
                 name='unique_coords',
             ),
             models.CheckConstraint(
-                check=(models.F('x') + models.F('y') + models.F('z') == 0),
+                check=CombinedExpression(
+                    models.F('x') + models.F('y') + models.F('z'),
+                    '=',
+                    models.Value(0),
+                    output_field=models.BooleanField(),
+                ),
                 name='hex_grid',
             ),
         ]
@@ -102,6 +108,6 @@ class SpellCast(models.Model):
     echo = models.TextField()
     embedding = ArrayField(
         size=EMBEDDING_DIM,
-        models.FloatField(),
+        base_field=models.FloatField(),
     )
     direction = models.IntegerField(choices=Direction.choices)
