@@ -1,0 +1,107 @@
+from django.db import models
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+import uuid
+from django.contrib.postgres.fields import ArrayField
+
+
+
+User = get_user_model()
+EMBEDDING_DIM = 128
+
+
+class Direction(models.IntegerChoices):
+    UP = (0, 'up')
+    UP_RIGHT = (1, 'up/right')
+    DOWN_RIGHT = (2, 'down/right')
+    DOWN = (3, 'down')
+    DOWN_LEFT = (4, 'down/left')
+    UP_LEFT = (5, 'up/left')
+
+
+class Room(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+    # coordinates in hex grid. x + y + z = 0
+    x = models.IntegerField()
+    y = models.IntegerField()
+    z = models.IntegerField()
+
+    prompt = models.TextField()
+    som_neurons = ArrayField(
+        size=6,  # one for each direction
+        base_field=ArrayField(
+            size=EMBEDDING_DIM,
+            models.FloatField(),
+        ),
+    )
+
+    authored_at = models.DateTimeField(null=True)
+    authored_by = models.ForeignKey(to=User, on_delete=models.PROTECT, null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['x', 'y', 'z'],
+                name='unique_coords',
+            ),
+            models.CheckConstraint(
+                check=(models.F('x') + models.F('y') + models.F('z') == 0),
+                name='hex_grid',
+            ),
+        ]
+
+
+class Player(models.Model):
+    user = models.OneToOneField(
+        to=User,
+        on_delete=models.CASCADE,
+        primary_key=True,
+    )
+    current_room = models.ForeignKey(
+        to=Room,
+        on_delete=models.SET_NULL,
+        null=True,
+    )
+
+
+class SpellCastState(models.TextChoices):
+    # waiting for the system to finish the llm call
+    ECHOING = 'echoing'
+    # waiting for the system to finish the embedding and determine direction
+    EMBEDDING = 'embedding'
+    # oops, something went wrong
+    ERROR = 'error'
+    # all done
+    EXITED = 'done'
+
+
+class SpellCast(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+    player = models.ForeignKey(
+        to=Player,
+        on_delete=models.PROTECT,
+    )
+    room = models.ForeignKey(
+        to=Room,
+        on_delete=models.PROTECT,
+    )
+    state = models.CharField(
+        max_length=10,
+        choices=SpellCastState.choices,
+    )
+    spell = models.TextField()
+    spell_at = models.DateTimeField(default=timezone.now)
+    echo = models.TextField()
+    embedding = ArrayField(
+        size=EMBEDDING_DIM,
+        models.FloatField(),
+    )
+    direction = models.IntegerField(choices=Direction.choices)
