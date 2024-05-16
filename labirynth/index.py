@@ -3,7 +3,7 @@ from django.template.response import TemplateResponse
 
 from djsfc import Router, get_template_block, parse_template
 
-from .models import Player
+from .models import Player, Room
 
 
 router = Router(__name__)
@@ -119,6 +119,8 @@ def root(request):
 @router.route('POST', 'start')
 def start(request):
     player, created = Player.objects.get_or_create(user=request.user)
+    player.current_room = Room.objects.get_or_create(x=0, y=0, z=0)[0]
+    player.save(update_fields=['current_room'])
     return TemplateResponse(request, content_block_template, {
         'current_room': player.current_room,
     })

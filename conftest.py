@@ -9,6 +9,7 @@ from django_recaptcha.client import RecaptchaResponse
 pytest_plugins = [
     'users.tests.fixtures',
     'warriors.tests.fixtures',
+    'labirynth.fixtures',
 ]
 
 

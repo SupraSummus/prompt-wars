@@ -38,6 +38,7 @@ class Room(models.Model):
             size=EMBEDDING_DIM,
             base_field=models.FloatField(),
         ),
+        default=list,
     )
 
     authored_at = models.DateTimeField(null=True)
