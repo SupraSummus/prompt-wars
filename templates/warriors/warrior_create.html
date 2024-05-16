@@ -6,17 +6,17 @@
     <nav aria-label="breadcrumb">
       <ul>
         <li><a href="{% url 'arena_detail' arena.id %}">{{ arena }}</a></li>
-        <li>Create warrior</li>
+        <li>Create spell</li>
       </ul>
     </nav>
 
     <section>
-      <h1>Create a Warrior</h1>
+      <h1>Create a Spell</h1>
       <form method="post">
-        <strong>Don't share any private, secret or classified information!</strong>
+        <strong>Don't share any private, secret, or classified information!</strong>
         {% csrf_token %}
         {{ form.as_div }}
-        <input type="submit" value="Create">
+        <input type="submit" value="Create Spell">
       </form>
     </section>
   </main>
