@@ -3,19 +3,19 @@
 {% block title %}{{ arena }}{% endblock %}
 
 {% block content %}
-  <main class="container">
+<main class="container">
 
-    <h1>{{ arena }}</h1>
-    <p>{{ arena.description }}</p>
-    <p>
-      Model: {{ arena.get_llm_display }}
-    </p>
-    <ul>
-      <li><a href="{% url 'arena_warrior_create' arena.id %}">Submit a warrior</a></li>
-      <li><a href="{% url 'arena_leaderboard' arena.id %}">Leaderboard</a></li>
-      <li><a href="{% url 'arena_upcoming_battles' arena.id %}">Upcoming battles</a></li>
-      <li><a href="{% url 'arena_recent_battles' arena.id %}">Recent battles</a></li>
-    </ul>
+  <h1>{{ arena }}</h1>
+  <p>{{ arena.description }}</p>
+  <p>
+    Model: {{ arena.get_llm_display }}
+  </p>
+  <ul>
+    <li><a href="{% url 'arena_warrior_create' arena.id %}">Submit a spell</a></li>
+    <li><a href="{% url 'arena_leaderboard' arena.id %}">Leaderboard</a></li>
+    <li><a href="{% url 'arena_upcoming_battles' arena.id %}">Upcoming battles</a></li>
+    <li><a href="{% url 'arena_recent_battles' arena.id %}">Recent battles</a></li>
+  </ul>
 
-  </main>
+</main>
 {% endblock %}
