@@ -1,7 +1,7 @@
 import pytest
 from django.urls import reverse
 
-from .models import Player, Room
+from .models import Player, Room, EMBEDDING_DIM
 
 
 @pytest.mark.django_db
