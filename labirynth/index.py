@@ -108,9 +108,12 @@ content_block_template = get_template_block(template, 'content')
 @login_required
 def root(request):
     room = get_room(request)
-    return TemplateResponse(request, template, {
+    context = {
         'current_room': room,
-    })
+    }
+    if room:
+        context['room_prompt'] = room.prompt
+    return TemplateResponse(request, template, context)
 
 
 @router.route('POST', 'start')

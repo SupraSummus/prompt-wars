@@ -28,5 +28,5 @@ def test_user_in_room(user, user_client):
     # Verify the response status code
     assert response.status_code == 200
     
-    # Verify the room is presented in the response
+    # Verify the room's prompt is presented in the response
     assert "Room 1" in response.content.decode()
