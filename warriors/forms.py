@@ -74,7 +74,7 @@ class WarriorCreateForm(forms.ModelForm):
         else:
             messages.info(
                 self.request,
-                _('The spell already existsed. You have discovered it and now you have full access to its secrets.'),
+                _('The spell already existed. You have discovered it and now you have full access to its secrets.'),
             )
 
         # give the user permission to the spell
@@ -97,7 +97,7 @@ class ChallengeWarriorForm(forms.Form):
     warrior = forms.ModelChoiceField(
         queryset=Warrior.objects.all(),
         widget=forms.RadioSelect,
-        label=_('Choose your warrior'),
+        label=_('Choose your spell'),
     )
 
     def __init__(self, *args, opponent=None, user=None, **kwargs):

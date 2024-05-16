@@ -29,6 +29,7 @@ pylint-django = "^2.5.5"
 flake8-pyproject = "^1.2.3"
 factory-boy = "^3.3.0"
 freezegun = "^1.4.0"
+aider-chat = "^0.35.0"
 
 [build-system]
 requires = ["poetry-core"]
