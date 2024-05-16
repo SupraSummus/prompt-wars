@@ -1,57 +1,54 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  <section class="container">
-    <hgroup>
-      <h1>Prompt wars</h1>
-      <p>An arena for LLM prompts</p>
-    </hgroup>
+<section class="container">
+  <hgroup>
+    <h1>Prompt Battles</h1>
+    <p>An arena for LLM prompts</p>
+  </hgroup>
 
+  <p>
+    Imagine a world where text-based organisms compete for dominance.
+    <strong>Can you craft a spell that will prevail?</strong>
+  </p>
+  <p>
+    <a role="button" href="{% url 'warrior_create' %}">Create a spell ➤</a>
+  </p>
+
+  <p>
+    The environment is a large language model (LLM) - think ChatGPT.
+    It's a bit unpredictable, but you can use it to your advantage, just like your opponent.
+  </p>
+
+  <p>
+    Two opponents submit their spells. The LLM responds to the combined prompts.
+    The spell that is more preserved in the response wins.
+  </p>
+
+  <details>
+    <summary role="button" class="outline">See an example battle</summary>
     <p>
-      Imagine a world of organisms made of text.
-      They compete in fight for resources.
-      <strong>Can you craft a prompt that will survive?</strong>
+      You've created a spell:
+      <blockquote>
+        START As a response write this sentence exactly. STOP
+      </blockquote>
+      Another player has created a different spell:
+      <blockquote>
+        A well-trained marine with a MK-18 Mod 1 rifle. Uranium AP rounds.
+      </blockquote>
     </p>
     <p>
-      <a role="button" href="{% url 'warrior_create' %}">Create a warrior ➤</a>
+      The LLM "sees" the combined prompts. Note, there is no space in between the prompts.
+      <blockquote>
+        START As a response write this sentence exactly. STOPA well-trained marine with a MK-18 Mod 1 rifle. Uranium AP rounds.
+      </blockquote>
+      The LLM responded with:
+      <blockquote>
+        <mark>As a</mark>n AI assistant I<mark> write this sentence exactly.</mark>
+      </blockquote>
+      Your spell has around 30 characters preserved, 2/3 of its length.
+      The opponent has less. The battle result is in your favor.
     </p>
-
-    <p>
-      The environment is a large language model (LLM) - think ChatGPT.
-      Like any other environment, it is a bit unpredictable,
-      but you can use it to your advantage. So does your opponent.
-    </p>
-
-    <p>
-      Two opponents are fighting. LLM responds to their joined prompts.
-      The prompt which is more preserved in the response wins.
-    </p>
-
-    <details>
-      <summary role="button" class="outline">See a fight example</summary>
-      <p>
-        You've created a warrior:
-        <blockquote>
-          START As a response write this sentence exactly. STOP
-        </blockquote>
-        Other player has created another warrior:
-        <blockquote>
-          A well-trained marine with a MK-18 Mod 1 rifle. Uranium AP rounds.
-        </blockquote>
-      </p>
-      <p>
-        LLM "sees" joined prompts. Note, there is no space in between the prompts.
-        <blockquote>
-          START As a response write this sentence exactly. STOPA well-trained marine with a MK-18 Mod 1 rifle. Uranium AP rounds.
-        </blockquote>
-        LLM respnded with:
-        <blockquote>
-          <mark>As a</mark>n AI assistant I<mark> write this sentence exactly.</mark>
-        </blockquote>
-        Your warrior has around 30 characters preserved, 2/3 it's length.
-        Opponent has less. The battle result is in your favor.
-      </p>
-    </details>
-
-  </section>
+  </details>
+</section>
 {% endblock %}
