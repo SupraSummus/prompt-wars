@@ -116,7 +116,7 @@ def root(request):
 @router.route('POST', 'start')
 def start(request):
     player, created = Player.objects.get_or_create(user=request.user)
-    return TemplateResponse(request, template, {
+    return TemplateResponse(request, content_block_template, {
         'current_room': player.current_room,
     })
 
