@@ -29,7 +29,7 @@ class WarriorCreateForm(forms.ModelForm):
             'captcha',
         )
         labels = {
-            'name': 'Warrior name (optional)',
+            'name': 'Spell name (optional)',
             'author_name': 'Author (optional, but recommended for eternal glory)',
         }
 
@@ -56,7 +56,7 @@ class WarriorCreateForm(forms.ModelForm):
             body_sha_256=self.cleaned_data['body_sha_256'],
         ).first()
 
-        # create the warrior if it is unique
+        # create the spell if it is unique
         if warrior is None:
             warrior = super().save(commit=False)
 
@@ -74,10 +74,10 @@ class WarriorCreateForm(forms.ModelForm):
         else:
             messages.info(
                 self.request,
-                _('The warrior already existsed. You have discovered it and now you have full access to its secrets.'),
+                _('The spell already existsed. You have discovered it and now you have full access to its secrets.'),
             )
 
-        # give the user permission to the warrior
+        # give the user permission to the spell
         if self.user.is_authenticated:
             WarriorUserPermission.objects.get_or_create(
                 warrior=warrior,
