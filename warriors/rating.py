@@ -1,18 +1,14 @@
 from dataclasses import dataclass
+from functools import lru_cache
 
+import numpy
 import numpy as np
-from scipy.optimize import Bounds, minimize
-
-
-"""
-Functions to compute ideal performance rating for a given score in a tournament.
-Based on wikipedia code: https://en.wikipedia.org/wiki/Performance_rating_(chess)#Calculation
-"""
+from scipy.optimize import Bounds, least_squares
 
 
 # We have 2k playstyle parameters
 # For k=0 this is standard Elo rating
-k = 0
+default_k = 0
 
 
 def get_expected_game_score(
@@ -20,11 +16,20 @@ def get_expected_game_score(
     own_playstyle: list[float],
     opponent_rating: float,
     opponent_playstyle: list[float],
+    k: int = default_k,
 ) -> float:
     """
     Calculate expected score for a game between two players.
     """
-    return 1 / (1 + 10**((opponent_rating - own_rating) / 400))
+    own_playstyle = numpy.array(own_playstyle)
+    assert own_playstyle.shape == (2 * k,)
+    opponent_playstyle = numpy.array(opponent_playstyle)
+    assert opponent_playstyle.shape == (2 * k,)
+
+    playstyle_correction_matrix = compute_omega_matrix(k)
+    playstyle_factor = own_playstyle @ playstyle_correction_matrix @ opponent_playstyle.T
+    rating_delta = opponent_rating - own_rating - playstyle_factor
+    return 1 / (1 + 10**(rating_delta / 400))
 
 
 @dataclass(frozen=True)
@@ -34,21 +39,11 @@ class GameScore:
     opponent_playstyle: list[float]
 
 
-def get_torunament_loss(
-    own_rating: float,
-    own_playstyle: list[float],
-    scores: list[GameScore],
-) -> float:
-    """
-    Compute loss for estimation of scores in a tournament.
-    """
-    return sum(get_tournament_residuals(own_rating, own_playstyle, scores)) ** 2
-
-
 def get_tournament_residuals(
     own_rating: float,
     own_playstyle: list[float],
     scores: list[GameScore],
+    k: int = default_k,
 ) -> float:
     """
     Given player rating and tournament scores compute residuals.
@@ -59,6 +54,7 @@ def get_tournament_residuals(
         expected_score = get_expected_game_score(
             own_rating, own_playstyle,
             score.opponent_rating, score.opponent_playstyle,
+            k,
         )
         residuals.append(score.score - expected_score)
     return residuals
@@ -68,7 +64,8 @@ def get_performance_rating(
     scores: list[GameScore],
     rating_guess: float = None,  # initial guess
     playstyle_guess: list[float] = None,  # initial guess
-    allowed_rating_range: tuple[float, float] = (-4000, 4000),
+    allowed_rating_range: float = 4000,
+    k: int = default_k,
 ) -> tuple[float, list[float]]:
     """
     Calculate performance rating from a set of games.
@@ -77,18 +74,21 @@ def get_performance_rating(
         rating_guess = 0.0
     if playstyle_guess is None:
         playstyle_guess = [0.0] * (2 * k)
-    result = minimize(
-        lambda x: get_torunament_loss(x[0], x[1:], scores),
+    if allowed_rating_range == 0:
+        return 0, [0] * (2 * k)
+    allowed_playstyle_range = allowed_rating_range ** 0.5
+    result = least_squares(
+        lambda x: get_tournament_residuals(x[0], x[1:], scores, k),
         [rating_guess] + playstyle_guess,
         bounds=Bounds(
-            lb=[allowed_rating_range[0]] + [-1000] * (2 * k),
-            ub=[allowed_rating_range[1]] + [1000] * (2 * k),
+            lb=[-allowed_rating_range] + [-allowed_playstyle_range] * (2 * k),
+            ub=[allowed_rating_range] + [allowed_playstyle_range] * (2 * k),
         ),
-        tol=1e-8,
     )
     return result.x[0], list(result.x[1:])
 
 
+@lru_cache
 def compute_omega_matrix(k):
     # Initialize the Omega matrix with zeros
     omega = np.zeros((2 * k, 2 * k))
@@ -116,7 +116,3 @@ def compute_omega_matrix(k):
         omega += diff_matrix
 
     return omega
-
-
-# called also "Omega matrix"
-playstyle_correction_matrix = compute_omega_matrix(k)

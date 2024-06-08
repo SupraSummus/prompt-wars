@@ -29,6 +29,8 @@ MAX_ALLOWED_RATING_PER_GAME = 100
 # once two warriors battled we want to wait for a while before they can be matched again
 MATCHMAKING_COOLDOWN = datetime.timedelta(days=91)
 
+M_ELO_K = 0
+
 
 class LLM(models.TextChoices):
     GPT_3_5_TURBO = 'gpt-3.5-turbo', 'GPT-3.5 Turbo'
@@ -119,7 +121,7 @@ class Warrior(models.Model):
         default=0.0,
     )
     rating_playstyle = ArrayField(
-        size=2,
+        size=M_ELO_K * 2,
         base_field=models.FloatField(),
         default=list,
     )
@@ -299,9 +301,10 @@ class Warrior(models.Model):
         max_allowed_rating = MAX_ALLOWED_RATING_PER_GAME * len(scores)
         new_rating, new_playstyle = get_performance_rating(
             list(scores.values()),
-            allowed_rating_range=(-max_allowed_rating, max_allowed_rating),
+            allowed_rating_range=max_allowed_rating,
             rating_guess=self.rating,
             playstyle_guess=self.rating_playstyle,
+            k=M_ELO_K,
         )
         rating_error = new_rating - self.rating
 
@@ -561,6 +564,7 @@ class Battle(models.Model):
             self.warrior_1.rating_playstyle,
             self.warrior_2.rating,
             self.warrior_2.rating_playstyle,
+            k=M_ELO_K,
         )
 
     @property
