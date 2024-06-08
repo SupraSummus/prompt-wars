@@ -1,12 +1,6 @@
-from django.db import models
-
-from warriors.models import Warrior
-from warriors.tasks import update_rating
+from warriors.rating import compute_omega_matrix
 
 
-while True:
-    update_rating()
-    print(Warrior.objects.all().aggregate(
-        rating_sum=models.Sum('rating'),
-        rating_error_sum=models.Sum('rating_error'),
-    ))
+for k in [0, 1, 2, 3]:
+    omega = compute_omega_matrix(k)
+    print(omega)

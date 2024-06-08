@@ -6,6 +6,7 @@ from urllib.parse import urlencode
 
 import django_q
 from django.conf import settings
+from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.functions import TransactionNow
 from django.contrib.sites.models import Site
 from django.core.signing import BadSignature, Signer
@@ -17,7 +18,7 @@ from django.utils.html import escape, format_html, mark_safe
 from django_q.tasks import async_chain
 
 from .lcs import lcs_ranges
-from .rating import get_expected_game_score, get_performance_rating
+from .rating import GameScore, get_expected_game_score, get_performance_rating
 
 
 MAX_WARRIOR_LENGTH = 1000
@@ -116,6 +117,11 @@ class Warrior(models.Model):
 
     rating = models.FloatField(
         default=0.0,
+    )
+    rating_playstyle = ArrayField(
+        size=2,
+        base_field=models.FloatField(),
+        default=list,
     )
     games_played = models.PositiveIntegerField(
         default=0,
@@ -274,7 +280,7 @@ class Warrior(models.Model):
         We assume all battles form a tournament.
         """
         # compute rating
-        scores = {}  # opponent_id -> (score, opponent_rating)
+        scores = {}  # opponent_id -> GameScore(score, opponent_rating, opponent_playstyle)
         games_played = 0
         for b in Battle.objects.with_warrior(self).resolved().select_related(
             'warrior_1',
@@ -282,16 +288,20 @@ class Warrior(models.Model):
         ):
             b = b.get_warrior_viewpoint(self)
             if (game_score := b.score) is not None:
-                scores[b.warrior_2.id] = (game_score, b.warrior_2.rating)
+                scores[b.warrior_2.id] = GameScore(
+                    score=game_score,
+                    opponent_rating=b.warrior_2.rating,
+                    opponent_playstyle=b.warrior_2.rating_playstyle,
+                )
             games_played += 1
 
-        score = sum(score for score, _ in scores.values())
-        opponent_ratings = [rating for _, rating in scores.values()]
         # we limit rating range for warriors with few games played
         max_allowed_rating = MAX_ALLOWED_RATING_PER_GAME * len(scores)
-        new_rating = get_performance_rating(
-            score, opponent_ratings,
+        new_rating, new_playstyle = get_performance_rating(
+            list(scores.values()),
             allowed_rating_range=(-max_allowed_rating, max_allowed_rating),
+            rating_guess=self.rating,
+            playstyle_guess=self.rating_playstyle,
         )
         rating_error = new_rating - self.rating
 
@@ -305,8 +315,12 @@ class Warrior(models.Model):
 
         self.rating_error = 0.0
         self.rating += rating_error / 2
+        self.rating_playstyle = new_playstyle
         self.games_played = games_played
-        self.save(update_fields=['rating', 'games_played', 'rating_error'])
+        self.save(update_fields=[
+            'rating', 'rating_playstyle',
+            'games_played', 'rating_error',
+        ])
 
         return rating_error
 
@@ -544,7 +558,9 @@ class Battle(models.Model):
             return None
         return score - get_expected_game_score(
             self.warrior_1.rating,
+            self.warrior_1.rating_playstyle,
             self.warrior_2.rating,
+            self.warrior_2.rating_playstyle,
         )
 
     @property
