@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
             field=django.contrib.postgres.fields.ArrayField(
                 base_field=models.FloatField(),
                 default=list,
-                size=2,
+                size=0,
             ),
         ),
     ]

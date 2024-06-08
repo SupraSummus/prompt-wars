@@ -1,34 +1,36 @@
 import numpy as np
 import pytest
 
-from ..rating import GameScore, compute_omega_matrix, get_performance_rating
+from ..rating import (
+    GameScore, compute_omega_matrix, get_expected_game_score,
+    get_performance_rating,
+)
 
 
 @pytest.fixture
 def scores():
     return [
-        GameScore(1, 1851, []),
-        GameScore(0, 2457, []),
-        GameScore(1, 1989, []),
-        GameScore(1, 2379, []),
-        GameScore(1, 2407, []),
+        GameScore(4 / 5, 1851, []),
+        GameScore(4 / 5, 2457, []),
+        GameScore(4 / 5, 1989, []),
+        GameScore(4 / 5, 2379, []),
+        GameScore(4 / 5, 2407, []),
     ]
 
 
 def test_get_performance_rating(scores):
-    rating, playstyle = get_performance_rating(
-        scores,
-        rating_guess=2000,
-    )
-    assert rating == pytest.approx(2550.5075)
+    rating, playstyle = get_performance_rating(scores)
+    assert rating == pytest.approx(2648.038)
 
 
 def test_get_performance_rating_empty_range(scores):
     rating, playstyle = get_performance_rating(
         scores,
-        allowed_rating_range=(42, 42),
+        allowed_rating_range=0,
+        k=3,
     )
-    assert rating == 42
+    assert rating == 0
+    assert playstyle == [0] * 6
 
 
 @pytest.mark.parametrize("k", [0, 1, 3])
@@ -38,3 +40,38 @@ def test_omega_matrix_properties(k):
     assert omega.shape == (2 * k, 2 * k), f"Expected shape (2*k, 2*k), but got {omega.shape}"
     # Test skew-symmetry
     assert np.allclose(omega, -omega.T), "Matrix is not skew-symmetric"
+
+
+def test_rock_paper_scissors_scheme():
+    """
+    When we have three players that beach each other in a cycle,
+    we should be able to predict match results using m-Elo k=1 system.
+    """
+    params = [
+        (100, [10, 0]),
+        (200, [0, 10]),
+        (300, [5, 5]),
+    ]
+
+    # compute parameters
+    for _ in range(100):
+        new_params = []
+        for i in range(3):
+            prev_i = (i - 1) % 3
+            next_i = (i + 1) % 3
+            rating, playstyle = get_performance_rating(
+                [
+                    GameScore(1, *params[prev_i]),
+                    GameScore(0, *params[next_i]),
+                ],
+                rating_guess=params[i][0],
+                playstyle_guess=params[i][1],
+                k=1,
+            )
+            new_params.append((rating, playstyle))
+        params = new_params
+
+    # check predictions
+    assert get_expected_game_score(*params[0], *params[1], k=1) == pytest.approx(0, abs=0.01)
+    assert get_expected_game_score(*params[1], *params[2], k=1) == pytest.approx(0, abs=0.01)
+    assert get_expected_game_score(*params[2], *params[0], k=1) == pytest.approx(0, abs=0.01)
