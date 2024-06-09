@@ -202,7 +202,7 @@ def update_rating(n=10):
     errors = []
     for _ in range(n):
         with transaction.atomic():
-            warrior = Warrior.objects.order_by(Abs('rating').desc()).select_for_update(
+            warrior = Warrior.objects.order_by(Abs('rating_error').desc()).select_for_update(
                 no_key=True,
                 skip_locked=True,
             ).first()
