@@ -102,8 +102,10 @@ def test_battle_score():
     battle = BattleFactory(
         warrior_1__id=UUID(int=1),
         warrior_1__body='asdf',
+        warrior_1__rating_playstyle=[0, 0],
         warrior_2__id=UUID(int=2),
         warrior_2__body='qwerty',
+        warrior_2__rating_playstyle=[0, 0],
         result_1_2='qwerty',
         lcs_len_1_2_1=0,
         lcs_len_1_2_2=6,

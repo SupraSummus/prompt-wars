@@ -254,8 +254,14 @@ def test_transfer_rating_lots_of_games_played(battle, warrior):
     'lcs_len_2_1_1': 23,
     'lcs_len_2_1_2': 18,
 }], indirect=True)
-@pytest.mark.parametrize('warrior', [{'rating_error': 1}], indirect=True)
-@pytest.mark.parametrize('other_warrior', [{'rating_error': 1}], indirect=True)
+@pytest.mark.parametrize('warrior', [{
+    'rating_playstyle': [0, 0],
+    'rating_error': 1,
+}], indirect=True)
+@pytest.mark.parametrize('other_warrior', [{
+    'rating_playstyle': [0, 0],
+    'rating_error': 1,
+}], indirect=True)
 def test_update_rating(warrior, other_warrior, battle):
     assert warrior.rating == 0.0
     assert other_warrior.rating == 0.0
