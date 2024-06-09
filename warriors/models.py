@@ -29,7 +29,7 @@ MAX_ALLOWED_RATING_PER_GAME = 100
 # once two warriors battled we want to wait for a while before they can be matched again
 MATCHMAKING_COOLDOWN = datetime.timedelta(days=91)
 
-M_ELO_K = 0
+M_ELO_K = 1
 
 
 class LLM(models.TextChoices):
@@ -290,6 +290,7 @@ class Warrior(models.Model):
         ):
             b = b.get_warrior_viewpoint(self)
             if (game_score := b.score) is not None:
+                normalize_playstyle_len(b.warrior_2.rating_playstyle)
                 scores[b.warrior_2.id] = GameScore(
                     score=game_score,
                     opponent_rating=b.warrior_2.rating,
@@ -299,6 +300,7 @@ class Warrior(models.Model):
 
         # we limit rating range for warriors with few games played
         max_allowed_rating = MAX_ALLOWED_RATING_PER_GAME * len(scores)
+        normalize_playstyle_len(self.rating_playstyle)
         new_rating, new_playstyle = get_performance_rating(
             list(scores.values()),
             allowed_rating_range=max_allowed_rating,
@@ -559,6 +561,8 @@ class Battle(models.Model):
         score = self.score
         if score is None:
             return None
+        normalize_playstyle_len(self.warrior_1.rating_playstyle)
+        normalize_playstyle_len(self.warrior_2.rating_playstyle)
         return score - get_expected_game_score(
             self.warrior_1.rating,
             self.warrior_1.rating_playstyle,
@@ -613,6 +617,17 @@ class Battle(models.Model):
                 game_1_id=self.game_2_id,
                 game_2_id=self.game_1_id,
             )
+
+
+def normalize_playstyle_len(playstyle):
+    # Make sure playstyle vector is of fixed length.
+    # This is used to automatically migrate data from different versions of M_ELO_K.
+    # Also by default playstyle is initialized as empty array, so this functions as a default value.
+    while len(playstyle) < M_ELO_K * 2:
+        playstyle.append(random.random())
+    while len(playstyle) > M_ELO_K * 2:
+        playstyle.pop()
+    assert len(playstyle) == M_ELO_K * 2
 
 
 class Game:
