@@ -85,7 +85,7 @@ def get_performance_rating(
             ub=[allowed_rating_range] + [allowed_playstyle_range] * (2 * k),
         ),
     )
-    loss = sum(residual**2 for residual in result.fun)
+    loss = sum(residual**2 for residual in result.fun) / len(result.fun)
     return result.x[0], list(result.x[1:]), loss
 
 
