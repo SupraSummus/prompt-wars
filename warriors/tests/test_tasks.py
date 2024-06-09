@@ -260,9 +260,10 @@ def test_transfer_rating_lots_of_games_played(battle, warrior):
 }], indirect=True)
 @pytest.mark.parametrize('other_warrior', [{
     'rating_playstyle': [0, 0],
-    'rating_error': 1,
+    'rating_error': -1,
 }], indirect=True)
 def test_update_rating(warrior, other_warrior, battle):
+    WarriorFactory.create_batch(3, rating_error=0)  # distraction
     assert warrior.rating == 0.0
     assert other_warrior.rating == 0.0
 
