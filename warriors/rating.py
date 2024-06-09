@@ -66,7 +66,7 @@ def get_performance_rating(
     playstyle_guess: list[float] = None,  # initial guess
     allowed_rating_range: float = 4000,
     k: int = default_k,
-) -> tuple[float, list[float]]:
+) -> tuple[float, list[float], float]:
     """
     Calculate performance rating from a set of games.
     """
@@ -75,7 +75,7 @@ def get_performance_rating(
     if playstyle_guess is None:
         playstyle_guess = [0.0] * (2 * k)
     if allowed_rating_range == 0:
-        return 0, [0] * (2 * k)
+        return 0, [0] * (2 * k), 0
     allowed_playstyle_range = allowed_rating_range ** 0.5
     result = least_squares(
         lambda x: get_tournament_residuals(x[0], x[1:], scores, k),
@@ -85,7 +85,8 @@ def get_performance_rating(
             ub=[allowed_rating_range] + [allowed_playstyle_range] * (2 * k),
         ),
     )
-    return result.x[0], list(result.x[1:])
+    loss = sum(residual**2 for residual in result.fun)
+    return result.x[0], list(result.x[1:]), loss
 
 
 @lru_cache

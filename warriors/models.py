@@ -125,6 +125,9 @@ class Warrior(models.Model):
         base_field=models.FloatField(),
         default=list,
     )
+    rating_fit_loss = models.FloatField(
+        default=0.0,
+    )
     games_played = models.PositiveIntegerField(
         default=0,
     )
@@ -301,7 +304,7 @@ class Warrior(models.Model):
         # we limit rating range for warriors with few games played
         max_allowed_rating = MAX_ALLOWED_RATING_PER_GAME * len(scores)
         normalize_playstyle_len(self.rating_playstyle)
-        new_rating, new_playstyle = get_performance_rating(
+        new_rating, new_playstyle, self.rating_fit_loss = get_performance_rating(
             list(scores.values()),
             allowed_rating_range=max_allowed_rating,
             rating_guess=self.rating,
@@ -324,6 +327,7 @@ class Warrior(models.Model):
         self.games_played = games_played
         self.save(update_fields=[
             'rating', 'rating_playstyle',
+            'rating_fit_loss',
             'games_played', 'rating_error',
         ])
 

@@ -19,12 +19,12 @@ def scores():
 
 
 def test_get_performance_rating(scores):
-    rating, playstyle = get_performance_rating(scores)
+    rating, _, _ = get_performance_rating(scores)
     assert rating == pytest.approx(2648.038)
 
 
 def test_get_performance_rating_empty_range(scores):
-    rating, playstyle = get_performance_rating(
+    rating, playstyle, _ = get_performance_rating(
         scores,
         allowed_rating_range=0,
         k=3,
@@ -59,7 +59,7 @@ def test_rock_paper_scissors_scheme():
         for i in range(3):
             prev_i = (i - 1) % 3
             next_i = (i + 1) % 3
-            rating, playstyle = get_performance_rating(
+            rating, playstyle, _ = get_performance_rating(
                 [
                     GameScore(1, *params[prev_i]),
                     GameScore(0, *params[next_i]),
