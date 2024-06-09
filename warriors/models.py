@@ -12,6 +12,7 @@ from django.contrib.sites.models import Site
 from django.core.signing import BadSignature, Signer
 from django.db import models, transaction
 from django.db.models import F, Q
+from django.db.models.functions import Abs
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import escape, format_html, mark_safe
@@ -149,9 +150,12 @@ class Warrior(models.Model):
         blank=True,
     )
     rating_error = models.FloatField(
-        db_index=True,
         default=0.0,
     )
+
+    @property
+    def rating_error_abs(self):
+        return abs(self.rating_error)
 
     users = models.ManyToManyField(
         to=settings.AUTH_USER_MODEL,
@@ -180,16 +184,16 @@ class Warrior(models.Model):
                 fields=['arena_id', 'body_sha_256'],
                 name='arena_body_sha_256_unique',
             ),
-            models.CheckConstraint(
-                check=models.Q(rating_error__gte=0.0),
-                name='rating_error_non_negative',
-            ),
         ]
         indexes = [
             models.Index(
                 fields=['rating'],
                 name='rating_index',
                 condition=models.Q(moderation_passed=True),
+            ),
+            models.Index(
+                Abs('rating_error'),
+                name='rating_error_index',
             ),
             models.Index(
                 fields=['next_battle_schedule'],
@@ -318,7 +322,7 @@ class Warrior(models.Model):
             error_per_opponent = rating_error / len(scores) / 2
             Warrior.objects.filter(id__in=scores.keys()).update(
                 rating=F('rating') - error_per_opponent,
-                rating_error=F('rating_error') + abs(error_per_opponent),
+                rating_error=F('rating_error') + error_per_opponent,
             )
 
         self.rating_error = 0.0

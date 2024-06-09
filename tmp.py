@@ -10,7 +10,7 @@ warriors = Warrior.objects.filter(
 
 
 # scatter plot of rating_playstyle 2d vetors
-plt.figure(figsize=(10, 10))
+plt.figure(figsize=(30, 30))
 for warrior in warriors:
     if not warrior.rating_playstyle:
         print('skip', warrior.id)

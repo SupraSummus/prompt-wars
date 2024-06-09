@@ -3,6 +3,7 @@ import random
 
 from django.contrib.postgres.functions import TransactionNow
 from django.db import transaction
+from django.db.models.functions import Abs
 from django.utils import timezone
 from django_q.tasks import schedule
 
@@ -201,9 +202,10 @@ def update_rating(n=10):
     errors = []
     for _ in range(n):
         with transaction.atomic():
-            warrior = Warrior.objects.filter(
-                rating_error__gt=0,
-            ).order_by('-rating_error').first()
+            warrior = Warrior.objects.order_by(Abs('rating')).select_for_update(
+                no_key=True,
+                skip_locked=True,
+            ).first()
             if warrior is None:
                 return
             error = warrior.update_rating()

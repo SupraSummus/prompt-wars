@@ -49,7 +49,7 @@
         <dt>Rating points</dt>
         <dd>
           {{ warrior.rating|floatformat:0 }}
-          <small>±{{ warrior.rating_error|floatformat:0 }}</small>
+          <small>±{{ warrior.rating_error_abs|floatformat:0 }}</small>
         </dd>
         <dt>Games played</dt>
         <dd>{{ warrior.games_played }}</dd>
