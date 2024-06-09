@@ -77,6 +77,14 @@ def get_performance_rating(
     if allowed_rating_range == 0:
         return 0, [0] * (2 * k), 0
     allowed_playstyle_range = allowed_rating_range ** 0.5
+
+    # clip the initial guess to the allowed range
+    rating_guess = max(-allowed_rating_range, min(allowed_rating_range, rating_guess))
+    playstyle_guess = [
+        max(-allowed_playstyle_range, min(allowed_playstyle_range, x))
+        for x in playstyle_guess
+    ]
+
     result = least_squares(
         lambda x: get_tournament_residuals(x[0], x[1:], scores, k),
         [rating_guess] + playstyle_guess,
