@@ -3,7 +3,8 @@ from functools import lru_cache
 
 import numpy
 import numpy as np
-from scipy.optimize import Bounds, least_squares
+from scipy.optimize import Bounds, minimize
+from scipy.special import xlogy  # pylint: disable=no-name-in-module
 
 
 # We have 2k playstyle parameters
@@ -39,25 +40,40 @@ class GameScore:
     opponent_playstyle: list[float]
 
 
-def get_tournament_residuals(
+def _loss(
     own_rating: float,
     own_playstyle: list[float],
     scores: list[GameScore],
     k: int = default_k,
 ) -> float:
     """
-    Given player rating and tournament scores compute residuals.
-    (Residuals are differences between expected and actual scores)
+    Calculate the loss function for score predictions using params vs real scores.
     """
-    residuals = []
+    real_scores = np.array([score.score for score in scores])
+    predicted_scores = get_expected_scores(own_rating, own_playstyle, scores, k)
+    return binary_cross_entropy(real_scores, predicted_scores)
+
+
+def get_expected_scores(
+    own_rating: float,
+    own_playstyle: list[float],
+    scores: list[GameScore],
+    k: int = default_k,
+) -> float:
+    expected_scores = []
     for score in scores:
         expected_score = get_expected_game_score(
             own_rating, own_playstyle,
             score.opponent_rating, score.opponent_playstyle,
             k,
         )
-        residuals.append(score.score - expected_score)
-    return residuals
+        expected_scores.append(expected_score)
+    return np.array(expected_scores)
+
+
+def binary_cross_entropy(real, predicted):
+    assert len(real) == len(predicted)
+    return -sum(xlogy(real, predicted) + xlogy(1 - real, 1 - predicted)) / len(real)
 
 
 def get_performance_rating(
@@ -85,15 +101,15 @@ def get_performance_rating(
         for x in playstyle_guess
     ]
 
-    result = least_squares(
-        lambda x: get_tournament_residuals(x[0], x[1:], scores, k),
+    result = minimize(
+        lambda x: _loss(x[0], x[1:], scores, k),
         [rating_guess] + playstyle_guess,
         bounds=Bounds(
             lb=[-allowed_rating_range] + [-allowed_playstyle_range] * (2 * k),
             ub=[allowed_rating_range] + [allowed_playstyle_range] * (2 * k),
         ),
     )
-    loss = sum(residual**2 for residual in result.fun) / len(result.fun)
+    loss = result.fun
     return result.x[0], list(result.x[1:]), loss
 
 

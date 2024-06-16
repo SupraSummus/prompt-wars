@@ -20,7 +20,7 @@ def scores():
 
 def test_get_performance_rating(scores):
     rating, _, _ = get_performance_rating(scores)
-    assert rating == pytest.approx(2648.038)
+    assert rating == pytest.approx(2550.5, abs=0.1)
 
 
 def test_get_performance_rating_empty_range(scores):

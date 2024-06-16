@@ -1,4 +1,5 @@
 [tool.poetry]
+name = "prompt-wars"
 readme = "README.md"
 package-mode = false
 
