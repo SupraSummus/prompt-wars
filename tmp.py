@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
-from warriors.rating import get_expected_game_score
 import numpy as np
+
+from warriors.rating import get_expected_game_score
 
 
 our_rating = 0
