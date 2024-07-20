@@ -30,16 +30,11 @@ class Room(models.Model):
     x = models.IntegerField()
     y = models.IntegerField()
     z = models.IntegerField()
+    zoom_level = models.PositiveSmallIntegerField(
+        default=0,
+    )
 
     prompt = models.TextField()
-    som_neurons = ArrayField(
-        size=6,  # one for each direction
-        base_field=ArrayField(
-            size=EMBEDDING_DIM,
-            base_field=models.FloatField(),
-        ),
-        default=list,
-    )
 
     authored_at = models.DateTimeField(null=True)
     authored_by = models.ForeignKey(to=User, on_delete=models.PROTECT, null=True)
@@ -47,7 +42,7 @@ class Room(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['x', 'y', 'z'],
+                fields=['zoom_level', 'x', 'y', 'z'],
                 name='unique_coords',
             ),
             models.CheckConstraint(
