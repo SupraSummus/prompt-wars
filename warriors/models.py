@@ -16,6 +16,7 @@ from django.db.models.functions import Abs
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import escape, format_html, mark_safe
+from django.utils.translation import gettext_lazy as _
 from django_q.tasks import async_chain
 
 from .lcs import lcs_ranges
@@ -34,8 +35,9 @@ M_ELO_K = 1
 
 
 class LLM(models.TextChoices):
-    GPT_3_5_TURBO = 'gpt-3.5-turbo', 'GPT-3.5 Turbo'
-    CLAUDE_3_HAIKU = 'claude-3-haiku', 'Claude 3 Haiku'
+    GPT_3_5_TURBO = 'gpt-3.5-turbo', 'GPT-3.5 Turbo'  # TODO: remove
+    OPENAI_GPT = 'openai-gpt', _('OpenAI GPT')
+    CLAUDE_3_HAIKU = 'claude-3-haiku', _('Claude 3 Haiku')
 
 
 class Arena(models.Model):
@@ -60,7 +62,6 @@ class Arena(models.Model):
     llm = models.CharField(
         max_length=20,
         choices=LLM.choices,
-        default=LLM.GPT_3_5_TURBO,
     )
     prompt = models.TextField(
         max_length=MAX_WARRIOR_LENGTH,

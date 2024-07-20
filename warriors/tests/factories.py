@@ -4,7 +4,7 @@ import factory
 
 from users.tests.factories import UserFactory
 
-from ..models import Arena, Battle, Warrior, WarriorUserPermission
+from ..models import LLM, Arena, Battle, Warrior, WarriorUserPermission
 
 
 class ArenaFactory(factory.django.DjangoModelFactory):
@@ -12,6 +12,7 @@ class ArenaFactory(factory.django.DjangoModelFactory):
         model = Arena
 
     name = factory.Sequence(lambda n: f'factory-made arena {n}')
+    llm = LLM.OPENAI_GPT
 
 
 class WarriorFactory(factory.django.DjangoModelFactory):
