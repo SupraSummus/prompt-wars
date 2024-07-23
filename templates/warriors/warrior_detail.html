@@ -13,7 +13,12 @@
       </ul>
     </nav>
 
-    <h1>{{ warrior }}</h1>
+    <hgroup>
+      <h1>{{ warrior }}</h1>
+      {% if warrior.moderation_passed and warrior.author_name %}
+        <p>by {{ warrior.author_name }}</p>
+      {% endif %}
+    </hgroup>
 
     {% if warrior.moderation_passed is None %}
       <p>
@@ -38,24 +43,6 @@
           {% include 'exact_text.html' with text=warrior.body %}
         </details>
       {% endif %}
-
-      <dl>
-        {% if warrior.author_name %}
-          <dt>Author</dt>
-          <dd>{{ warrior.author_name }}</dd>
-        {% endif %}
-        <dt>Created at</dt>
-        <dd>{% include 'time.html' with time=warrior.created_at %}</dd>
-        <dt>Rating points</dt>
-        <dd>
-          {{ warrior.rating|floatformat:0 }}
-          <small>±{{ warrior.rating_error_abs|floatformat:0 }}</small>
-        </dd>
-        <dt>Games played</dt>
-        <dd>{{ warrior.games_played }}</dd>
-        <dt>Id</dt>
-        <dd><code>{{ warrior.id }}</code></dd>
-      </dl>
 
       <h2>Battles</h2>
       <p>
@@ -120,6 +107,40 @@
           {% endfor %}
         </tbody>
       </table>
+
+      <h2>Details</h2>
+      <dl>
+        {% if warrior.author_name %}
+          <dt>Author</dt>
+          <dd>{{ warrior.author_name }}</dd>
+        {% endif %}
+        <dt>Created at</dt>
+        <dd>{% include 'time.html' with time=warrior.created_at %}</dd>
+        <dt>Rating points</dt>
+        <dd>
+          {{ warrior.rating|floatformat:0 }}
+          <small>±{{ warrior.rating_error_abs|floatformat:0 }}</small>
+        </dd>
+        <dt>Games played</dt>
+        <dd>{{ warrior.games_played }}</dd>
+        <dt>Id</dt>
+        <dd><code>{{ warrior.id }}</code></dd>
+      </dl>
+
+      {% if warrior_user_permission %}
+        <h2>Settings</h2>
+        <form method="post" action="{% url 'warrior_set_public_battles' warrior.id %}">
+          {% csrf_token %}
+          <label>
+            <input type="checkbox" name="public_battle_results"
+              {% if warrior_user_permission.public_battle_results %}checked{% endif %}
+            />
+            Make battle results public
+          </label>
+          <input type="submit" value="Save" />
+        </form>
+      {% endif %}
+
     {% endif %}
   </main>
 {% endblock %}
