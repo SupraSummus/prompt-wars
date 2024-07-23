@@ -36,7 +36,7 @@
     <summary role="button" class="outline">Result</summary>
     {% if not game.resolved_at %}
       <i>Battle is not resolved yet</i>
-    {% elif game.show_secrets_1 or game.show_secrets_2 %}
+    {% elif game.show_battle_results %}
       {% include 'exact_text.html' with text=game.result %}
     {% else %}
       <i>Hidden. Only the warriors' authors can see it.</i>
