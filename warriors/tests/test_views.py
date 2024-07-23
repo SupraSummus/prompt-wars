@@ -127,13 +127,17 @@ def test_create_authenticated(user, user_client, mocked_recaptcha, default_arena
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior', [{'name': 'strongest'}], indirect=True)
+@pytest.mark.parametrize('warrior', [{
+    'name': 'strongest',
+    'public_battle_results': False,
+}], indirect=True)
 def test_create_authenticated_duplicate(user, user_client, warrior, mocked_recaptcha, default_arena):
     response = user_client.post(
         reverse('warrior_create'),
         data={
             'body': warrior.body,
             'name': 'surely a duplicate',
+            'public_battle_results': True,
             'g-recaptcha-response': 'PASSED',
         },
     )
@@ -144,6 +148,9 @@ def test_create_authenticated_duplicate(user, user_client, warrior, mocked_recap
     # name is not changed
     warrior.refresh_from_db()
     assert warrior.name == 'strongest'
+
+    # at least one user marked battles as public, so the warrior have public battles
+    assert warrior.public_battle_results is True
 
     # user has access to the warrior
     warrior_user_permission = WarriorUserPermission.objects.get(warrior=warrior, user=user)
@@ -262,6 +269,23 @@ def test_battle_details(client, battle):
         reverse('battle_detail', args=(battle.id,))
     )
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('warrior', [
+    {'public_battle_results': False},
+    {'public_battle_results': True},
+], indirect=True)
+@pytest.mark.parametrize('battle', [{
+    'resolved_at_1_2': timezone.now(),
+    'result_1_2': 'asdf1234',
+}], indirect=True)
+def test_battle_details_public(client, battle, warrior):
+    response = client.get(
+        reverse('battle_detail', args=(battle.id,))
+    )
+    assert response.status_code == 200
+    assert ('asdf1234' in response.content.decode()) is warrior.public_battle_results
 
 
 @pytest.mark.django_db

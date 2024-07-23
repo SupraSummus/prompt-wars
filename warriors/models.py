@@ -343,6 +343,18 @@ class Warrior(models.Model):
 
         return rating_error
 
+    def update_public_battle_results(self):
+        """Recompute public_battle_results based on per user data"""
+        user_permissions = list(WarriorUserPermission.objects.filter(
+            warrior=self,
+        ))
+        if user_permissions:
+            self.public_battle_results = any(
+                up.public_battle_results
+                for up in user_permissions
+            )
+            self.save(update_fields=['public_battle_results'])
+
     @cached_property
     def secret(self):
         return self.secret_signer.sign(str(self.id)).split(':')[1]
@@ -385,11 +397,6 @@ class WarriorUserPermission(models.Model):
     )
     public_battle_results = models.BooleanField(
         default=False,
-        help_text=_("Indicates whether battle results should be public for this user-warrior combination."),
-    )
-    public_battle_results = models.BooleanField(
-        default=False,
-        help_text=_("Indicates whether battle results should be public for this user-warrior combination."),
     )
 
     class Meta:
@@ -607,6 +614,10 @@ class Battle(models.Model):
     @cached_property
     def game_2_1(self):
         return Game(self, '2_1')
+
+    @property
+    def public_battle_results(self):
+        return self.warrior_1.public_battle_results or self.warrior_2.public_battle_results
 
     def get_warrior_viewpoint(self, warrior):
         """Return Battle such that warrior_1 == warrior"""

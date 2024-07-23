@@ -26,6 +26,7 @@ class WarriorCreateForm(forms.ModelForm):
             'body',
             'name',
             'author_name',
+            'public_battle_results',
             'captcha',
         )
         labels = {
@@ -82,8 +83,12 @@ class WarriorCreateForm(forms.ModelForm):
             WarriorUserPermission.objects.get_or_create(
                 warrior=warrior,
                 user=self.user,
-                defaults={'name': self.cleaned_data['name']},
+                defaults={
+                    'name': self.cleaned_data['name'],
+                    'public_battle_results': self.cleaned_data['public_battle_results'],
+                },
             )
+            warrior.update_public_battle_results()
         else:
             authorized_warriors = self.session.setdefault('authorized_warriors', [])
             if str(warrior.id) not in authorized_warriors:

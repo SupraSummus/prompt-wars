@@ -148,10 +148,16 @@ class BattleDetailView(DetailView):
 
         show_secrets_1 = is_request_authorized(self.object.warrior_1, self.request)
         show_secrets_2 = is_request_authorized(self.object.warrior_2, self.request)
+        show_battle_results = (
+            show_secrets_1 or show_secrets_2 or  # noqa: W504
+            self.object.public_battle_results
+        )
         self.object.game_1_2.show_secrets_1 = show_secrets_1
         self.object.game_1_2.show_secrets_2 = show_secrets_2
+        self.object.game_1_2.show_battle_results = show_battle_results
         self.object.game_2_1.show_secrets_1 = show_secrets_2
         self.object.game_2_1.show_secrets_2 = show_secrets_1
+        self.object.game_2_1.show_battle_results = show_battle_results
 
         battles_qs = Battle.objects.for_user(self.request.user).filter(
             arena_id=self.object.arena_id,
