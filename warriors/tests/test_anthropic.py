@@ -13,7 +13,7 @@ def anthropic_messages_create_mock(monkeypatch):
     create_mock.return_value = anthropic.types.Message(
         id='asdf-1234',
         content=[
-            anthropic.types.ContentBlock(
+            anthropic.types.TextBlock(
                 type='text',
                 text='battlefield after the battle, littered with the bodies of the fallen',
             ),
