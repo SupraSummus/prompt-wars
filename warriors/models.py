@@ -387,6 +387,10 @@ class WarriorUserPermission(models.Model):
         default=False,
         help_text=_("Indicates whether battle results should be public for this user-warrior combination."),
     )
+    public_battle_results = models.BooleanField(
+        default=False,
+        help_text=_("Indicates whether battle results should be public for this user-warrior combination."),
+    )
 
     class Meta:
         constraints = [
