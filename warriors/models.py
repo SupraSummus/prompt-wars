@@ -154,6 +154,11 @@ class Warrior(models.Model):
         default=0.0,
     )
 
+    public_battle_results = models.BooleanField(
+        default=False,
+        help_text=_("Indicates whether battle results should be public for this warrior."),
+    )
+
     @property
     def rating_error_abs(self):
         return abs(self.rating_error)
