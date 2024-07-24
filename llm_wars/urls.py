@@ -16,17 +16,30 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.contrib.auth.views import LoginView, LogoutView
-from django.urls import path
+from django.urls import path, register_converter
 from django.views.generic import TemplateView
 
 import warriors.views
 from djsfc import Router
-from labirynth.index import router as labirynth_router
+from labirynth.map_view import router as labirynth_router
 from users.views import SignupView
 from warriors.views import (
     ArenaDetailView, BattleDetailView, ChallengeWarriorView, WarriorCreateView,
     WarriorDetailView, WarriorLeaderboard, warrior_set_public_battle_results,
 )
+
+
+class SignedIntConverter:
+    regex = r'-?\d+'
+
+    def to_python(self, value):
+        return int(value)
+
+    def to_url(self, value):
+        return str(value)
+
+
+register_converter(SignedIntConverter, 'signed_int')
 
 
 router = Router(__name__)

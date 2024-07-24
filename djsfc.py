@@ -70,6 +70,26 @@ class Router:
                     return (name,) + relative_name
         return None
 
+    def reverse(self, request, view_name, *args, **kwargs):
+        full_view_name = self.get_full_view_name(request, view_name)
+        return django.urls.reverse(full_view_name, args=args, kwargs=kwargs)
+
+    def get_full_view_name(self, request, view_name):
+        assert view_name.startswith(':')
+        name_path = request.router.get_relative_name(self)
+        if name_path is None:
+            raise ValueError(
+                f'Cannot reverse URL {view_name} in router {self}. '
+                f'Router {self} is not a sub-router of main matched router {request.router}.'
+            )
+        root_namespace = request.resolver_match.namespace
+        if root_namespace:
+            name_path = (root_namespace,) + name_path
+        return ':'.join([
+            *name_path,
+            view_name[1:],
+        ])
+
 
 class MethodDispatchView:
     def __init__(self, handlers, router):
@@ -111,21 +131,7 @@ class AddNamespaceFilterExpression:
     def resolve(self, context):
         resolved = self.filter_expression.resolve(context)
         if resolved.startswith(':'):
-            request = context.request
-            router = request.router
-            name_path = router.get_relative_name(self.router)
-            if name_path is None:
-                raise ValueError(
-                    f'Cannot resolve relative URL {resolved} in router {self.router}. '
-                    f'Router {self.router} is not a sub-router of main matched router {router}.'
-                )
-            root_namespace = request.resolver_match.namespace
-            if root_namespace:
-                name_path = (root_namespace,) + name_path
-            resolved = ':'.join([
-                *name_path,
-                resolved[1:],
-            ])
+            resolved = self.router.get_full_view_name(context.request, resolved)
         return resolved
 
 
