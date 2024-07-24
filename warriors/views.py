@@ -1,7 +1,10 @@
+from django import forms
+from django.contrib.auth.decorators import login_required
 from django.contrib.sites.shortcuts import get_current_site
 from django.db.models import Q
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
+from django.views.decorators.http import require_POST
 from django.views.generic.base import ContextMixin
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import CreateView, FormView
@@ -96,6 +99,12 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
 
         show_secrets = is_request_authorized(self.object, self.request)
         context['show_secrets'] = show_secrets
+        context['warrior_user_permissions'] = None
+        if self.request.user.is_authenticated:
+            context['warrior_user_permission'] = WarriorUserPermission.objects.filter(
+                warrior=self.object,
+                user=self.request.user,
+            ).first()
 
         # save the authorization for user if it's not already saved
         user = self.request.user
@@ -106,6 +115,25 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
             )
 
         return context
+
+
+class PublicBattleResutsForm(forms.Form):
+    public_battle_results = forms.BooleanField(
+        required=False,
+        label='Public battle results',
+    )
+
+
+@require_POST
+@login_required
+def warrior_set_public_battle_results(request, pk):
+    warrior_user_perm = get_object_or_404(WarriorUserPermission, warrior_id=pk, user=request.user)
+    form = PublicBattleResutsForm(request.POST)
+    if form.is_valid():
+        warrior_user_perm.public_battle_results = form.cleaned_data['public_battle_results']
+        warrior_user_perm.save(update_fields=['public_battle_results'])
+        warrior_user_perm.warrior.update_public_battle_results()
+    return redirect(warrior_user_perm.warrior.get_absolute_url())
 
 
 class ChallengeWarriorView(WarriorViewMixin, FormView):
@@ -148,10 +176,16 @@ class BattleDetailView(DetailView):
 
         show_secrets_1 = is_request_authorized(self.object.warrior_1, self.request)
         show_secrets_2 = is_request_authorized(self.object.warrior_2, self.request)
+        show_battle_results = (
+            show_secrets_1 or show_secrets_2 or  # noqa: W504
+            self.object.public_battle_results
+        )
         self.object.game_1_2.show_secrets_1 = show_secrets_1
         self.object.game_1_2.show_secrets_2 = show_secrets_2
+        self.object.game_1_2.show_battle_results = show_battle_results
         self.object.game_2_1.show_secrets_1 = show_secrets_2
         self.object.game_2_1.show_secrets_2 = show_secrets_1
+        self.object.game_2_1.show_battle_results = show_battle_results
 
         battles_qs = Battle.objects.for_user(self.request.user).filter(
             arena_id=self.object.arena_id,

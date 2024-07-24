@@ -25,7 +25,7 @@ from labirynth.index import router as labirynth_router
 from users.views import SignupView
 from warriors.views import (
     ArenaDetailView, BattleDetailView, ChallengeWarriorView, WarriorCreateView,
-    WarriorDetailView, WarriorLeaderboard,
+    WarriorDetailView, WarriorLeaderboard, warrior_set_public_battle_results,
 )
 
 
@@ -50,6 +50,11 @@ urlpatterns = (
     path('arena/<uuid:arena_id>/recent-battles/', warriors.views.RecentBattlesView.as_view(), name='arena_recent_battles'),
 
     path('warrior/<uuid:pk>', WarriorDetailView.as_view(), name='warrior_detail'),
+    path(
+        'warrior/<uuid:pk>/set-public-battles/',
+        warrior_set_public_battle_results,
+        name='warrior_set_public_battles',
+    ),
     path('challenge/<uuid:pk>', ChallengeWarriorView.as_view(), name='challenge_warrior'),
     path('battle/<uuid:pk>', BattleDetailView.as_view(), name='battle_detail'),
 

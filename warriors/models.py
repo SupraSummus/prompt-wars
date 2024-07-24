@@ -16,6 +16,7 @@ from django.db.models.functions import Abs
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import escape, format_html, mark_safe
+from django.utils.translation import gettext_lazy as _
 from django_q.tasks import async_chain
 
 from .lcs import lcs_ranges
@@ -34,8 +35,9 @@ M_ELO_K = 1
 
 
 class LLM(models.TextChoices):
-    GPT_3_5_TURBO = 'gpt-3.5-turbo', 'GPT-3.5 Turbo'
-    CLAUDE_3_HAIKU = 'claude-3-haiku', 'Claude 3 Haiku'
+    GPT_3_5_TURBO = 'gpt-3.5-turbo', 'GPT-3.5 Turbo'  # TODO: remove
+    OPENAI_GPT = 'openai-gpt', _('OpenAI GPT')
+    CLAUDE_3_HAIKU = 'claude-3-haiku', _('Claude 3 Haiku')
 
 
 class Arena(models.Model):
@@ -60,7 +62,6 @@ class Arena(models.Model):
     llm = models.CharField(
         max_length=20,
         choices=LLM.choices,
-        default=LLM.GPT_3_5_TURBO,
     )
     prompt = models.TextField(
         max_length=MAX_WARRIOR_LENGTH,
@@ -151,6 +152,11 @@ class Warrior(models.Model):
     )
     rating_error = models.FloatField(
         default=0.0,
+    )
+
+    public_battle_results = models.BooleanField(
+        default=False,
+        help_text=_("Indicates whether battle results should be public for this warrior."),
     )
 
     @property
@@ -337,6 +343,18 @@ class Warrior(models.Model):
 
         return rating_error
 
+    def update_public_battle_results(self):
+        """Recompute public_battle_results based on per user data"""
+        user_permissions = list(WarriorUserPermission.objects.filter(
+            warrior=self,
+        ))
+        if user_permissions:
+            self.public_battle_results = any(
+                up.public_battle_results
+                for up in user_permissions
+            )
+            self.save(update_fields=['public_battle_results'])
+
     @cached_property
     def secret(self):
         return self.secret_signer.sign(str(self.id)).split(':')[1]
@@ -376,6 +394,9 @@ class WarriorUserPermission(models.Model):
     name = models.CharField(
         max_length=40,
         blank=True,
+    )
+    public_battle_results = models.BooleanField(
+        default=False,
     )
 
     class Meta:
@@ -593,6 +614,10 @@ class Battle(models.Model):
     @cached_property
     def game_2_1(self):
         return Game(self, '2_1')
+
+    @property
+    def public_battle_results(self):
+        return self.warrior_1.public_battle_results or self.warrior_2.public_battle_results
 
     def get_warrior_viewpoint(self, warrior):
         """Return Battle such that warrior_1 == warrior"""
