@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     'django.contrib.sites',
     'django_recaptcha',
-    'django_q',
+    'django_goals',
     'users',
     'warriors',
     'labirynth.apps.LabirynthConfig',
@@ -152,18 +152,6 @@ RECAPTCHA_PUBLIC_KEY = env.str('RECAPTCHA_PUBLIC_KEY', '6LeIxAcTAAAAAJcZVRqyHh71
 RECAPTCHA_PRIVATE_KEY = env.str('RECAPTCHA_PRIVATE_KEY', '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe')
 SILENCED_SYSTEM_CHECKS.append('django_recaptcha.recaptcha_test_key_error')
 
-
-# Django Q
-Q_CLUSTER = {
-    'orm': 'default',
-
-    # task is killed when no result in set time
-    'timeout': 60,  # openai is slow handling word-repeating prompts
-    # task is tried again when there is no result in set time
-    'retry': 120,
-    'workers': env.int('DJANGO_Q_WORKERS', default=2),
-    'catch_up': False,
-}
 
 if SENTRY_DSN := env.str('SENTRY_DSN', default=''):
     sentry_sdk.init(

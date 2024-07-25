@@ -5,7 +5,7 @@ import httpx
 import openai
 import pytest
 from django.utils import timezone
-from django_q.tasks import schedule
+from django_goals.models import RetryMeLater
 
 from ..models import MAX_WARRIOR_LENGTH, Battle, Warrior
 from ..tasks import (
@@ -31,7 +31,7 @@ def test_do_moderation(warrior, monkeypatch, moderation_flagged):
     moderation_mock.return_value.results = [moderation_result_mock]
     monkeypatch.setattr(openai_client.moderations, 'create', moderation_mock)
 
-    do_moderation(warrior.id)
+    do_moderation(None, warrior.id)
 
     warrior.refresh_from_db()
     assert warrior.moderation_date is not None
@@ -158,21 +158,14 @@ def test_resolve_battle_rate_limit(battle, monkeypatch):
         body=None,
     ))
     monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
-    schedule_mock = mock.Mock(wraps=schedule)
-    monkeypatch.setattr('warriors.tasks.schedule', schedule_mock)
 
-    resolve_battle(battle.id, '2_1')
+    ret = resolve_battle(battle.id, '2_1')
+    assert isinstance(ret, RetryMeLater)
 
     # DB state is correct
     battle.refresh_from_db()
     assert battle.finish_reason_2_1 == ''
     assert battle.resolved_at_2_1 is None
-
-    # task was scheduled again
-    assert schedule_mock.call_count == 1
-    assert schedule_mock.call_args.args[0] == 'warriors.tasks.resolve_battle'
-    assert schedule_mock.call_args.args[1] == battle.id
-    assert schedule_mock.call_args.args[2] == '2_1'
 
 
 @pytest.mark.django_db
@@ -209,7 +202,7 @@ def test_transfer_rating(battle):
     assert battle.warrior_1.next_battle_schedule is None
     assert battle.warrior_2.next_battle_schedule is None
 
-    transfer_rating(battle.id)
+    transfer_rating(None, battle.id)
     battle.refresh_from_db()
     assert battle.rating_transferred_at is not None
 
@@ -239,7 +232,7 @@ def test_transfer_rating_lots_of_games_played(battle, warrior):
         lcs_len_2_1_1=31,
         lcs_len_2_1_2=31,
     )
-    transfer_rating(battle.id)
+    transfer_rating(None, battle.id)
     warrior.refresh_from_db()
     assert warrior.games_played == 101
     assert warrior.next_battle_schedule > timezone.now() + datetime.timedelta(days=365 * 10)
