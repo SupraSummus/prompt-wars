@@ -10,13 +10,13 @@ openai = "*"
 django-environ = "*"
 psycopg = "*"
 django-recaptcha = "*"
-django-q2 = "*"
 sentry-sdk = {extras = ["django"], version = "*"}
 gunicorn = "*"
 whitenoise = "*"
 anthropic = "*"
 numpy = "*"
 scipy = "*"
+django-goals = {url = "https://github.com/EE/django-goals/archive/12ae9fb81e0c6a63bf91faf045e76e22729bcfb3.zip"}
 
 
 [tool.poetry.group.dev.dependencies]
@@ -28,7 +28,6 @@ pytest-django = "*"
 pylint-django = "*"
 flake8-pyproject = "*"
 factory-boy = "*"
-freezegun = "*"
 aider-chat = "*"
 
 [build-system]

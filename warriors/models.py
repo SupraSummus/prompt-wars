@@ -1,23 +1,22 @@
 import datetime
 import random
 import uuid
-from functools import cached_property, lru_cache, partial
+from functools import cached_property, lru_cache
 from urllib.parse import urlencode
 
-import django_q
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.functions import TransactionNow
 from django.contrib.sites.models import Site
 from django.core.signing import BadSignature, Signer
-from django.db import models, transaction
+from django.db import models
 from django.db.models import F, Q
 from django.db.models.functions import Abs
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import escape, format_html, mark_safe
 from django.utils.translation import gettext_lazy as _
-from django_q.tasks import async_chain
+from django_goals.models import schedule
 
 from .lcs import lcs_ranges
 from .rating import GameScore, get_expected_game_score, get_performance_rating
@@ -547,18 +546,22 @@ class Battle(models.Model):
             warrior_2=warrior_2,
             scheduled_at=TransactionNow(),
         )
-
-        from .tasks import resolve_battle, transfer_rating
-        transaction.on_commit(partial(
-            async_chain,
-            [
-                (resolve_battle, (battle.id, '1_2')),
-                (resolve_battle, (battle.id, '2_1')),
-                (transfer_rating, (battle.id,)),
-            ],
-            # by default it uses sync=False in non-configurable manner
-            sync=django_q.conf.Conf.SYNC,
-        ))
+        from .tasks import (
+            resolve_battle_1_2, resolve_battle_2_1, transfer_rating,
+        )
+        resolve_1_2_goal = schedule(
+            resolve_battle_1_2,
+            args=(str(battle.id),),
+        )
+        resolve_2_1_goal = schedule(
+            resolve_battle_2_1,
+            args=(str(battle.id),),
+        )
+        schedule(
+            transfer_rating,
+            args=(str(battle.id),),
+            precondition_goals=[resolve_1_2_goal, resolve_2_1_goal],
+        )
 
         return battle
 

@@ -1,3 +1,4 @@
+import datetime
 import logging
 import random
 
@@ -5,7 +6,7 @@ from django.contrib.postgres.functions import TransactionNow
 from django.db import transaction
 from django.db.models.functions import Abs
 from django.utils import timezone
-from django_q.tasks import schedule
+from django_goals.models import RetryMeLater
 
 from . import anthropic
 from .exceptions import RateLimitError
@@ -19,7 +20,7 @@ from .openai import openai_client, resolve_battle_openai
 logger = logging.getLogger(__name__)
 
 
-def do_moderation(warrior_id):
+def do_moderation(goal, warrior_id):
     now = timezone.now()
     warrior = Warrior.objects.get(id=warrior_id)
     assert warrior.moderation_date is None
@@ -105,6 +106,14 @@ def schedule_battle_top(arena_id):
                 return warrior.create_battle(opponent)
 
 
+def resolve_battle_1_2(goal, battle_id):
+    return resolve_battle(battle_id, '1_2')
+
+
+def resolve_battle_2_1(goal, battle_id):
+    return resolve_battle(battle_id, '2_1')
+
+
 def resolve_battle(battle_id, direction):
     now = timezone.now()
     battle = Battle.objects.filter(id=battle_id).select_related(
@@ -137,15 +146,7 @@ def resolve_battle(battle_id, direction):
     except RateLimitError:
         logger.exception('LLM API rate limit')
         # try again in some time
-        schedule(
-            # function must be path, not the function itself
-            'warriors.tasks.resolve_battle',
-            battle_id, direction,
-            schedule_type='O',  # one-off
-            repeats=1,
-            next_run=now + timezone.timedelta(minutes=5),
-        )
-        return
+        return RetryMeLater(precondition_date=now + datetime.timedelta(minutes=5))
     else:
         battle_view.result = result[:MAX_WARRIOR_LENGTH]
         battle_view.lcs_len_1 = lcs_len(battle_view.warrior_1.body, battle_view.result)
@@ -168,7 +169,7 @@ def resolve_battle(battle_id, direction):
 
 
 @transaction.atomic
-def transfer_rating(battle_id):
+def transfer_rating(goal, battle_id):
     battle = Battle.objects.filter(id=battle_id).select_related(
         'warrior_1',
         'warrior_2',

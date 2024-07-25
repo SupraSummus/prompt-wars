@@ -1,13 +1,11 @@
-from unittest.mock import patch
-
 import pytest
 from django.urls import reverse
 from django.utils import timezone
+from django_goals.models import Goal
 
 from users.tests.factories import UserFactory
 
 from ..models import MAX_WARRIOR_LENGTH, Battle, Warrior, WarriorUserPermission
-from ..tasks import do_moderation
 
 
 @pytest.mark.django_db
@@ -31,16 +29,15 @@ def test_create_warrior(client, mocked_recaptcha, has_authorized_warriors, defau
         session = client.session
         session['authorized_warriors'] = []
         session.save()
-    with patch('warriors.forms.async_task') as mocked_async_task:
-        response = client.post(
-            reverse('warrior_create'),
-            data={
-                'name': 'Test Warrior',
-                'author_name': 'Test Author',
-                'body': 'Test Body',
-                'g-recaptcha-response': 'PASSED',
-            },
-        )
+    response = client.post(
+        reverse('warrior_create'),
+        data={
+            'name': 'Test Warrior',
+            'author_name': 'Test Author',
+            'body': 'Test Body',
+            'g-recaptcha-response': 'PASSED',
+        },
+    )
     assert response.status_code == 302, response.context['form'].errors
     path = response.url
     warrior_id = path.split('/')[-1]
@@ -58,7 +55,9 @@ def test_create_warrior(client, mocked_recaptcha, has_authorized_warriors, defau
     assert warrior.moderation_date is None
 
     # moderation task scheduled
-    mocked_async_task.assert_called_once_with(do_moderation, warrior.id)
+    goal = Goal.objects.get()
+    assert goal.handler == 'warriors.tasks.do_moderation'
+    assert goal.instructions['args'] == [str(warrior.id)]
 
     # session is athorized for new warrior
     assert str(warrior.id) in response.client.session['authorized_warriors']

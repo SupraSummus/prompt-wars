@@ -4,7 +4,7 @@ from django import forms
 from django.contrib import messages
 from django.utils.text import normalize_newlines
 from django.utils.translation import gettext as _
-from django_q.tasks import async_task
+from django_goals.models import schedule
 from django_recaptcha.fields import ReCaptchaField
 
 from .models import MAX_WARRIOR_LENGTH, Battle, Warrior, WarriorUserPermission
@@ -75,7 +75,7 @@ class WarriorCreateForm(forms.ModelForm):
             assert commit
             warrior.save()
 
-            async_task(do_moderation, warrior.id)
+            schedule(do_moderation, args=[str(warrior.id)])
 
         # discovery message
         else:
