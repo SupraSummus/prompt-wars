@@ -16,10 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.contrib.auth.views import LoginView, LogoutView
-from django.urls import path
+from django.urls import path, register_converter
 from django.views.generic import TemplateView
 
 import warriors.views
+from djsfc import Router
+from labirynth.map_view import router as labirynth_router
 from users.views import SignupView
 from warriors.views import (
     ArenaDetailView, BattleDetailView, ChallengeWarriorView, WarriorCreateView,
@@ -27,7 +29,23 @@ from warriors.views import (
 )
 
 
-urlpatterns = [
+class SignedIntConverter:
+    regex = r'-?\d+'
+
+    def to_python(self, value):
+        return int(value)
+
+    def to_url(self, value):
+        return str(value)
+
+
+register_converter(SignedIntConverter, 'signed_int')
+
+
+router = Router(__name__)
+router.route_all('labirynth/', labirynth_router, name='labirynth')
+
+urlpatterns = (
     path('', TemplateView.as_view(template_name="home.html"), name='home'),
     path("admin/", admin.site.urls),
 
@@ -56,4 +74,4 @@ urlpatterns = [
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('signup/', SignupView.as_view(), name='signup'),
-]
+) + router.urls
