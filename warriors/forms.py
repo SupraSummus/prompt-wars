@@ -15,7 +15,6 @@ class WarriorCreateForm(forms.ModelForm):
     body = forms.CharField(
         label='Prompt',
         widget=forms.Textarea(attrs={'rows': 5}),
-        max_length=MAX_WARRIOR_LENGTH,
         strip=False,
     )
     captcha = ReCaptchaField(label='')
@@ -45,6 +44,13 @@ class WarriorCreateForm(forms.ModelForm):
     def clean_body(self):
         body = self.cleaned_data['body']
         body = normalize_newlines(body)
+        if len(body) > MAX_WARRIOR_LENGTH:
+            raise forms.ValidationError(
+                _('The spell is too long. The maximum length is %(max_length)d characters.') % {
+                    'max_length': MAX_WARRIOR_LENGTH,
+                },
+                code='max_length',
+            )
 
         body_sha_256 = hashlib.sha256(body.encode('utf-8')).digest()
         self.cleaned_data['body_sha_256'] = body_sha_256

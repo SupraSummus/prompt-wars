@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from users.tests.factories import UserFactory
 
-from ..models import Battle, Warrior, WarriorUserPermission
+from ..models import MAX_WARRIOR_LENGTH, Battle, Warrior, WarriorUserPermission
 from ..tasks import do_moderation
 
 
@@ -109,6 +109,31 @@ def test_create_no_strip(client, mocked_recaptcha, default_arena):
     assert response.status_code == 302
     warrior = Warrior.objects.get()
     assert warrior.body == ' Test \nWarrior \n\n'
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ('length', 'expect_success'),
+    [
+        (MAX_WARRIOR_LENGTH, True),
+        (MAX_WARRIOR_LENGTH + 1, False),
+    ],
+)
+def test_create_crlf_length(client, mocked_recaptcha, default_arena, length, expect_success):
+    response = client.post(
+        reverse('warrior_create'),
+        data={
+            'body': '\r\n' * length,
+            'g-recaptcha-response': 'PASSED',
+        },
+    )
+    if expect_success:
+        assert response.status_code == 302
+        warrior = Warrior.objects.get()
+        assert warrior.body == '\n' * length
+    else:
+        assert response.status_code == 200
+        assert response.context['form'].errors['body']
 
 
 @pytest.mark.django_db
