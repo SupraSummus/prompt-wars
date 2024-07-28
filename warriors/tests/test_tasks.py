@@ -9,7 +9,7 @@ from django_goals.models import RetryMeLater
 
 from ..models import MAX_WARRIOR_LENGTH, Battle, Warrior
 from ..tasks import (
-    do_moderation, openai_client, resolve_battle, schedule_battle_top,
+    do_moderation, openai_client, resolve_battle, schedule_battle_top_arena,
     schedule_battles, transfer_rating, update_rating,
 )
 from .factories import BattleFactory, WarriorFactory
@@ -72,7 +72,7 @@ def test_schedule_battles(arena):
 @pytest.mark.parametrize('other_warrior', [{'rating': 250}], indirect=True)
 def test_schedule_battle_top(warrior, other_warrior, arena, monkeypatch):
     monkeypatch.setattr('random.random', lambda: 0.9999)
-    battle = schedule_battle_top(str(arena.id))
+    battle = schedule_battle_top_arena(str(arena.id))
     assert battle is not None
     assert {warrior, other_warrior} == {battle.warrior_1, battle.warrior_2}
 

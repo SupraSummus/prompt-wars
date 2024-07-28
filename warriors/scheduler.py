@@ -1,6 +1,6 @@
 import sched
 
-from .tasks import schedule_battle
+from .tasks import schedule_battle, schedule_battles_top
 
 
 class Scheduler(sched.scheduler):
@@ -11,3 +11,4 @@ class Scheduler(sched.scheduler):
 
 scheduler = Scheduler()
 scheduler.enter_recurring(1, 0, schedule_battle)
+scheduler.enter_recurring(60 * 10, 0, schedule_battles_top)

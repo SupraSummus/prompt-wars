@@ -12,7 +12,8 @@ from . import anthropic
 from .exceptions import RateLimitError
 from .lcs import lcs_len
 from .models import (
-    LLM, MATCHMAKING_COOLDOWN, MAX_WARRIOR_LENGTH, Battle, Game, Warrior,
+    LLM, MATCHMAKING_COOLDOWN, MAX_WARRIOR_LENGTH, Arena, Battle, Game,
+    Warrior,
 )
 from .openai import openai_client, resolve_battle_openai
 
@@ -64,7 +65,12 @@ def schedule_battle(now=None):
     warrior.schedule_battle(now=now)
 
 
-def schedule_battle_top(arena_id):
+def schedule_battles_top():
+    for arena in Arena.objects.all():
+        schedule_battle_top_arena(arena.id)
+
+
+def schedule_battle_top_arena(arena_id):
     rating = 4000  # arbitrary value, higer than any real rating
     warriors_above = set()
     while True:
