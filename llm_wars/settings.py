@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django_recaptcha',
     'django_goals',
+    'django_object_actions',
     'users',
     'warriors',
     'labirynth.apps.LabirynthConfig',
