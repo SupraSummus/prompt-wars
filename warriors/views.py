@@ -182,11 +182,11 @@ class BattleDetailView(DetailView):
         )
 
         # Add meta title
-        context['meta_title'] = f"Prompt Wars Battle: {self.object.warrior_1.name} vs {self.object.warrior_2.name}"
+        context['meta_title'] = f"Prompt Wars Battle: {self.object.warrior_1} vs {self.object.warrior_2}"
 
         # Add meta description
         context['meta_description'] = (
-            f"AI battle between '{self.object.warrior_1.name}' and '{self.object.warrior_2.name}'. "
+            f"AI battle between '{self.object.warrior_1}' and '{self.object.warrior_2}'. "
             "View the results of this AI prompt engineering duel."
         )
 
