@@ -185,12 +185,10 @@ class BattleDetailView(DetailView):
         context['meta_title'] = f"Prompt Wars Battle: {self.object.warrior_1.name} vs {self.object.warrior_2.name}"
 
         # Add meta description
-        description = f"AI battle between '{self.object.warrior_1.name}' and '{self.object.warrior_2.name}'. "
-        if self.object.public_battle_results:
-            description += f"Result: {self.object.game_1_2.result[:100]}..."
-        else:
-            description += "View the results of this AI prompt engineering duel."
-        context['meta_description'] = description
+        context['meta_description'] = (
+            f"AI battle between '{self.object.warrior_1.name}' and '{self.object.warrior_2.name}'. "
+            "View the results of this AI prompt engineering duel."
+        )
 
         self.object.game_1_2.show_secrets_1 = show_secrets_1
         self.object.game_1_2.show_secrets_2 = show_secrets_2
