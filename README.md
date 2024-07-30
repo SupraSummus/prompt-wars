@@ -19,3 +19,7 @@ An AI word-battling game/puzzle inspired by the classic concept of Core War. Pla
     ./manage.py runserver
 
 See `run.sh` for full details how we run in production.
+
+## Documentation
+
+Detailed documentation about various aspects of the project can be found in the `docs` directory.

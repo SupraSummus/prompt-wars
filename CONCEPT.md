@@ -59,3 +59,9 @@ Players create prompts ("spells") designed to subtly steer an LLM's response tow
 3. The creator continues to seek feedback and ideas for enriching the game mechanics and overall user experience.
 
 Prompt Wars continues to evolve, offering unique opportunities for developers to explore LLM behavior, prompt engineering, and emergent gameplay mechanics. The proposed changes aim to create a more level playing field while potentially opening up the game's content to a wider audience. This balance of fairness, privacy, and openness presents interesting challenges for developers to tackle.
+
+## Additional Documentation
+
+For more detailed information on specific aspects of the project, please refer to the following documents:
+
+- [SEO Strategies](docs/SEO.md): Our approach to improving search engine visibility and site discoverability.
