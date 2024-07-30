@@ -17,6 +17,7 @@ anthropic = "*"
 numpy = "*"
 scipy = "*"
 django-goals = {url = "https://github.com/EE/django-goals/archive/12ae9fb81e0c6a63bf91faf045e76e22729bcfb3.zip"}
+humanize = "*"
 
 
 [tool.poetry.group.dev.dependencies]

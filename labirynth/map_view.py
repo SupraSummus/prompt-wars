@@ -1,3 +1,4 @@
+import humanize
 from django import forms
 from django.contrib.auth.decorators import permission_required
 from django.http import Http404
@@ -15,7 +16,10 @@ template_str = """\
 {% extends "base.html" %}
 
 {% block content %}<main class="container">
-  <h1>{{ x }} / {{ y }} / {{ z }} @ {{ zoom_level }}</h1>
+  <hgroup>
+    <h1>{{ x }} / {{ y }} / {{ z }} @ {{ zoom_level }}</h1>
+    <p>Roughly {{ metric_size }} in diameter</p>
+  </hgroup>
 
   {% block room_detail %}
     <div hx-target="this" hx-swap="innerHTML">
@@ -68,6 +72,7 @@ def root(request, zoom_level, x, y, z):
         'x': x,
         'y': y,
         'z': z,
+        'metric_size': humanize.metric(2 ** zoom_level, 'm', precision=1),
         'room': room,
         'links': links,
     }
