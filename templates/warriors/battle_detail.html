@@ -13,7 +13,7 @@
     <section>
 
       <hgroup>
-        <h1>A battle</h1>
+        <h1>{{ meta_title }}</h1>
         <p>
           scheduled at {% include 'time.html' with time=battle.scheduled_at %}
           {% if battle.rating_transferred_at %}
