@@ -1,7 +1,12 @@
 import uuid
 
+from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models.expressions import CombinedExpression
+from django.utils import timezone
+
+
+User = get_user_model()
 
 
 class Room(models.Model):
@@ -37,3 +42,33 @@ class Room(models.Model):
                 name='hex_grid',
             ),
         ]
+
+
+class RoomVersion(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+    room = models.ForeignKey(
+        to=Room,
+        on_delete=models.CASCADE,
+        related_name='versions',
+    )
+    prompt = models.TextField()
+    created_at = models.DateTimeField(
+        default=timezone.now,
+    )
+    user = models.ForeignKey(
+        to=User,
+        on_delete=models.SET_NULL,
+        null=True,
+    )
+    llm_version = models.CharField(
+        max_length=100,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+        get_latest_by = 'created_at'

@@ -6,7 +6,7 @@ from django.template.response import TemplateResponse
 
 from djsfc import Router, get_template_block, parse_template
 
-from .models import Room
+from .models import Room, RoomVersion
 
 
 router = Router(__name__)
@@ -128,6 +128,11 @@ def save(request, zoom_level, x, y, z):
     }
     if form.is_valid():
         form.save()
+        RoomVersion.objects.create(
+            room=room,
+            prompt=room.prompt,
+            user=request.user,
+        )
         context['room'] = room
     else:
         context['edit_form'] = form
