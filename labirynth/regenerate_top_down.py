@@ -33,10 +33,9 @@ def regenerate_top_down(goal):
 
 def get_examples(zoom_level, x, y, z):
     if x % 2 == 0 and y % 2 == 0 and z % 2 == 0:
-        # this room is a center section of another room on larger size
+        # this room is a center section of another room of larger size
         return get_examples_center(zoom_level + 1, x // 2, y // 2, z // 2)
     else:
-        # this room is at the intersection of 2 larger rooms
         return get_examples_intersection(zoom_level, x, y, z)
 
 
@@ -70,7 +69,55 @@ def get_examples_center(zoom_level, x, y, z):
 
 
 def get_examples_intersection(zoom_level, x, y, z):
-    raise NotImplementedError()
+    # find relevant rooms
+    big_coords_1, big_coords_2 = get_big_coords(x, y, z)
+    lookup_params = {
+        (zoom_level + 1, *big_coords_1),
+        (zoom_level + 1, *big_coords_2),
+    }
+    for dx, dy, dz in NEIGHBOR_DELTAS:
+        big_coords_1, big_coords_2 = get_big_coords(x + dx, y + dy, z + dz)
+        if big_coords_1 and big_coords_2:
+            lookup_params.add((zoom_level, x + dx, y + dy, z + dz))
+            lookup_params.add((zoom_level + 1, *big_coords_1))
+            lookup_params.add((zoom_level + 1, *big_coords_2))
+    rooms = get_objects_dict(Room, ('zoom_level', 'x', 'y', 'z'), lookup_params)
+
+    # we will derrive small room from two big rooms
+    big_coords_1, big_coords_2 = get_big_coords(x, y, z)
+    big_room_1 = rooms[(zoom_level + 1, *big_coords_1)]
+    big_room_2 = rooms[(zoom_level + 1, *big_coords_2)]
+    if big_room_1 and big_room_2:
+        prompt = big_room_1.prompt + '\n' + big_room_2.prompt
+    else:
+        prompt = ''
+
+    # neighbour big/small pairs are used as examples
+    examples = []
+    for dx, dy, dz in NEIGHBOR_DELTAS:
+        big_coords_1, big_coords_2 = get_big_coords(x + dx, y + dy, z + dz)
+        if not big_coords_1 or not big_coords_2:
+            continue  # we are not at the intersection
+        big_room_1 = rooms[(zoom_level + 1, *big_coords_1)]
+        big_room_2 = rooms[(zoom_level + 1, *big_coords_2)]
+        small_room = rooms[(zoom_level, x + dx, y + dy, z + dz)]
+        if not big_room_1 or not big_room_2 or not small_room:
+            continue  # some of the rooms are not generated yet
+        examples.append((big_room_1.prompt + '\n' + big_room_2.prompt, small_room.prompt))
+
+    return examples, prompt
+
+
+def get_big_coords(x, y, z):
+    if x % 2 == 0 and y % 2 == 0 and z % 2 == 0:
+        return (x // 2, y // 2, z // 2), None
+    elif x % 2 == 0:
+        return (x // 2, y // 2 + 1, z // 2), (x // 2, y // 2, z // 2 + 1)
+    elif y % 2 == 0:
+        return (x // 2 + 1, y // 2, z // 2), (x // 2, y // 2, z // 2 + 1)
+    elif z % 2 == 0:
+        return (x // 2 + 1, y // 2, z // 2), (x // 2, y // 2 + 1, z // 2)
+    assert False
 
 
 NEIGHBOR_DELTAS = [
