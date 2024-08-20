@@ -172,10 +172,21 @@ def get_block_from_nodelist(nodelist, block_name):
         if isinstance(node, django.template.loader_tags.BlockNode) and node.name == block_name:
             return node
         for child_nodelist_name in getattr(node, 'child_nodelists', []):
-            ret = get_block_from_nodelist(getattr(node, child_nodelist_name), block_name)
+            ret = get_block_from_nodelist(getattr(
+                node, child_nodelist_name,
+                [],  # RegroupNode and IncludeNode has no nodelist, but it has it registered in child_nodelists
+            ), block_name)
             if ret is not None:
                 return ret
     return None
+
+
+class UnionTemplate:
+    def __init__(self, templates):
+        self.templates = templates
+
+    def render(self, *args, **kwargs):
+        return ''.join(template.render(*args, **kwargs) for template in self.templates)
 
 
 class TemplateLoader:
@@ -184,14 +195,17 @@ class TemplateLoader:
 
     def get_template(self, template_name, skip=None):
         assert skip is None
-        assert template_name.endswith('.html')
-        template_name = template_name[:-5]
         template_name = template_name.replace('/', '.')
+        module_name, variable_name = template_name.rsplit('.', 1)
         try:
-            module = importlib.import_module(template_name)
+            module = importlib.import_module(module_name)
         except ModuleNotFoundError:
             raise django.template.exceptions.TemplateDoesNotExist(template_name)
-        return module.template.template
+        if not hasattr(module, variable_name):
+            raise django.template.exceptions.TemplateDoesNotExist(template_name)
+        template = getattr(module, variable_name)
+        assert isinstance(template, django.template.backends.django.Template)
+        return template.template
 
     def reset(self):
         pass

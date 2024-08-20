@@ -55,7 +55,11 @@
       </section>
     {% endif %}
 
-    {% block content %}{% endblock %}
+    {% block content %}
+      <main class="container">
+        {% block main %}{% endblock %}
+      </main>
+    {% endblock %}
 
     <footer class="container">
       <small>

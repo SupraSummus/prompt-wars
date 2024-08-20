@@ -10,6 +10,7 @@ pytest_plugins = [
     'users.tests.fixtures',
     'warriors.tests.fixtures',
     'labirynth.fixtures',
+    'stories.fixtures',
 ]
 
 

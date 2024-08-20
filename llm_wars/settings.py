@@ -49,9 +49,10 @@ INSTALLED_APPS = [
     'django_recaptcha',
     'django_goals',
     'django_object_actions',
-    'users',
-    'warriors',
+    'users.apps.UsersConfig',
+    'warriors.apps.WarriorsConfig',
     'labirynth.apps.LabirynthConfig',
+    'stories.apps.StoriesConfig',
 ]
 
 MIDDLEWARE = [
@@ -70,9 +71,12 @@ ROOT_URLCONF = "llm_wars.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        'DIRS': [BASE_DIR / 'templates'],
-        "APP_DIRS": True,
         "OPTIONS": {
+            'loaders': [
+                ('django.template.loaders.filesystem.Loader', [BASE_DIR / 'templates']),
+                'django.template.loaders.app_directories.Loader',
+                'djsfc.TemplateLoader',
+            ],
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
