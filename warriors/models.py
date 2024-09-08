@@ -20,6 +20,10 @@ from django_goals.models import schedule
 
 from .lcs import lcs_ranges
 from .rating import GameScore, get_expected_game_score, get_performance_rating
+from .stats import ArenaStats
+
+
+__all__ = ['ArenaStats']
 
 
 MAX_WARRIOR_LENGTH = 1000
@@ -192,7 +196,7 @@ class Warrior(models.Model):
         ]
         indexes = [
             models.Index(
-                fields=['rating'],
+                fields=['arena', 'rating'],
                 name='rating_index',
                 condition=models.Q(moderation_passed=True),
             ),

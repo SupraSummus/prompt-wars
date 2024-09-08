@@ -20,8 +20,14 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
                 ('text', models.TextField()),
-                ('generated_goal', models.OneToOneField(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='generated_chunk', to='django_goals.goal')),
-                ('previous_chunk', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='next_chunks', to='stories.chunk')),
+                ('generated_goal', models.OneToOneField(
+                    blank=True,
+                    null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='generated_chunk', to='django_goals.goal',
+                )),
+                ('previous_chunk', models.ForeignKey(
+                    blank=True,
+                    null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='next_chunks', to='stories.chunk',
+                )),
             ],
         ),
     ]
