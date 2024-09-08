@@ -28,7 +28,7 @@ MATCHMAKING_MAX_RATING_DIFF = 100  # rating diff of 100 means expected score is 
 MAX_ALLOWED_RATING_PER_GAME = 100
 
 # once two warriors battled we want to wait for a while before they can be matched again
-MATCHMAKING_COOLDOWN = datetime.timedelta(days=91)
+MATCHMAKING_COOLDOWN = datetime.timedelta(days=122)  # 4 months
 
 M_ELO_K = 1
 
