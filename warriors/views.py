@@ -12,6 +12,7 @@ from django.views.generic.list import ListView
 
 from .forms import ChallengeWarriorForm, WarriorCreateForm
 from .models import Arena, Battle, Warrior, WarriorUserPermission
+from .stats import ArenaStats
 
 
 def arena_list(request):
@@ -45,6 +46,16 @@ class ArenaDetailView(ArenaViewMixin, DetailView):
 
     def get_object(self):
         return self.arena
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        latest_stats = ArenaStats.objects.filter(arena=self.arena).order_by('-date').first()
+        context['rating_quantile_labels'] = [str(i / 100) for i in range(0, 101)]
+        if latest_stats:
+            context['rating_quantile_values'] = latest_stats.rating_quantiles
+
+        return context
 
 
 class WarriorCreateView(ArenaViewMixin, CreateView):

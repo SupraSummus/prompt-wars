@@ -17,5 +17,55 @@
     <li><a href="{% url 'arena_recent_battles' arena.id %}">Recent battles</a></li>
   </ul>
 
+  <canvas id="chart" width="500" height="500"></canvas>
+  <script
+    src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"
+    integrity="sha384-G436+Z2nlA8+PNoeRvWdxKbvOf8E/y+lYxqht2iBwNHTQDV5CJr3+AGVj8fGZi5t"
+    crossorigin="anonymous"
+  ></script>
+  {{ rating_quantile_labels|json_script:'rating_quantile_labels' }}
+  {{ rating_quantile_values|json_script:'rating_quantile_values' }}
+  <script>
+    const ctx = document.getElementById('chart').getContext('2d');
+    const labels = JSON.parse(document.getElementById('rating_quantile_labels').textContent);
+    const values = JSON.parse(document.getElementById('rating_quantile_values').textContent);
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            data: values,
+          },
+        ],
+      },
+      options: {
+        plugins: {
+          title: {
+            display: true,
+            text: 'Rating points quantile function',
+          },
+          legend: {
+            display: false,
+          },
+        },
+        scales: {
+          y: {
+            title: {
+              display: true,
+              text: 'Rating points',
+            },
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Quantile',
+            },
+          },
+        },
+      },
+    });
+  </script>
+
 </main>
 {% endblock %}
