@@ -22,6 +22,14 @@ class ArenaStats(models.Model):
     class Meta:
         ordering = ['-date']
 
+    @property
+    def rating_quantile_labels(self):
+        return rating_quantile_labels()
+
+
+def rating_quantile_labels():
+    return [i / 100 for i in range(101)]
+
 
 def create_arena_stats():
     from .models import Arena
@@ -38,7 +46,7 @@ def create_arena_stats_for_arena(arena, now):
     warrior_count = warriors_qs.count()
     battle_count = Battle.objects.filter(arena=arena).count()
     rating_quantiles = warriors_qs.aggregate(
-        percentiles=PercentileDisc('rating', [i / 100 for i in range(101)]),
+        percentiles=PercentileDisc('rating', rating_quantile_labels())
     )['percentiles'] or []
     ArenaStats.objects.create(
         arena=arena,
