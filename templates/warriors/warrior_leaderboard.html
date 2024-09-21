@@ -35,7 +35,9 @@
     </table>
 
     <h2>Playstyle Distribution</h2>
-    <canvas id="playstyleChart"></canvas>
+    <div style="width: 80vmin; height: 80vmin; margin: auto;">
+      <canvas id="playstyleChart"></canvas>
+    </div>
 
     <script
       src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"
@@ -52,11 +54,10 @@
         data: {
           datasets: [{
             data: playstyleData,
-            pointBackgroundColor: 'rgba(75, 192, 192, 0.6)',
-            pointBorderColor: 'rgba(75, 192, 192, 1)',
           }]
         },
         options: {
+          aspectRatio: 1,
           plugins: {
             title: {
               display: true,
