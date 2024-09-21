@@ -687,35 +687,32 @@ testing = ["coverage[toml] (>=5.0a4)", "pytest (>=4.6.11)"]
 
 [[package]]
 name = "django-goals"
-version = "0.2.0"
+version = "0.2.4"
 description = ""
 optional = false
 python-versions = "^3.12"
 files = [
-    {file = "12ae9fb81e0c6a63bf91faf045e76e22729bcfb3.zip", hash = "sha256:a93027e832ee7e0271a90369b88a0001032b9b80cb1d27e4b52ac8c25ae27eec"},
+    {file = "99519c5ebd6fa0030cb6f9275d3c92eafbe895c7.zip", hash = "sha256:57f4a35cbd71d58e8dea2d676c4fd11e1f24ec4d4befbeb1ce015168e6edf7ad"},
 ]
 
 [package.dependencies]
 django = ">=4.2"
-django-object-actions = {url = "https://github.com/EE/django-object-actions/archive/adab5895f72b3d139323c35e2af6aa9acc3e7d4e.zip"}
+django-object-actions = ">=4.3"
 
 [package.source]
 type = "url"
-url = "https://github.com/EE/django-goals/archive/12ae9fb81e0c6a63bf91faf045e76e22729bcfb3.zip"
+url = "https://github.com/EE/django-goals/archive/99519c5ebd6fa0030cb6f9275d3c92eafbe895c7.zip"
 
 [[package]]
 name = "django-object-actions"
-version = "4.2.0"
+version = "4.3.0"
 description = "A Django app for adding object tools for models in the admin"
 optional = false
-python-versions = "^3.7"
+python-versions = "<4.0,>=3.7"
 files = [
-    {file = "adab5895f72b3d139323c35e2af6aa9acc3e7d4e.zip", hash = "sha256:be48048f8a10d703ffc5300e3eb8bbac0e8449c28859dfdf76e9a30ce26a5451"},
+    {file = "django_object_actions-4.3.0-py3-none-any.whl", hash = "sha256:1af87dedcfd5a35207a4b90c386c059e5f02ecf1d954e3131e25f4a04d01c963"},
+    {file = "django_object_actions-4.3.0.tar.gz", hash = "sha256:611f768d768c9ca7b48278573feb7c07966174f5c50a9323ab4d02d0c4b7501e"},
 ]
-
-[package.source]
-type = "url"
-url = "https://github.com/EE/django-object-actions/archive/adab5895f72b3d139323c35e2af6aa9acc3e7d4e.zip"
 
 [[package]]
 name = "django-recaptcha"
@@ -3242,4 +3239,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "3.12.6"
-content-hash = "e61c5c9e54b64658daaaceac318c22b23d49a2145e5864bfa90da8b1923862e9"
+content-hash = "034e4999a384d0bf9dbc98b1c226ebd6f8702ac35cb021e1839f9706a3eda993"
