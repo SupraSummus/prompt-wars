@@ -237,7 +237,7 @@ class WarriorLeaderboard(ArenaViewMixin, ListView):
             {
                 'x': warrior.rating_playstyle[0],
                 'y': warrior.rating_playstyle[1],
-                'name': warrior.name
+                'name': str(warrior)
             }
             for warrior in warriors
             if warrior.rating_playstyle
