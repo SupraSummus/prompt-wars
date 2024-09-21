@@ -33,5 +33,59 @@
         {% endfor %}
       </tbody>
     </table>
+
+    <h2>Playstyle Distribution</h2>
+    <canvas id="playstyleChart"></canvas>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"
+      integrity="sha384-G436+Z2nlA8+PNoeRvWdxKbvOf8E/y+lYxqht2iBwNHTQDV5CJr3+AGVj8fGZi5t"
+      crossorigin="anonymous"
+    ></script>
+    {{ playstyle_data|json_script:'playstyle_data' }}
+    <script>
+      const playstyleCtx = document.getElementById('playstyleChart').getContext('2d');
+      const playstyleData = JSON.parse(document.getElementById('playstyle_data').textContent);
+      
+      const playstyleChart = new Chart(playstyleCtx, {
+        type: 'scatter',
+        data: {
+          datasets: [{
+            data: playstyleData,
+            pointBackgroundColor: 'rgba(75, 192, 192, 0.6)',
+            pointBorderColor: 'rgba(75, 192, 192, 1)',
+          }]
+        },
+        options: {
+          plugins: {
+            title: {
+              display: true,
+              text: 'Warriors Playstyle Distribution'
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.raw.name + ' (' + context.raw.x.toFixed(2) + ', ' + context.raw.y.toFixed(2) + ')';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Playstyle 1'
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Playstyle 2'
+              }
+            }
+          }
+        }
+      });
+    </script>
   </main>
 {% endblock %}

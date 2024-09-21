@@ -230,6 +230,21 @@ class WarriorLeaderboard(ArenaViewMixin, ListView):
             arena=self.arena,
         ).order_by('-rating')[:100]
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        warriors = self.get_queryset()
+        playstyle_data = [
+            {
+                'x': warrior.rating_playstyle[0],
+                'y': warrior.rating_playstyle[1],
+                'name': warrior.name
+            }
+            for warrior in warriors
+            if warrior.rating_playstyle
+        ]
+        context['playstyle_data'] = playstyle_data
+        return context
+
 
 class UpcomingBattlesView(ArenaViewMixin, ListView):
     model = Warrior
