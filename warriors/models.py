@@ -403,7 +403,7 @@ class WarriorUserPermission(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['warrior', 'user'],
+                fields=['warrior_arena', 'user'],
                 name='warrior_user_unique',
             ),
         ]
