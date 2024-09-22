@@ -347,7 +347,7 @@ class WarriorArena(models.Model):
     def update_public_battle_results(self):
         """Recompute public_battle_results based on per user data"""
         user_permissions = list(WarriorUserPermission.objects.filter(
-            warrior=self,
+            warrior_arena=self,
         ))
         if user_permissions:
             self.public_battle_results = any(
@@ -381,7 +381,7 @@ class WarriorUserPermission(models.Model):
         default=uuid.uuid4,
         editable=False
     )
-    warrior = models.ForeignKey(
+    warrior_arena = models.ForeignKey(
         to=WarriorArena,
         on_delete=models.CASCADE,
     )

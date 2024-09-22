@@ -32,7 +32,7 @@ def warrior(request, arena):
 @pytest.fixture
 def warrior_user_permission(request, warrior, user):
     return WarriorUserPermissionFactory(
-        warrior=warrior,
+        warrior_arena=warrior,
         user=user,
         **getattr(request, 'param', {}),
     )

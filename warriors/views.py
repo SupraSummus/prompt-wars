@@ -110,7 +110,7 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
         context['warrior_user_permissions'] = None
         if self.request.user.is_authenticated:
             context['warrior_user_permission'] = WarriorUserPermission.objects.filter(
-                warrior=self.object,
+                warrior_arena=self.object,
                 user=self.request.user,
             ).first()
 
@@ -118,7 +118,7 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
         user = self.request.user
         if show_secrets and not self.object.is_user_authorized(user) and user.is_authenticated:
             WarriorUserPermission.objects.get_or_create(
-                warrior=self.object,
+                warrior_arena=self.object,
                 user=user,
             )
 
@@ -135,7 +135,11 @@ class PublicBattleResutsForm(forms.Form):
 @require_POST
 @login_required
 def warrior_set_public_battle_results(request, pk):
-    warrior_user_perm = get_object_or_404(WarriorUserPermission, warrior_id=pk, user=request.user)
+    warrior_user_perm = get_object_or_404(
+        WarriorUserPermission,
+        warrior_arena_id=pk,
+        user=request.user,
+    )
     form = PublicBattleResutsForm(request.POST)
     if form.is_valid():
         warrior_user_perm.public_battle_results = form.cleaned_data['public_battle_results']

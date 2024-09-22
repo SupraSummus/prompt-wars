@@ -179,7 +179,10 @@ def test_create_authenticated_duplicate(user, user_client, warrior, mocked_recap
     assert warrior.public_battle_results is True
 
     # user has access to the warrior
-    warrior_user_permission = WarriorUserPermission.objects.get(warrior=warrior, user=user)
+    warrior_user_permission = WarriorUserPermission.objects.get(
+        warrior_arena=warrior,
+        user=user,
+    )
     assert warrior_user_permission.name == 'surely a duplicate'
 
 

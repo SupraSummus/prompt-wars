@@ -89,7 +89,7 @@ class WarriorCreateForm(forms.ModelForm):
         # give the user permission to the spell
         if self.user.is_authenticated:
             WarriorUserPermission.objects.get_or_create(
-                warrior=warrior,
+                warrior_arena=warrior,
                 user=self.user,
                 defaults={
                     'name': self.cleaned_data['name'],
