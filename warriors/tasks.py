@@ -13,7 +13,7 @@ from .exceptions import RateLimitError
 from .lcs import lcs_len
 from .models import (
     LLM, MATCHMAKING_COOLDOWN, MAX_WARRIOR_LENGTH, Arena, Battle, Game,
-    Warrior,
+    WarriorArena,
 )
 from .openai import openai_client, resolve_battle_openai
 
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 def do_moderation(goal, warrior_id):
     now = timezone.now()
-    warrior = Warrior.objects.get(id=warrior_id)
+    warrior = WarriorArena.objects.get(id=warrior_id)
     assert warrior.moderation_date is None
     moderation_results = openai_client.moderations.create(
         input='\n'.join([
@@ -54,7 +54,7 @@ def schedule_battles(n=10, now=None):
 def schedule_battle(now=None):
     if now is None:
         now = timezone.now()
-    warrior = Warrior.objects.filter(
+    warrior = WarriorArena.objects.filter(
         next_battle_schedule__lte=now,
     ).order_by('next_battle_schedule').select_for_update(
         no_key=True,
@@ -75,7 +75,7 @@ def schedule_battle_top_arena(arena_id):
     warriors_above = set()
     while True:
         with transaction.atomic():
-            warrior = Warrior.objects.battleworthy().filter(
+            warrior = WarriorArena.objects.battleworthy().filter(
                 arena_id=arena_id,
                 rating__lt=rating,
             ).order_by('-rating').select_for_update(
@@ -98,7 +98,7 @@ def schedule_battle_top_arena(arena_id):
             historic_battles = Battle.objects.with_warrior(warrior).filter(
                 scheduled_at__gt=timezone.now() - MATCHMAKING_COOLDOWN,
             )
-            opponent = Warrior.objects.filter(
+            opponent = WarriorArena.objects.filter(
                 id__in=warriors_above,
             ).exclude(
                 id=warrior.id,
@@ -198,7 +198,7 @@ def transfer_rating(goal, battle_id):
     battle.warrior_2.update_rating()
     battle.warrior_1.next_battle_schedule = TransactionNow() + battle.warrior_1.get_next_battle_delay()
     battle.warrior_2.next_battle_schedule = TransactionNow() + battle.warrior_2.get_next_battle_delay()
-    Warrior.objects.bulk_update(
+    WarriorArena.objects.bulk_update(
         [battle.warrior_1, battle.warrior_2],
         [
             'next_battle_schedule',
@@ -210,7 +210,7 @@ def update_rating(n=10):
     errors = []
     for _ in range(n):
         with transaction.atomic():
-            warrior = Warrior.objects.order_by(Abs('rating_error').desc()).select_for_update(
+            warrior = WarriorArena.objects.order_by(Abs('rating_error').desc()).select_for_update(
                 no_key=True,
                 skip_locked=True,
             ).first()

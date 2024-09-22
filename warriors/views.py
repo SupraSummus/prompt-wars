@@ -11,7 +11,7 @@ from django.views.generic.edit import CreateView, FormView
 from django.views.generic.list import ListView
 
 from .forms import ChallengeWarriorForm, WarriorCreateForm
-from .models import Arena, Battle, Warrior, WarriorUserPermission
+from .models import Arena, Battle, WarriorArena, WarriorUserPermission
 from .stats import ArenaStats
 
 
@@ -56,7 +56,7 @@ class ArenaDetailView(ArenaViewMixin, DetailView):
 
 
 class WarriorCreateView(ArenaViewMixin, CreateView):
-    model = Warrior
+    model = WarriorArena
     form_class = WarriorCreateForm
     template_name = 'warriors/warrior_create.html'
 
@@ -75,7 +75,7 @@ class WarriorViewMixin(ContextMixin):
         self.warrior = None
 
     def dispatch(self, request, *args, pk=None, **kwargs):
-        self.warrior = get_object_or_404(Warrior, id=pk)
+        self.warrior = get_object_or_404(WarriorArena, id=pk)
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -221,12 +221,12 @@ class BattleDetailView(DetailView):
 
 
 class WarriorLeaderboard(ArenaViewMixin, ListView):
-    model = Warrior
+    model = WarriorArena
     template_name = 'warriors/warrior_leaderboard.html'
     context_object_name = 'warriors'
 
     def get_queryset(self):
-        return Warrior.objects.battleworthy().filter(
+        return WarriorArena.objects.battleworthy().filter(
             arena=self.arena,
         ).order_by('-rating')[:100]
 
@@ -247,12 +247,12 @@ class WarriorLeaderboard(ArenaViewMixin, ListView):
 
 
 class UpcomingBattlesView(ArenaViewMixin, ListView):
-    model = Warrior
+    model = WarriorArena
     template_name = 'warriors/upcoming_battles.html'
     context_object_name = 'warriors'
 
     def get_queryset(self):
-        qs = Warrior.objects.battleworthy().exclude(
+        qs = WarriorArena.objects.battleworthy().exclude(
             next_battle_schedule=None,
         ).filter(arena=self.arena)
         user = self.request.user

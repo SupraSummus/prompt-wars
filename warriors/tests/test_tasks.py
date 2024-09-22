@@ -7,12 +7,12 @@ import pytest
 from django.utils import timezone
 from django_goals.models import RetryMeLater
 
-from ..models import MAX_WARRIOR_LENGTH, Battle, Warrior
+from ..models import MAX_WARRIOR_LENGTH, Battle, WarriorArena
 from ..tasks import (
     do_moderation, openai_client, resolve_battle, schedule_battle_top_arena,
     schedule_battles, transfer_rating, update_rating,
 )
-from .factories import BattleFactory, WarriorFactory
+from .factories import BattleFactory, WarriorArenaFactory
 
 
 @pytest.mark.django_db
@@ -42,7 +42,7 @@ def test_do_moderation(warrior, monkeypatch, moderation_flagged):
 
 @pytest.mark.django_db
 def test_schedule_battles_empty():
-    assert not Warrior.objects.exists()
+    assert not WarriorArena.objects.exists()
     schedule_battles()
 
 
@@ -54,7 +54,7 @@ def test_schedule_battles_no_match(warrior):
 
 @pytest.mark.django_db
 def test_schedule_battles(arena):
-    warriors = set(WarriorFactory.create_batch(
+    warriors = set(WarriorArenaFactory.create_batch(
         3,
         arena=arena,
         next_battle_schedule=timezone.now(),
@@ -256,7 +256,7 @@ def test_transfer_rating_lots_of_games_played(battle, warrior):
     'rating_error': -1,
 }], indirect=True)
 def test_update_rating(warrior, other_warrior, battle):
-    WarriorFactory.create_batch(3, rating_error=0)  # distraction
+    WarriorArenaFactory.create_batch(3, rating_error=0)  # distraction
     assert warrior.rating == 0.0
     assert other_warrior.rating == 0.0
 
