@@ -21,12 +21,11 @@ from django_goals.models import schedule
 from .lcs import lcs_ranges
 from .rating import GameScore, get_expected_game_score, get_performance_rating
 from .stats import ArenaStats
+from .warriors import MAX_WARRIOR_LENGTH, Warrior, WarriorQuerySet
 
 
-__all__ = ['ArenaStats']
+__all__ = ['ArenaStats', 'Warrior']
 
-
-MAX_WARRIOR_LENGTH = 1000
 
 MATCHMAKING_MAX_RATING_DIFF = 100  # rating diff of 100 means expected score is 64%
 MAX_ALLOWED_RATING_PER_GAME = 100
@@ -81,18 +80,17 @@ class Arena(models.Model):
         return self.name
 
 
-class WarriorQuerySet(models.QuerySet):
-    def battleworthy(self):
-        return self.filter(
-            moderation_passed=True,
-        )
-
-
 class WarriorArena(models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
         editable=False
+    )
+    warrior = models.ForeignKey(
+        to=Warrior,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
     )
     arena = models.ForeignKey(
         to=Arena,
@@ -169,6 +167,7 @@ class WarriorArena(models.Model):
     users = models.ManyToManyField(
         to=settings.AUTH_USER_MODEL,
         through='WarriorUserPermission',
+        through_fields=('warrior_arena', 'user'),
         related_name='warriors',
     )
 
@@ -381,9 +380,17 @@ class WarriorUserPermission(models.Model):
         default=uuid.uuid4,
         editable=False
     )
+    warrior = models.ForeignKey(
+        to=Warrior,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
     warrior_arena = models.ForeignKey(
         to=WarriorArena,
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
     )
     user = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
@@ -403,8 +410,12 @@ class WarriorUserPermission(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['warrior_arena', 'user'],
+                fields=['warrior', 'user'],
                 name='warrior_user_unique',
+            ),
+            models.UniqueConstraint(
+                fields=['warrior_arena', 'user'],
+                name='warrior_arena_user_unique',
             ),
         ]
 
