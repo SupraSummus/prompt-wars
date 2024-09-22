@@ -5,7 +5,9 @@ from django_goals.models import Goal
 
 from users.tests.factories import UserFactory
 
-from ..models import MAX_WARRIOR_LENGTH, Battle, Warrior, WarriorUserPermission
+from ..models import (
+    MAX_WARRIOR_LENGTH, Battle, WarriorArena, WarriorUserPermission,
+)
 
 
 @pytest.mark.django_db
@@ -43,7 +45,7 @@ def test_create_warrior(client, mocked_recaptcha, has_authorized_warriors, defau
     warrior_id = path.split('/')[-1]
 
     # right database state
-    warrior = Warrior.objects.get(id=warrior_id)
+    warrior = WarriorArena.objects.get(id=warrior_id)
     assert warrior.arena == default_arena
     assert warrior.name == 'Test Warrior'
     assert warrior.author_name == 'Test Author'
@@ -73,7 +75,7 @@ def test_create_warrior_arena(client, mocked_recaptcha, arena):
         },
     )
     assert response.status_code == 302
-    warrior = Warrior.objects.get()
+    warrior = WarriorArena.objects.get()
     assert warrior.arena == arena
 
 
@@ -106,7 +108,7 @@ def test_create_no_strip(client, mocked_recaptcha, default_arena):
         },
     )
     assert response.status_code == 302
-    warrior = Warrior.objects.get()
+    warrior = WarriorArena.objects.get()
     assert warrior.body == ' Test \nWarrior \n\n'
 
 
@@ -128,7 +130,7 @@ def test_create_crlf_length(client, mocked_recaptcha, default_arena, length, exp
     )
     if expect_success:
         assert response.status_code == 302
-        warrior = Warrior.objects.get()
+        warrior = WarriorArena.objects.get()
         assert warrior.body == '\n' * length
     else:
         assert response.status_code == 200
@@ -145,7 +147,7 @@ def test_create_authenticated(user, user_client, mocked_recaptcha, default_arena
         },
     )
     assert response.status_code == 302
-    warrior = Warrior.objects.get()
+    warrior = WarriorArena.objects.get()
     assert warrior.created_by == user
     assert user in warrior.users.all()
 

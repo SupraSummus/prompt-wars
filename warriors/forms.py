@@ -7,7 +7,9 @@ from django.utils.translation import gettext as _
 from django_goals.models import schedule
 from django_recaptcha.fields import ReCaptchaField
 
-from .models import MAX_WARRIOR_LENGTH, Battle, Warrior, WarriorUserPermission
+from .models import (
+    MAX_WARRIOR_LENGTH, Battle, WarriorArena, WarriorUserPermission,
+)
 from .tasks import do_moderation
 
 
@@ -20,7 +22,7 @@ class WarriorCreateForm(forms.ModelForm):
     captcha = ReCaptchaField(label='')
 
     class Meta:
-        model = Warrior
+        model = WarriorArena
         fields = (
             'body',
             'name',
@@ -58,7 +60,7 @@ class WarriorCreateForm(forms.ModelForm):
         return body
 
     def save(self, commit=True):
-        warrior = Warrior.objects.filter(
+        warrior = WarriorArena.objects.filter(
             arena=self.arena,
             body_sha_256=self.cleaned_data['body_sha_256'],
         ).first()
@@ -106,7 +108,7 @@ class WarriorCreateForm(forms.ModelForm):
 
 class ChallengeWarriorForm(forms.Form):
     warrior = forms.ModelChoiceField(
-        queryset=Warrior.objects.all(),
+        queryset=WarriorArena.objects.all(),
         widget=forms.RadioSelect,
         label=_('Choose your spell'),
     )
@@ -116,7 +118,7 @@ class ChallengeWarriorForm(forms.Form):
         self.opponent = opponent
         self.user = user
 
-        self.fields['warrior'].queryset = Warrior.objects.filter(
+        self.fields['warrior'].queryset = WarriorArena.objects.filter(
             arena_id=self.opponent.arena_id,
             users=self.user,
         ).exclude(

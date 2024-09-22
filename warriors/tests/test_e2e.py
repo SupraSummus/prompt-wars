@@ -6,7 +6,7 @@ from django.utils import timezone
 from django_goals.models import schedule, worker_turn
 
 from ..exceptions import RateLimitError
-from ..models import Battle, Warrior
+from ..models import Battle, WarriorArena
 from ..tasks import openai_client, resolve_battle_1_2
 
 
@@ -29,7 +29,7 @@ def test_submit_warrior_e2e(client, mocked_recaptcha, monkeypatch, default_arena
     assert response.status_code == 302, response.context['form'].errors
     path = response.url
     warrior_id = path.split('/')[-1]
-    warrior = Warrior.objects.get(id=warrior_id)
+    warrior = WarriorArena.objects.get(id=warrior_id)
 
     worker_turn(timezone.now())  # run async tasks
     warrior.refresh_from_db()

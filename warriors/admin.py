@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import Arena, Battle, Warrior
+from .models import Arena, Battle, WarriorArena
 
 
 class ReadOnlyModelAdminMixin:
@@ -24,8 +24,8 @@ class ArenaAdmin(admin.ModelAdmin):
     search_fields = ('id', 'name')
 
 
-@admin.register(Warrior)
-class WarriorAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
+@admin.register(WarriorArena)
+class WarriorArenaAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
     list_display = (
         'id',
         'moderation_passed',

@@ -39,10 +39,10 @@ def create_arena_stats():
 
 
 def create_arena_stats_for_arena(arena, now):
-    from .models import Battle, Warrior
+    from .models import Battle, WarriorArena
     if ArenaStats.objects.filter(arena=arena, date__date=now.date()).exists():
         return
-    warriors_qs = Warrior.objects.filter(arena=arena, moderation_passed=True)
+    warriors_qs = WarriorArena.objects.filter(arena=arena, moderation_passed=True)
     warrior_count = warriors_qs.count()
     battle_count = Battle.objects.filter(arena=arena).count()
     rating_quantiles = warriors_qs.aggregate(

@@ -1,8 +1,8 @@
 import pytest
 
-from .models import Warrior
+from .models import WarriorArena
 from .stats import ArenaStats, create_arena_stats
-from .tests.factories import WarriorFactory
+from .tests.factories import WarriorArenaFactory
 
 
 @pytest.mark.django_db
@@ -17,10 +17,10 @@ def test_create_arena_stats_empty(arena):
 @pytest.mark.django_db
 def test_create_arena_stats(arena):
     warriors = [
-        WarriorFactory.build(arena=arena, rating=rating, moderation_passed=True)
+        WarriorArenaFactory.build(arena=arena, rating=rating, moderation_passed=True)
         for rating in range(10)
     ]
-    Warrior.objects.bulk_create(warriors)
+    WarriorArena.objects.bulk_create(warriors)
     create_arena_stats()
     stats = ArenaStats.objects.get()
     assert stats.arena == arena

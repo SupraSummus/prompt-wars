@@ -88,7 +88,7 @@ class WarriorQuerySet(models.QuerySet):
         )
 
 
-class Warrior(models.Model):
+class WarriorArena(models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
@@ -241,7 +241,7 @@ class Warrior(models.Model):
         battle = Battle.create_from_warriors(self, opponent)
         self.next_battle_schedule = None
         opponent.next_battle_schedule = None
-        Warrior.objects.bulk_update(
+        WarriorArena.objects.bulk_update(
             [self, opponent],
             ['next_battle_schedule'],
         )
@@ -257,7 +257,7 @@ class Warrior(models.Model):
         self,
         max_rating_diff=MATCHMAKING_MAX_RATING_DIFF,
     ):
-        battle_worthy_qs = Warrior.objects.battleworthy()
+        battle_worthy_qs = WarriorArena.objects.battleworthy()
         top_rating = self.rating + max_rating_diff
         bottom_rating = self.rating - max_rating_diff
 
@@ -327,7 +327,7 @@ class Warrior(models.Model):
         # update related warriors
         if rating_error and len(scores) > 0:
             error_per_opponent = rating_error / len(scores) / 2
-            Warrior.objects.filter(id__in=scores.keys()).update(
+            WarriorArena.objects.filter(id__in=scores.keys()).update(
                 rating=F('rating') - error_per_opponent,
                 rating_error=F('rating_error') + error_per_opponent,
             )
@@ -382,7 +382,7 @@ class WarriorUserPermission(models.Model):
         editable=False
     )
     warrior = models.ForeignKey(
-        to=Warrior,
+        to=WarriorArena,
         on_delete=models.CASCADE,
     )
     user = models.ForeignKey(
@@ -460,12 +460,12 @@ class Battle(models.Model):
         default=timezone.now,
     )
     warrior_1 = models.ForeignKey(
-        to=Warrior,
+        to=WarriorArena,
         related_name='warrior1',
         on_delete=models.CASCADE,
     )
     warrior_2 = models.ForeignKey(
-        to=Warrior,
+        to=WarriorArena,
         related_name='warrior2',
         on_delete=models.CASCADE,
     )
