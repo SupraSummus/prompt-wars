@@ -243,9 +243,7 @@ class UpcomingBattlesView(ArenaViewMixin, ListView):
     context_object_name = 'warriors'
 
     def get_queryset(self):
-        qs = WarriorArena.objects.battleworthy().exclude(
-            next_battle_schedule=None,
-        ).filter(arena=self.arena)
+        qs = WarriorArena.objects.battleworthy().filter(arena=self.arena)
         user = self.request.user
         if user.is_authenticated:
             qs = qs.filter(users=user)

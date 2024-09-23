@@ -36,12 +36,10 @@ def do_moderation(goal, warrior_id):
     warrior.moderation_passed = not result.flagged
     warrior.moderation_model = moderation_results.model
     warrior.moderation_date = now
-    warrior.next_battle_schedule = None if result.flagged else now
     warrior.save(update_fields=[
         'moderation_passed',
         'moderation_model',
         'moderation_date',
-        'next_battle_schedule',
     ])
 
 
@@ -54,7 +52,7 @@ def schedule_battles(n=10, now=None):
 def schedule_battle(now=None):
     if now is None:
         now = timezone.now()
-    warrior = WarriorArena.objects.filter(
+    warrior = WarriorArena.objects.battleworthy().filter(
         next_battle_schedule__lte=now,
     ).order_by('next_battle_schedule').select_for_update(
         no_key=True,
@@ -62,7 +60,12 @@ def schedule_battle(now=None):
     ).first()
     if warrior is None:
         return
-    warrior.schedule_battle(now=now)
+    opponent = warrior.find_opponent()
+    if opponent is None:
+        warrior.next_battle_schedule = now + warrior.get_next_battle_delay() + datetime.timedelta(minutes=1)
+        warrior.save(update_fields=['next_battle_schedule'])
+        return
+    warrior.create_battle(opponent, now=now)
 
 
 def schedule_battles_top():
@@ -196,14 +199,6 @@ def transfer_rating(goal, battle_id):
     battle.warrior_1.update_rating()
     battle.warrior_2.refresh_from_db()
     battle.warrior_2.update_rating()
-    battle.warrior_1.next_battle_schedule = TransactionNow() + battle.warrior_1.get_next_battle_delay()
-    battle.warrior_2.next_battle_schedule = TransactionNow() + battle.warrior_2.get_next_battle_delay()
-    WarriorArena.objects.bulk_update(
-        [battle.warrior_1, battle.warrior_2],
-        [
-            'next_battle_schedule',
-        ],
-    )
 
 
 def update_rating(n=10):

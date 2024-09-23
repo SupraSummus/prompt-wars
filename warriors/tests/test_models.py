@@ -2,6 +2,7 @@ import datetime
 from uuid import UUID
 
 import pytest
+from django.utils import timezone
 
 from ..models import Battle
 from .factories import BattleFactory
@@ -43,40 +44,16 @@ def test_find_opponents_exclude_already_battled(warrior, other_warrior, battle_e
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior', [{
-    'next_battle_schedule': datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
-}], indirect=True)
-@pytest.mark.parametrize('other_warrior', [{
-    'next_battle_schedule': datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
-}], indirect=True)
-def test_schedule_battle(arena, warrior, other_warrior):
-    assert warrior.next_battle_schedule is not None
-    assert other_warrior.next_battle_schedule is not None
-
-    battle = warrior.schedule_battle(now=warrior.next_battle_schedule)
-    assert battle is not None
-    assert battle.arena == arena
-
+def test_create_battle_lots_of_games_played(warrior, battle, other_warrior):
+    BattleFactory.create_batch(
+        100,
+        warrior_1=battle.warrior_1,
+        warrior_2=battle.warrior_2,
+    )
+    warrior.create_battle(other_warrior)
     warrior.refresh_from_db()
-    other_warrior.refresh_from_db()
-    # it clears the next_battle_schedule
-    assert warrior.next_battle_schedule is None
-    assert other_warrior.next_battle_schedule is None
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize('warrior', [{
-    'next_battle_schedule': datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
-    'games_played': 2,
-}], indirect=True)
-def test_schedule_battle_no_warriors(warrior):
-    now = datetime.datetime(2022, 1, 2, 0, 0, 0, tzinfo=datetime.timezone.utc)
-    battle = warrior.schedule_battle(now)
-    assert battle is None
-
-    # next_battle_schedule is moved to the future
-    warrior.refresh_from_db()
-    assert warrior.next_battle_schedule > now
+    assert warrior.games_played == 102  # 1 from fixture, 100 created in this test, 1 created in create_battle
+    assert warrior.next_battle_schedule > timezone.now() + datetime.timedelta(days=365 * 10)
 
 
 @pytest.mark.django_db

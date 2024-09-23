@@ -148,8 +148,7 @@ class WarriorArena(models.Model):
     )
 
     next_battle_schedule = models.DateTimeField(
-        null=True,
-        blank=True,
+        default=timezone.now,
     )
     rating_error = models.FloatField(
         default=0.0,
@@ -206,7 +205,7 @@ class WarriorArena(models.Model):
             models.Index(
                 fields=['next_battle_schedule'],
                 name='next_battle_schedule_index',
-                condition=models.Q(next_battle_schedule__isnull=False),
+                condition=models.Q(moderation_passed=True),
             ),
         ]
 
@@ -223,27 +222,19 @@ class WarriorArena(models.Model):
             'secret': self.secret,
         })
 
-    def schedule_battle(self, now=None, **kwargs):
+    def create_battle(self, opponent, now=None):
         if now is None:
             now = timezone.now()
 
-        opponent = self.find_opponent(**kwargs)
-
-        if opponent is None:
-            self.next_battle_schedule = now + self.get_next_battle_delay()
-            self.save(update_fields=['next_battle_schedule'])
-            return None
-
-        return self.create_battle(opponent)
-
-    def create_battle(self, opponent):
         battle = Battle.create_from_warriors(self, opponent)
-        self.next_battle_schedule = None
-        opponent.next_battle_schedule = None
-        WarriorArena.objects.bulk_update(
-            [self, opponent],
-            ['next_battle_schedule'],
-        )
+
+        self.games_played = Battle.objects.with_warrior(self).count()
+        self.next_battle_schedule = now + self.get_next_battle_delay()
+        self.save(update_fields=[
+            'games_played',
+            'next_battle_schedule',
+        ])
+
         return battle
 
     def find_opponent(self, **kwargs):
@@ -275,10 +266,10 @@ class WarriorArena(models.Model):
         )
 
     def get_next_battle_delay(self):
-        # delay = max(
-        #   K ** (games_played jittered) - 1,
-        #   0,
-        # ) * time unit
+        """
+        Get delay to the game N+1, where N is the number of games with this warrior.
+        Games are exponentially less and less frequent.
+        """
         K = 2
         time_unit = datetime.timedelta(minutes=1)
         exponent = self.games_played - random.random()
@@ -298,7 +289,6 @@ class WarriorArena(models.Model):
         """
         # compute rating
         scores = {}  # opponent_id -> GameScore(score, opponent_rating, opponent_playstyle)
-        games_played = 0
         for b in Battle.objects.with_warrior(self).resolved().select_related(
             'warrior_1',
             'warrior_2',
@@ -311,7 +301,6 @@ class WarriorArena(models.Model):
                     opponent_rating=b.warrior_2.rating,
                     opponent_playstyle=b.warrior_2.rating_playstyle,
                 )
-            games_played += 1
 
         # we limit rating range for warriors with few games played
         max_allowed_rating = MAX_ALLOWED_RATING_PER_GAME * len(scores)
@@ -334,11 +323,10 @@ class WarriorArena(models.Model):
         self.rating_error = 0.0
         self.rating += rating_error / 2
         self.rating_playstyle = new_playstyle
-        self.games_played = games_played
         self.save(update_fields=[
             'rating', 'rating_playstyle',
             'rating_fit_loss',
-            'games_played', 'rating_error',
+            'rating_error',
         ])
 
         return rating_error

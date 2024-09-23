@@ -40,7 +40,6 @@ def test_create_warrior(client, mocked_recaptcha, has_authorized_warriors, defau
     assert len(warrior.body_sha_256) == 32
     assert warrior.rating == 0.0
     assert warrior.games_played == 0
-    assert warrior.next_battle_schedule is None
     assert warrior.moderation_date is None
 
     # moderation task scheduled

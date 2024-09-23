@@ -9,10 +9,11 @@ from django_goals.models import RetryMeLater
 
 from ..models import MAX_WARRIOR_LENGTH, Battle, WarriorArena
 from ..tasks import (
-    do_moderation, openai_client, resolve_battle, schedule_battle_top_arena,
-    schedule_battles, transfer_rating, update_rating,
+    do_moderation, openai_client, resolve_battle, schedule_battle,
+    schedule_battle_top_arena, schedule_battles, transfer_rating,
+    update_rating,
 )
-from .factories import BattleFactory, WarriorArenaFactory
+from .factories import WarriorArenaFactory
 
 
 @pytest.mark.django_db
@@ -37,7 +38,6 @@ def test_do_moderation(warrior, monkeypatch, moderation_flagged):
     assert warrior.moderation_date is not None
     assert warrior.moderation_passed is (not moderation_flagged)
     assert warrior.moderation_model == 'moderation-asdf'
-    assert (warrior.next_battle_schedule is None) == moderation_flagged
 
 
 @pytest.mark.django_db
@@ -65,6 +65,43 @@ def test_schedule_battles(arena):
         participants.add(b.warrior_1)
         participants.add(b.warrior_2)
     assert participants == warriors
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('warrior', [{
+    'next_battle_schedule': datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+}], indirect=True)
+@pytest.mark.parametrize('other_warrior', [{
+    'next_battle_schedule': datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+}], indirect=True)
+def test_schedule_battle(arena, warrior, other_warrior):
+    now = datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
+    assert warrior.next_battle_schedule is not None
+    assert other_warrior.next_battle_schedule is not None
+
+    schedule_battle(now=now)
+
+    battle = Battle.objects.get()
+    assert battle.arena == arena
+
+    warrior.refresh_from_db()
+    # it advances the next_battle_schedule
+    assert warrior.next_battle_schedule > now
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('warrior', [{
+    'next_battle_schedule': datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+}], indirect=True)
+def test_schedule_battle_no_warriors(warrior):
+    now = datetime.datetime(2022, 1, 2, 0, 0, 0, tzinfo=datetime.timezone.utc)
+    schedule_battle(now)
+
+    assert not Battle.objects.exists()
+
+    # next_battle_schedule is moved to the future
+    warrior.refresh_from_db()
+    assert warrior.next_battle_schedule > now
 
 
 @pytest.mark.django_db
@@ -199,43 +236,9 @@ def test_resolve_battle_character_limit(battle, monkeypatch):
     'lcs_len_2_1_2': 31,
 }], indirect=True)
 def test_transfer_rating(battle):
-    assert battle.warrior_1.next_battle_schedule is None
-    assert battle.warrior_2.next_battle_schedule is None
-
     transfer_rating(None, battle.id)
     battle.refresh_from_db()
     assert battle.rating_transferred_at is not None
-
-    # warriors are put back into matchmaking queue
-    assert battle.warrior_1.next_battle_schedule is not None
-    assert battle.warrior_2.next_battle_schedule is not None
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize('battle', [{
-    'resolved_at_1_2': timezone.now(),
-    'lcs_len_1_2_1': 31,
-    'lcs_len_1_2_2': 31,
-    'resolved_at_2_1': timezone.now(),
-    'lcs_len_2_1_1': 31,
-    'lcs_len_2_1_2': 31,
-}], indirect=True)
-def test_transfer_rating_lots_of_games_played(battle, warrior):
-    BattleFactory.create_batch(
-        100,
-        warrior_1=battle.warrior_1,
-        warrior_2=battle.warrior_2,
-        resolved_at_1_2=timezone.now(),
-        lcs_len_1_2_1=31,
-        lcs_len_1_2_2=31,
-        resolved_at_2_1=timezone.now(),
-        lcs_len_2_1_1=31,
-        lcs_len_2_1_2=31,
-    )
-    transfer_rating(None, battle.id)
-    warrior.refresh_from_db()
-    assert warrior.games_played == 101
-    assert warrior.next_battle_schedule > timezone.now() + datetime.timedelta(days=365 * 10)
 
 
 @pytest.mark.django_db
