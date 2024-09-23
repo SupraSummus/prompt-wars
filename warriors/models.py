@@ -235,6 +235,9 @@ class WarriorArena(models.Model):
             'next_battle_schedule',
         ])
 
+        opponent.games_played = Battle.objects.with_warrior(opponent).count()
+        opponent.save(update_fields=['games_played'])
+
         return battle
 
     def find_opponent(self, **kwargs):

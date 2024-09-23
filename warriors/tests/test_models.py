@@ -55,6 +55,10 @@ def test_create_battle_lots_of_games_played(warrior, battle, other_warrior):
     assert warrior.games_played == 102  # 1 from fixture, 100 created in this test, 1 created in create_battle
     assert warrior.next_battle_schedule > timezone.now() + datetime.timedelta(days=365 * 10)
 
+    # opponent has games_played recalculated
+    other_warrior.refresh_from_db()
+    assert other_warrior.games_played == 102
+
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
