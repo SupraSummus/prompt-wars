@@ -8,9 +8,12 @@ from django.views.generic.edit import CreateView
 from django_goals.models import schedule
 from django_recaptcha.fields import ReCaptchaField
 
-from .models import MAX_WARRIOR_LENGTH, WarriorArena, WarriorUserPermission
+from .models import (
+    MAX_WARRIOR_LENGTH, Arena, WarriorArena, WarriorUserPermission,
+)
 from .tasks import do_moderation
 from .views import ArenaViewMixin
+from .warriors import Warrior
 
 
 class WarriorCreateForm(forms.ModelForm):
@@ -86,16 +89,22 @@ class WarriorCreateForm(forms.ModelForm):
                 _('The spell already existed. You have discovered it and now you have full access to its secrets.'),
             )
 
+        warrior = get_or_create_warrior(warrior_arena)
+
         # give the user permission to the spell
         if self.user.is_authenticated:
-            WarriorUserPermission.objects.get_or_create(
+            perm, perm_created = WarriorUserPermission.objects.get_or_create(
                 warrior_arena=warrior_arena,
                 user=self.user,
                 defaults={
+                    'warrior': warrior,
                     'name': self.cleaned_data['name'],
                     'public_battle_results': self.cleaned_data['public_battle_results'],
                 },
             )
+            if not perm.warrior:
+                perm.warrior = warrior
+                perm.save(update_fields=['warrior'])
             warrior_arena.update_public_battle_results()
         else:
             authorized_warriors = self.session.setdefault('authorized_warriors', [])
@@ -118,3 +127,85 @@ class WarriorCreateView(ArenaViewMixin, CreateView):
         kwargs['session'] = self.request.session
         kwargs['request'] = self.request
         return kwargs
+
+
+def get_or_create_warrior(warrior_arena):
+    warrior, created = Warrior.objects.get_or_create(
+        body_sha_256=warrior_arena.body_sha_256,
+        defaults={
+            'body': warrior_arena.body,
+        },
+    )
+    meld_warrior(warrior, warrior_arena)
+    ensure_warrior_on_all_arenas(warrior)
+    return warrior
+
+
+def ensure_warrior_on_all_arenas(warrior):
+    for arena in Arena.objects.filter(listed=True):
+        warrior_arena, created = WarriorArena.objects.get_or_create(
+            arena=arena,
+            body_sha_256=warrior.body_sha_256,
+            defaults={
+                'warrior': warrior,
+                'body': warrior.body,
+                'created_at': warrior.created_at,
+                'created_by': warrior.created_by,
+                'name': warrior.name,
+                'author_name': warrior.author_name,
+                'moderation_date': warrior.moderation_date,
+                'moderation_passed': warrior.moderation_passed,
+                'moderation_model': warrior.moderation_model,
+                'public_battle_results': warrior.public_battle_results,
+            },
+        )
+        if not created:
+            meld_warrior(warrior, warrior_arena)
+
+
+def meld_warrior(warrior, warrior_arena):
+    assert warrior.body_sha_256 == warrior_arena.body_sha_256
+    modified = False
+
+    # assign authorship of the oldest instance
+    if warrior_arena.created_at < warrior.created_at:
+        warrior.created_at = warrior_arena.created_at
+        warrior.created_by = warrior_arena.created_by
+        warrior.name = warrior_arena.name
+        warrior.author_name = warrior_arena.author_name
+        modified = True
+
+    # assign most recent moderation data
+    if (
+        # global warrior not moderated or
+        (
+            warrior_arena.moderation_passed and
+            (warrior.moderation_passed is None)
+        ) or
+        # we have newer moderation data
+        (
+            warrior_arena.moderation_date and
+            warrior.moderation_date and
+            warrior_arena.moderation_date > warrior.moderation_date
+        )
+    ):
+        warrior.moderation_date = warrior_arena.moderation_date
+        warrior.moderation_passed = warrior_arena.moderation_passed
+        warrior.moderation_model = warrior_arena.moderation_model
+        modified = True
+
+    # assign public_battle_results
+    if (
+        warrior_arena.public_battle_results and
+        not warrior.public_battle_results
+    ):
+        warrior.public_battle_results = warrior_arena.public_battle_results
+        modified = True
+
+    if modified:
+        warrior.save()
+
+    # link warrior_arena to the warrior
+    if warrior_arena.warrior != warrior:
+        warrior_arena.warrior = warrior
+        warrior_arena.save(update_fields=['warrior'])

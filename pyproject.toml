@@ -38,6 +38,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.flake8]
 ignore = [
     "E501",  # line too long
+    "W504",  # line break after binary operator
 ]
 
 [tool.isort]
