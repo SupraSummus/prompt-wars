@@ -7,10 +7,10 @@ from django.template.response import TemplateResponse
 from django.views.decorators.http import require_POST
 from django.views.generic.base import ContextMixin
 from django.views.generic.detail import DetailView
-from django.views.generic.edit import CreateView, FormView
+from django.views.generic.edit import FormView
 from django.views.generic.list import ListView
 
-from .forms import ChallengeWarriorForm, WarriorCreateForm
+from .forms import ChallengeWarriorForm
 from .models import Arena, Battle, WarriorArena, WarriorUserPermission
 from .stats import ArenaStats
 
@@ -53,20 +53,6 @@ class ArenaDetailView(ArenaViewMixin, DetailView):
         context['stats'] = ArenaStats.objects.filter(arena=self.arena).order_by('-date').first()
 
         return context
-
-
-class WarriorCreateView(ArenaViewMixin, CreateView):
-    model = WarriorArena
-    form_class = WarriorCreateForm
-    template_name = 'warriors/warrior_create.html'
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['arena'] = self.arena
-        kwargs['user'] = self.request.user
-        kwargs['session'] = self.request.session
-        kwargs['request'] = self.request
-        return kwargs
 
 
 class WarriorViewMixin(ContextMixin):

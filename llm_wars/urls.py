@@ -24,9 +24,10 @@ from djsfc import Router
 from labirynth.map_view import router as labirynth_router
 from stories.models import router as stories_router
 from users.views import SignupView
+from warriors.create_view import WarriorCreateView
 from warriors.views import (
-    ArenaDetailView, BattleDetailView, ChallengeWarriorView, WarriorCreateView,
-    WarriorDetailView, WarriorLeaderboard, warrior_set_public_battle_results,
+    ArenaDetailView, BattleDetailView, ChallengeWarriorView, WarriorDetailView,
+    WarriorLeaderboard, warrior_set_public_battle_results,
 )
 
 
