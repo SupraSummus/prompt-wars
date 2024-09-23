@@ -28,7 +28,7 @@ def test_submit_warrior_e2e(client, mocked_recaptcha, monkeypatch, default_arena
     )
     assert response.status_code == 302, response.context['form'].errors
     path = response.url
-    warrior_id = path.split('/')[-1]
+    warrior_id = path.split('/')[-2]
     warrior = WarriorArena.objects.get(id=warrior_id)
 
     worker_turn(timezone.now())  # run async tasks

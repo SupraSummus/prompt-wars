@@ -42,7 +42,7 @@ def test_create_warrior(client, mocked_recaptcha, has_authorized_warriors, defau
     )
     assert response.status_code == 302, response.context['form'].errors
     path = response.url
-    warrior_id = path.split('/')[-1]
+    warrior_id = path.split('/')[-2]
 
     # right database state
     warrior = WarriorArena.objects.get(id=warrior_id)
@@ -93,7 +93,7 @@ def test_create_warrior_duplicate(client, warrior, mocked_recaptcha, default_are
         },
     )
     assert response.status_code == 302
-    warrior_id = response.url.split('/')[-1]
+    warrior_id = response.url.split('/')[-2]
     assert warrior_id == str(warrior.id)
     assert str(warrior.id) in response.client.session['authorized_warriors']
 
@@ -168,7 +168,7 @@ def test_create_authenticated_duplicate(user, user_client, warrior, mocked_recap
         },
     )
     assert response.status_code == 302
-    warrior_id = response.url.split('/')[-1]
+    warrior_id = response.url.split('/')[-2]
     assert warrior_id == str(warrior.id)
 
     # name is not changed

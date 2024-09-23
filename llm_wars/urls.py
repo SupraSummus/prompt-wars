@@ -64,14 +64,14 @@ urlpatterns = (
     path('arena/<uuid:arena_id>/upcoming-battles/', warriors.views.UpcomingBattlesView.as_view(), name='arena_upcoming_battles'),
     path('arena/<uuid:arena_id>/recent-battles/', warriors.views.RecentBattlesView.as_view(), name='arena_recent_battles'),
 
-    path('warrior/<uuid:pk>', WarriorDetailView.as_view(), name='warrior_detail'),
+    path('warrior/<uuid:pk>/', WarriorDetailView.as_view(), name='warrior_detail'),
     path(
         'warrior/<uuid:pk>/set-public-battles/',
         warrior_set_public_battle_results,
         name='warrior_set_public_battles',
     ),
-    path('challenge/<uuid:pk>', ChallengeWarriorView.as_view(), name='challenge_warrior'),
-    path('battle/<uuid:pk>', BattleDetailView.as_view(), name='battle_detail'),
+    path('challenge/<uuid:pk>/', ChallengeWarriorView.as_view(), name='challenge_warrior'),
+    path('battle/<uuid:pk>/', BattleDetailView.as_view(), name='battle_detail'),
 
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
