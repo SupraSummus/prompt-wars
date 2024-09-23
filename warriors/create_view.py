@@ -60,24 +60,24 @@ class WarriorCreateForm(forms.ModelForm):
         return body
 
     def save(self, commit=True):
-        warrior = WarriorArena.objects.filter(
+        warrior_arena = WarriorArena.objects.filter(
             arena=self.arena,
             body_sha_256=self.cleaned_data['body_sha_256'],
         ).first()
 
         # create the spell if it is unique
-        if warrior is None:
-            warrior = super().save(commit=False)
+        if warrior_arena is None:
+            warrior_arena = super().save(commit=False)
 
-            warrior.arena = self.arena
+            warrior_arena.arena = self.arena
             if self.user.is_authenticated:
-                warrior.created_by = self.user
+                warrior_arena.created_by = self.user
 
-            warrior.body_sha_256 = self.cleaned_data['body_sha_256']
+            warrior_arena.body_sha_256 = self.cleaned_data['body_sha_256']
             assert commit
-            warrior.save()
+            warrior_arena.save()
 
-            schedule(do_moderation, args=[str(warrior.id)])
+            schedule(do_moderation, args=[str(warrior_arena.id)])
 
         # discovery message
         else:
@@ -89,21 +89,21 @@ class WarriorCreateForm(forms.ModelForm):
         # give the user permission to the spell
         if self.user.is_authenticated:
             WarriorUserPermission.objects.get_or_create(
-                warrior_arena=warrior,
+                warrior_arena=warrior_arena,
                 user=self.user,
                 defaults={
                     'name': self.cleaned_data['name'],
                     'public_battle_results': self.cleaned_data['public_battle_results'],
                 },
             )
-            warrior.update_public_battle_results()
+            warrior_arena.update_public_battle_results()
         else:
             authorized_warriors = self.session.setdefault('authorized_warriors', [])
-            if str(warrior.id) not in authorized_warriors:
-                authorized_warriors.append(str(warrior.id))
+            if str(warrior_arena.id) not in authorized_warriors:
+                authorized_warriors.append(str(warrior_arena.id))
                 self.session.save()
 
-        return warrior
+        return warrior_arena
 
 
 class WarriorCreateView(ArenaViewMixin, CreateView):
