@@ -250,6 +250,23 @@ def test_warrior_details_authorized_session(client, warrior, session_authorized)
 
 
 @pytest.mark.django_db
+def test_warrior_set_public_battle_results(user_client, warrior, warrior_user_permission):
+    assert warrior.public_battle_results is False
+    assert warrior_user_permission.public_battle_results is False
+    response = user_client.post(
+        reverse('warrior_set_public_battles', args=(warrior.id,)),
+        data={
+            'public_battle_results': True,
+        },
+    )
+    assert response.status_code == 302
+    warrior.refresh_from_db()
+    assert warrior.public_battle_results is True
+    warrior_user_permission.refresh_from_db()
+    assert warrior_user_permission.public_battle_results is True
+
+
+@pytest.mark.django_db
 def test_challenge_warrior_get(user_client, warrior, warrior_user_permission, other_warrior):
     response = user_client.get(
         reverse('challenge_warrior', args=(other_warrior.id,))

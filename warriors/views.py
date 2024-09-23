@@ -141,11 +141,12 @@ def warrior_set_public_battle_results(request, pk):
         user=request.user,
     )
     form = PublicBattleResutsForm(request.POST)
+    warrior_arena = warrior_user_perm.warrior_arena
     if form.is_valid():
         warrior_user_perm.public_battle_results = form.cleaned_data['public_battle_results']
         warrior_user_perm.save(update_fields=['public_battle_results'])
-        warrior_user_perm.warrior.update_public_battle_results()
-    return redirect(warrior_user_perm.warrior.get_absolute_url())
+        warrior_arena.update_public_battle_results()
+    return redirect(warrior_arena.get_absolute_url())
 
 
 class ChallengeWarriorView(WarriorViewMixin, FormView):
