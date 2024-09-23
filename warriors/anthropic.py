@@ -4,6 +4,7 @@ import anthropic
 from django.conf import settings
 
 from .exceptions import RateLimitError
+from .models import MAX_WARRIOR_LENGTH
 
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ def resolve_battle(prompt_a, prompt_b, system_prompt=''):
     try:
         response = client.messages.create(
             model="claude-3-haiku-20240307",
-            max_tokens=1000,
+            max_tokens=MAX_WARRIOR_LENGTH,
             temperature=0,
             messages=messages,
             **extra_kwargs,
