@@ -11,6 +11,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterModelOptions(
             name='battle',
-            options={'ordering': ('-rating_transferred_at', '-scheduled_at')},
+            options={'ordering': ('-scheduled_at',)},
         ),
     ]

@@ -518,6 +518,7 @@ class Battle(models.Model):
         blank=True,
     )
 
+    # rating_transferred_at is not used anymore
     rating_transferred_at = models.DateTimeField(
         null=True,
         blank=True,
@@ -527,7 +528,6 @@ class Battle(models.Model):
 
     class Meta:
         ordering = (
-            '-rating_transferred_at',  # nulls first, then most recent
             '-scheduled_at',
         )
         constraints = [

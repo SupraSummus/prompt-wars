@@ -60,9 +60,6 @@ def test_battle_from_warriors_e2e(monkeypatch, warrior, other_warrior):
 
     worker_turn(timezone.now())  # run async tasks
 
-    battle.refresh_from_db()
-    assert battle.rating_transferred_at is not None
-
     warrior.refresh_from_db()
     other_warrior.refresh_from_db()
     assert warrior.rating < 0

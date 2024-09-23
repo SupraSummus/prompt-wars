@@ -92,7 +92,7 @@
                 </a>
               </td>
               <td>
-                {% if not battle.rating_transferred_at %}
+                {% if not battle.resolved_at_1_2 or not battle.resolved_at_2_1 %}
                   <i>pending</i>
                 {% else %}{{ battle.performance_str }}{% endif %}
               </td>

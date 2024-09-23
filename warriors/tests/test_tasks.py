@@ -237,8 +237,6 @@ def test_resolve_battle_character_limit(battle, monkeypatch):
 }], indirect=True)
 def test_transfer_rating(battle):
     transfer_rating(None, battle.id)
-    battle.refresh_from_db()
-    assert battle.rating_transferred_at is not None
 
 
 @pytest.mark.django_db

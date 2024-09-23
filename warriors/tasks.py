@@ -2,7 +2,6 @@ import datetime
 import logging
 import random
 
-from django.contrib.postgres.functions import TransactionNow
 from django.db import transaction
 from django.db.models.functions import Abs
 from django.utils import timezone
@@ -177,25 +176,11 @@ def resolve_battle(battle_id, direction):
     ])
 
 
-@transaction.atomic
 def transfer_rating(goal, battle_id):
     battle = Battle.objects.filter(id=battle_id).select_related(
         'warrior_1',
         'warrior_2',
-    ).select_for_update(no_key=True).get()
-
-    if battle.rating_transferred_at is not None:
-        logger.error('Rating already transferred for battle %s', battle_id)
-        return
-
-    assert battle.resolved_at_1_2 is not None
-    assert battle.resolved_at_2_1 is not None
-
-    battle.rating_transferred_at = TransactionNow()
-    battle.save(update_fields=[
-        'rating_transferred_at',
-    ])
-
+    ).get()
     battle.warrior_1.update_rating()
     battle.warrior_2.refresh_from_db()
     battle.warrior_2.update_rating()
