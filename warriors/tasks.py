@@ -5,7 +5,7 @@ import random
 from django.db import transaction
 from django.db.models.functions import Abs
 from django.utils import timezone
-from django_goals.models import RetryMeLater
+from django_goals.models import AllDone, RetryMeLater
 
 from . import anthropic
 from .exceptions import RateLimitError
@@ -40,6 +40,7 @@ def do_moderation(goal, warrior_id):
         'moderation_model',
         'moderation_date',
     ])
+    return AllDone()
 
 
 def schedule_battles(n=10, now=None):
@@ -133,7 +134,7 @@ def resolve_battle(battle_id, direction):
 
     if battle_view.resolved_at is not None:
         logger.error('Battle already resolved %s, %s', battle_id, direction)
-        return
+        return AllDone()
 
     resolve_battle_function = {
         LLM.GPT_3_5_TURBO: resolve_battle_openai,
@@ -174,6 +175,7 @@ def resolve_battle(battle_id, direction):
         'llm_version',
         'resolved_at',
     ])
+    return AllDone()
 
 
 def transfer_rating(goal, battle_id):
@@ -184,6 +186,7 @@ def transfer_rating(goal, battle_id):
     battle.warrior_1.update_rating()
     battle.warrior_2.refresh_from_db()
     battle.warrior_2.update_rating()
+    return AllDone()
 
 
 def update_rating(n=10):
