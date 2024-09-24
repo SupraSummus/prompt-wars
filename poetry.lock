@@ -692,7 +692,7 @@ description = ""
 optional = false
 python-versions = "^3.12"
 files = [
-    {file = "99519c5ebd6fa0030cb6f9275d3c92eafbe895c7.zip", hash = "sha256:57f4a35cbd71d58e8dea2d676c4fd11e1f24ec4d4befbeb1ce015168e6edf7ad"},
+    {file = "4a589235e3615c0e97f80426ed10e4096ddfc14c.zip", hash = "sha256:6a75af20eb6ed16dd1b3fdd3ddbe1b765cd404b063d44415f01ff80f9e25e54b"},
 ]
 
 [package.dependencies]
@@ -701,7 +701,7 @@ django-object-actions = ">=4.3"
 
 [package.source]
 type = "url"
-url = "https://github.com/EE/django-goals/archive/99519c5ebd6fa0030cb6f9275d3c92eafbe895c7.zip"
+url = "https://github.com/EE/django-goals/archive/4a589235e3615c0e97f80426ed10e4096ddfc14c.zip"
 
 [[package]]
 name = "django-object-actions"
@@ -3239,4 +3239,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "3.12.6"
-content-hash = "034e4999a384d0bf9dbc98b1c226ebd6f8702ac35cb021e1839f9706a3eda993"
+content-hash = "489843a96e5dd0972a6f376a8e8f92dcc4390b557d8fbf35a7550d6d55307f38"
