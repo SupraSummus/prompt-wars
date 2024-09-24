@@ -180,3 +180,32 @@ if FORCE_HTTPS:
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
     SECURE_PROXY_SSL_HEADER = env.list('SECURE_PROXY_SSL_HEADER')
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django_goals': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'warriors.cross_arena': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+    'formatters': {
+        'verbose': {
+            'format': 'pid={process:d} {name} {levelname} {message}',
+            'style': '{',
+        },
+    },
+}

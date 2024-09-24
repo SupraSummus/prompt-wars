@@ -153,9 +153,11 @@ def resolve_battle(battle_id, direction):
             battle_view.arena.prompt,
         )
     except RateLimitError:
-        logger.exception('LLM API rate limit')
         # try again in some time
-        return RetryMeLater(precondition_date=now + datetime.timedelta(minutes=5))
+        return RetryMeLater(
+            precondition_date=now + datetime.timedelta(minutes=5),
+            message='LLM API rate limit',
+        )
     else:
         battle_view.result = result[:MAX_WARRIOR_LENGTH]
         battle_view.lcs_len_1 = lcs_len(battle_view.warrior_1.body, battle_view.result)
