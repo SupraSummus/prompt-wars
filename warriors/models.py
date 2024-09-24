@@ -91,6 +91,7 @@ class WarriorArena(models.Model):
         on_delete=models.PROTECT,
         null=True,
         blank=True,
+        related_name='warrior_arenas',
     )
     arena = models.ForeignKey(
         to=Arena,
