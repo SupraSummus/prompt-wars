@@ -17,13 +17,13 @@ from .factories import WarriorArenaFactory
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior', [{
+@pytest.mark.parametrize('warrior_arena', [{
     'name': 'Test Warrior',
     'author_name': 'Test Author',
 }], indirect=True)
 @pytest.mark.parametrize('moderation_flagged', [True, False])
-def test_do_moderation(warrior, monkeypatch, moderation_flagged):
-    assert warrior.body
+def test_do_moderation(warrior_arena, monkeypatch, moderation_flagged):
+    assert warrior_arena.body
 
     moderation_result_mock = mock.MagicMock()
     moderation_result_mock.flagged = moderation_flagged
@@ -32,12 +32,12 @@ def test_do_moderation(warrior, monkeypatch, moderation_flagged):
     moderation_mock.return_value.results = [moderation_result_mock]
     monkeypatch.setattr(openai_client.moderations, 'create', moderation_mock)
 
-    do_moderation(None, warrior.id)
+    do_moderation(None, warrior_arena.id)
 
-    warrior.refresh_from_db()
-    assert warrior.moderation_date is not None
-    assert warrior.moderation_passed is (not moderation_flagged)
-    assert warrior.moderation_model == 'moderation-asdf'
+    warrior_arena.refresh_from_db()
+    assert warrior_arena.moderation_date is not None
+    assert warrior_arena.moderation_passed is (not moderation_flagged)
+    assert warrior_arena.moderation_model == 'moderation-asdf'
 
 
 @pytest.mark.django_db
@@ -47,7 +47,7 @@ def test_schedule_battles_empty():
 
 
 @pytest.mark.django_db
-def test_schedule_battles_no_match(warrior):
+def test_schedule_battles_no_match(warrior_arena):
     schedule_battles()
     assert not Battle.objects.exists()
 
@@ -68,50 +68,50 @@ def test_schedule_battles(arena):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior', [{
+@pytest.mark.parametrize('warrior_arena', [{
     'next_battle_schedule': datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
 }], indirect=True)
-@pytest.mark.parametrize('other_warrior', [{
+@pytest.mark.parametrize('other_warrior_arena', [{
     'next_battle_schedule': datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
 }], indirect=True)
-def test_schedule_battle(arena, warrior, other_warrior):
+def test_schedule_battle(arena, warrior_arena, other_warrior_arena):
     now = datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
-    assert warrior.next_battle_schedule is not None
-    assert other_warrior.next_battle_schedule is not None
+    assert warrior_arena.next_battle_schedule is not None
+    assert other_warrior_arena.next_battle_schedule is not None
 
     schedule_battle(now=now)
 
     battle = Battle.objects.get()
     assert battle.arena == arena
 
-    warrior.refresh_from_db()
+    warrior_arena.refresh_from_db()
     # it advances the next_battle_schedule
-    assert warrior.next_battle_schedule > now
+    assert warrior_arena.next_battle_schedule > now
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior', [{
+@pytest.mark.parametrize('warrior_arena', [{
     'next_battle_schedule': datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
 }], indirect=True)
-def test_schedule_battle_no_warriors(warrior):
+def test_schedule_battle_no_warriors(warrior_arena):
     now = datetime.datetime(2022, 1, 2, 0, 0, 0, tzinfo=datetime.timezone.utc)
     schedule_battle(now)
 
     assert not Battle.objects.exists()
 
     # next_battle_schedule is moved to the future
-    warrior.refresh_from_db()
-    assert warrior.next_battle_schedule > now
+    warrior_arena.refresh_from_db()
+    assert warrior_arena.next_battle_schedule > now
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior', [{'rating': 100}], indirect=True)
-@pytest.mark.parametrize('other_warrior', [{'rating': 250}], indirect=True)
-def test_schedule_battle_top(warrior, other_warrior, arena, monkeypatch):
+@pytest.mark.parametrize('warrior_arena', [{'rating': 100}], indirect=True)
+@pytest.mark.parametrize('other_warrior_arena', [{'rating': 250}], indirect=True)
+def test_schedule_battle_top(warrior_arena, other_warrior_arena, arena, monkeypatch):
     monkeypatch.setattr('random.random', lambda: 0.9999)
     battle = schedule_battle_top_arena(str(arena.id))
     assert battle is not None
-    assert {warrior, other_warrior} == {battle.warrior_1, battle.warrior_2}
+    assert {warrior_arena, other_warrior_arena} == {battle.warrior_1, battle.warrior_2}
 
 
 @pytest.mark.django_db
@@ -248,25 +248,25 @@ def test_transfer_rating(battle):
     'lcs_len_2_1_1': 23,
     'lcs_len_2_1_2': 18,
 }], indirect=True)
-@pytest.mark.parametrize('warrior', [{
+@pytest.mark.parametrize('warrior_arena', [{
     'rating_playstyle': [0, 0],
     'rating_error': 1,
 }], indirect=True)
-@pytest.mark.parametrize('other_warrior', [{
+@pytest.mark.parametrize('other_warrior_arena', [{
     'rating_playstyle': [0, 0],
     'rating_error': -1,
 }], indirect=True)
-def test_update_rating(warrior, other_warrior, battle):
+def test_update_rating(warrior_arena, other_warrior_arena, battle):
     WarriorArenaFactory.create_batch(3, rating_error=0)  # distraction
-    assert warrior.rating == 0.0
-    assert other_warrior.rating == 0.0
+    assert warrior_arena.rating == 0.0
+    assert other_warrior_arena.rating == 0.0
 
     update_rating(n=2)
 
-    warrior.refresh_from_db()
-    other_warrior.refresh_from_db()
-    assert warrior.rating != 0.0
-    assert other_warrior.rating != 0.0
-    assert warrior.rating_error == pytest.approx(0, abs=0.01)
-    assert other_warrior.rating_error == pytest.approx(0.0, abs=0.01)
-    assert warrior.rating + other_warrior.rating == pytest.approx(0.0, abs=0.01)
+    warrior_arena.refresh_from_db()
+    other_warrior_arena.refresh_from_db()
+    assert warrior_arena.rating != 0.0
+    assert other_warrior_arena.rating != 0.0
+    assert warrior_arena.rating_error == pytest.approx(0, abs=0.01)
+    assert other_warrior_arena.rating_error == pytest.approx(0.0, abs=0.01)
+    assert warrior_arena.rating + other_warrior_arena.rating == pytest.approx(0.0, abs=0.01)

@@ -6,14 +6,14 @@ from .warriors import Warrior
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('arena', [{'listed': True}], indirect=True)
-def test_find_and_unify_warrior(warrior, arena):
+def test_find_and_unify_warrior(warrior_arena, arena):
     find_and_unify_warrior()
     global_warrior = Warrior.objects.get(
-        warrior_arenas=warrior,
+        warrior_arenas=warrior_arena,
     )
 
-    warrior.refresh_from_db()
-    assert warrior.warrior == global_warrior
+    warrior_arena.refresh_from_db()
+    assert warrior_arena.warrior == global_warrior
 
-    assert warrior.body == global_warrior.body
-    assert warrior.body_sha_256 == global_warrior.body_sha_256
+    assert warrior_arena.body == global_warrior.body
+    assert warrior_arena.body_sha_256 == global_warrior.body_sha_256

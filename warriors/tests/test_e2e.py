@@ -37,11 +37,11 @@ def test_submit_warrior_e2e(client, mocked_recaptcha, monkeypatch, default_arena
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('other_warrior', [
+@pytest.mark.parametrize('other_warrior_arena', [
     {'body': 'copy this to the output'},
 ], indirect=True)
-def test_battle_from_warriors_e2e(monkeypatch, warrior, other_warrior):
-    assert warrior.rating == 0.0
+def test_battle_from_warriors_e2e(monkeypatch, warrior_arena, other_warrior_arena):
+    assert warrior_arena.rating == 0.0
 
     completion_mock = mock.MagicMock()
     completion_mock.message.content = 'Some result'
@@ -53,17 +53,17 @@ def test_battle_from_warriors_e2e(monkeypatch, warrior, other_warrior):
     create_mock = mock.Mock(return_value=completions_mock)
     monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
 
-    battle = Battle.create_from_warriors(warrior, other_warrior)
+    battle = Battle.create_from_warriors(warrior_arena, other_warrior_arena)
     battle.refresh_from_db()
     assert battle.resolved_at_1_2 is None
     assert battle.resolved_at_2_1 is None
 
     worker_turn(timezone.now())  # run async tasks
 
-    warrior.refresh_from_db()
-    other_warrior.refresh_from_db()
-    assert warrior.rating < 0
-    assert other_warrior.rating > 0
+    warrior_arena.refresh_from_db()
+    other_warrior_arena.refresh_from_db()
+    assert warrior_arena.rating < 0
+    assert other_warrior_arena.rating > 0
 
 
 @pytest.mark.django_db

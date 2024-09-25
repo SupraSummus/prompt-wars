@@ -44,7 +44,7 @@ def test_omega_matrix_properties(k):
 
 def test_rock_paper_scissors_scheme():
     """
-    When we have three players that beach each other in a cycle,
+    When we have three players that beat each other in a cycle,
     we should be able to predict match results using m-Elo k=1 system.
     """
     params = [

@@ -22,7 +22,7 @@ def default_arena(arena, site, settings):
 
 
 @pytest.fixture
-def warrior(request, arena):
+def warrior_arena(request, arena):
     return WarriorArenaFactory(
         arena=arena,
         **getattr(request, 'param', {}),
@@ -30,16 +30,16 @@ def warrior(request, arena):
 
 
 @pytest.fixture
-def warrior_user_permission(request, warrior, user):
+def warrior_user_permission(request, warrior_arena, user):
     return WarriorUserPermissionFactory(
-        warrior_arena=warrior,
+        warrior_arena=warrior_arena,
         user=user,
         **getattr(request, 'param', {}),
     )
 
 
 @pytest.fixture
-def other_warrior(request, arena):
+def other_warrior_arena(request, arena):
     return WarriorArenaFactory(
         arena=arena,
         **getattr(request, 'param', {}),
@@ -47,12 +47,12 @@ def other_warrior(request, arena):
 
 
 @pytest.fixture
-def battle(request, arena, warrior, other_warrior):
-    if warrior.id > other_warrior.id:
-        warrior, other_warrior = other_warrior, warrior
+def battle(request, arena, warrior_arena, other_warrior_arena):
+    if warrior_arena.id > other_warrior_arena.id:
+        warrior_arena, other_warrior_arena = other_warrior_arena, warrior_arena
     return BattleFactory(
         arena=arena,
-        warrior_1=warrior,
-        warrior_2=other_warrior,
+        warrior_1=warrior_arena,
+        warrior_2=other_warrior_arena,
         **getattr(request, 'param', {}),
     )

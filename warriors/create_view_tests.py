@@ -66,7 +66,7 @@ def test_create_warrior_arena(client, mocked_recaptcha, arena):
 
 
 @pytest.mark.django_db
-def test_create_warrior_duplicate(client, warrior, mocked_recaptcha, default_arena):
+def test_create_warrior_duplicate(client, warrior_arena, mocked_recaptcha, default_arena):
     """
     It is not possible to create a warrior that has the same body as another.
     But we have a "discover" mechanics.
@@ -74,14 +74,14 @@ def test_create_warrior_duplicate(client, warrior, mocked_recaptcha, default_are
     response = client.post(
         reverse('warrior_create'),
         data={
-            'body': warrior.body,
+            'body': warrior_arena.body,
             'g-recaptcha-response': 'PASSED',
         },
     )
     assert response.status_code == 302
     warrior_id = response.url.split('/')[-2]
-    assert warrior_id == str(warrior.id)
-    assert str(warrior.id) in response.client.session['authorized_warriors']
+    assert warrior_id == str(warrior_arena.id)
+    assert str(warrior_arena.id) in response.client.session['authorized_warriors']
 
 
 @pytest.mark.django_db
@@ -139,15 +139,15 @@ def test_create_authenticated(user, user_client, mocked_recaptcha, default_arena
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior', [{
+@pytest.mark.parametrize('warrior_arena', [{
     'name': 'strongest',
     'public_battle_results': False,
 }], indirect=True)
-def test_create_authenticated_duplicate(user, user_client, warrior, mocked_recaptcha, default_arena):
+def test_create_authenticated_duplicate(user, user_client, warrior_arena, mocked_recaptcha, default_arena):
     response = user_client.post(
         reverse('warrior_create'),
         data={
-            'body': warrior.body,
+            'body': warrior_arena.body,
             'name': 'surely a duplicate',
             'public_battle_results': True,
             'g-recaptcha-response': 'PASSED',
@@ -155,18 +155,18 @@ def test_create_authenticated_duplicate(user, user_client, warrior, mocked_recap
     )
     assert response.status_code == 302
     warrior_id = response.url.split('/')[-2]
-    assert warrior_id == str(warrior.id)
+    assert warrior_id == str(warrior_arena.id)
 
     # name is not changed
-    warrior.refresh_from_db()
-    assert warrior.name == 'strongest'
+    warrior_arena.refresh_from_db()
+    assert warrior_arena.name == 'strongest'
 
     # at least one user marked battles as public, so the warrior have public battles
-    assert warrior.public_battle_results is True
+    assert warrior_arena.public_battle_results is True
 
     # user has access to the warrior
     warrior_user_permission = WarriorUserPermission.objects.get(
-        warrior_arena=warrior,
+        warrior_arena=warrior_arena,
         user=user,
     )
     assert warrior_user_permission.name == 'surely a duplicate'

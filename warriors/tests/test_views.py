@@ -16,7 +16,7 @@ def test_arena_detail(client, arena):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior', [
+@pytest.mark.parametrize('warrior_arena', [
     {'moderation_passed': False},
     {'moderation_passed': True},
     {'moderation_passed': None},
@@ -26,9 +26,9 @@ def test_arena_detail(client, arena):
     'lcs_len_1_2_1': 23,
     'lcs_len_1_2_2': 32,
 }], indirect=True)
-def test_warrior_details(client, warrior, battle):
+def test_warrior_details(client, warrior_arena, battle):
     response = client.get(
-        reverse('warrior_detail', args=(warrior.id,))
+        reverse('warrior_detail', args=(warrior_arena.id,))
     )
     assert response.status_code == 200
     assert battle in response.context['battles']
@@ -41,87 +41,89 @@ def test_warrior_details(client, warrior, battle):
     'lcs_len_1_2_1': 23,
     'lcs_len_1_2_2': 32,
 }], indirect=True)
-def test_warrior_details_secret(client, warrior, good_secret, battle):
+def test_warrior_details_secret(client, warrior_arena, good_secret, battle):
     if good_secret:
-        secret = warrior.secret
+        secret = warrior_arena.secret
     else:
         secret = 'asdf'
     response = client.get(
-        reverse('warrior_detail', args=(warrior.id,)) + '?secret=' + secret
+        reverse('warrior_detail', args=(warrior_arena.id,)) + '?secret=' + secret
     )
     assert response.status_code == 200
     assert response.context['show_secrets'] == good_secret
-    assert (warrior.body in response.content.decode()) == good_secret
+    assert (warrior_arena.body in response.content.decode()) == good_secret
 
 
 @pytest.mark.django_db
-def test_warrior_details_creates_user_permission(user, user_client, warrior):
-    assert user not in warrior.users.all()
+def test_warrior_details_creates_user_permission(user, user_client, warrior_arena):
+    assert user not in warrior_arena.users.all()
     response = user_client.get(
-        reverse('warrior_detail', args=(warrior.id,)) + '?secret=' + warrior.secret
+        reverse('warrior_detail', args=(warrior_arena.id,)) + '?secret=' + warrior_arena.secret
     )
     assert response.status_code == 200
-    assert user in warrior.users.all()
+    assert user in warrior_arena.users.all()
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('session_authorized', [True, False])
-def test_warrior_details_authorized_session(client, warrior, session_authorized):
+def test_warrior_details_authorized_session(client, warrior_arena, session_authorized):
     session = client.session
-    session['authorized_warriors'] = [str(warrior.id)] if session_authorized else []
+    session['authorized_warriors'] = [str(warrior_arena.id)] if session_authorized else []
     session.save()
     response = client.get(
-        reverse('warrior_detail', args=(warrior.id,))
+        reverse('warrior_detail', args=(warrior_arena.id,))
     )
     assert response.status_code == 200
     assert response.context['show_secrets'] == session_authorized
-    assert (warrior.body in response.content.decode()) == session_authorized
+    assert (warrior_arena.body in response.content.decode()) == session_authorized
 
 
 @pytest.mark.django_db
-def test_warrior_set_public_battle_results(user_client, warrior, warrior_user_permission):
-    assert warrior.public_battle_results is False
+def test_warrior_set_public_battle_results(user_client, warrior_arena, warrior_user_permission):
+    assert warrior_arena.public_battle_results is False
     assert warrior_user_permission.public_battle_results is False
     response = user_client.post(
-        reverse('warrior_set_public_battles', args=(warrior.id,)),
+        reverse('warrior_set_public_battles', args=(warrior_arena.id,)),
         data={
             'public_battle_results': True,
         },
     )
     assert response.status_code == 302
-    warrior.refresh_from_db()
-    assert warrior.public_battle_results is True
+    warrior_arena.refresh_from_db()
+    assert warrior_arena.public_battle_results is True
     warrior_user_permission.refresh_from_db()
     assert warrior_user_permission.public_battle_results is True
 
 
 @pytest.mark.django_db
-def test_challenge_warrior_get(user_client, warrior, warrior_user_permission, other_warrior):
+def test_challenge_warrior_get(user_client, warrior_arena, warrior_user_permission, other_warrior_arena):
     response = user_client.get(
-        reverse('challenge_warrior', args=(other_warrior.id,))
+        reverse('challenge_warrior', args=(other_warrior_arena.id,))
     )
     assert response.status_code == 200
-    assert warrior in response.context['form'].fields['warrior'].queryset
+    assert warrior_arena in response.context['form'].fields['warrior'].queryset
 
 
 @pytest.mark.django_db
-def test_challenge_warrior_post(user_client, warrior, warrior_user_permission, other_warrior):
+def test_challenge_warrior_post(user_client, warrior_arena, warrior_user_permission, other_warrior_arena):
     response = user_client.post(
-        reverse('challenge_warrior', args=(other_warrior.id,)),
+        reverse('challenge_warrior', args=(other_warrior_arena.id,)),
         data={
-            'warrior': warrior.id,
+            'warrior': warrior_arena.id,
         },
     )
     assert response.status_code == 302
-    assert Battle.objects.with_warriors(warrior, other_warrior).exists()
+    assert Battle.objects.with_warriors(warrior_arena, other_warrior_arena).exists()
 
 
 @pytest.mark.django_db
-def test_challenge_warrior_post_duplicate(user_client, warrior, warrior_user_permission, other_warrior, battle):
+def test_challenge_warrior_post_duplicate(
+    user_client, warrior_arena, warrior_user_permission, other_warrior_arena, battle,
+):
     response = user_client.post(
-        reverse('challenge_warrior', args=(other_warrior.id,)),
+        reverse('challenge_warrior', args=(other_warrior_arena.id,)),
         data={
-            'warrior': warrior.id,
+            'warrior': warrior_arena.id,
         },
     )
     assert response.status_code == 200
@@ -129,9 +131,9 @@ def test_challenge_warrior_post_duplicate(user_client, warrior, warrior_user_per
 
 
 @pytest.mark.django_db
-def test_challenge_warrior_bad_data(user_client, warrior):
+def test_challenge_warrior_bad_data(user_client, warrior_arena):
     response = user_client.post(
-        reverse('challenge_warrior', args=(warrior.id,)),
+        reverse('challenge_warrior', args=(warrior_arena.id,)),
         data={},
     )
     assert response.status_code == 200
@@ -147,7 +149,7 @@ def test_battle_details(client, battle):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior', [
+@pytest.mark.parametrize('warrior_arena', [
     {'public_battle_results': False},
     {'public_battle_results': True},
 ], indirect=True)
@@ -155,12 +157,12 @@ def test_battle_details(client, battle):
     'resolved_at_1_2': timezone.now(),
     'result_1_2': 'asdf1234',
 }], indirect=True)
-def test_battle_details_public(client, battle, warrior):
+def test_battle_details_public(client, battle, warrior_arena):
     response = client.get(
         reverse('battle_detail', args=(battle.id,))
     )
     assert response.status_code == 200
-    assert ('asdf1234' in response.content.decode()) is warrior.public_battle_results
+    assert ('asdf1234' in response.content.decode()) is warrior_arena.public_battle_results
 
 
 @pytest.mark.django_db
@@ -179,18 +181,18 @@ def test_battle_details_error(user_client, battle, warrior_user_permission):
 
 
 @pytest.mark.django_db
-def test_leaderboard(client, arena, settings, warrior, default_arena):
+def test_leaderboard(client, arena, settings, warrior_arena, default_arena):
     response = client.get(reverse('warrior_leaderboard'))
     assert response.status_code == 200
-    assert warrior in response.context['warriors']
+    assert warrior_arena in response.context['warriors']
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior', [{'next_battle_schedule': timezone.now()}], indirect=True)
-def test_upcoming_battles(user_client, warrior, warrior_user_permission, default_arena):
+@pytest.mark.parametrize('warrior_arena', [{'next_battle_schedule': timezone.now()}], indirect=True)
+def test_upcoming_battles(user_client, warrior_arena, warrior_user_permission, default_arena):
     response = user_client.get(reverse('upcoming_battles'))
     assert response.status_code == 200
-    assert warrior in response.context['warriors']
+    assert warrior_arena in response.context['warriors']
 
 
 @pytest.mark.django_db

@@ -9,60 +9,60 @@ from .factories import BattleFactory
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior', [{'rating': 0.0}], indirect=True)
-@pytest.mark.parametrize(('other_warrior', 'matched'), [
+@pytest.mark.parametrize('warrior_arena', [{'rating': 0.0}], indirect=True)
+@pytest.mark.parametrize(('other_warrior_arena', 'matched'), [
     ({'rating': 2}, False),
     ({'rating': 1.2}, False),
     ({'rating': -1.2}, False),
     ({'rating': 0}, True),
     ({'rating': 1}, True),
     ({'rating': -1}, True),
-], indirect=['other_warrior'])
-def test_find_opponents_max_rating_diff(warrior, other_warrior, matched):
-    opponents = warrior.find_opponents(max_rating_diff=1.2)
-    assert (other_warrior in opponents) is matched
+], indirect=['other_warrior_arena'])
+def test_find_opponents_max_rating_diff(warrior_arena, other_warrior_arena, matched):
+    opponents = warrior_arena.find_opponents(max_rating_diff=1.2)
+    assert (other_warrior_arena in opponents) is matched
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('other_warrior', [
+@pytest.mark.parametrize('other_warrior_arena', [
     {'moderation_passed': False},
     {'moderation_passed': None},
 ], indirect=True)
-def test_find_opponents_exclude_not_worthy(warrior, other_warrior):
-    opponents = warrior.find_opponents()
-    assert other_warrior not in opponents
+def test_find_opponents_exclude_not_worthy(warrior_arena, other_warrior_arena):
+    opponents = warrior_arena.find_opponents()
+    assert other_warrior_arena not in opponents
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('battle_exists', [True, False])
-def test_find_opponents_exclude_already_battled(warrior, other_warrior, battle_exists):
+def test_find_opponents_exclude_already_battled(warrior_arena, other_warrior_arena, battle_exists):
     if battle_exists:
-        Battle.create_from_warriors(warrior, other_warrior)
-    opponents = warrior.find_opponents()
+        Battle.create_from_warriors(warrior_arena, other_warrior_arena)
+    opponents = warrior_arena.find_opponents()
     opponent_expected = not battle_exists
-    assert (other_warrior in opponents) is opponent_expected
+    assert (other_warrior_arena in opponents) is opponent_expected
 
 
 @pytest.mark.django_db
-def test_create_battle_lots_of_games_played(warrior, battle, other_warrior):
+def test_create_battle_lots_of_games_played(warrior_arena, battle, other_warrior_arena):
     BattleFactory.create_batch(
         100,
         warrior_1=battle.warrior_1,
         warrior_2=battle.warrior_2,
     )
-    warrior.create_battle(other_warrior)
-    warrior.refresh_from_db()
-    assert warrior.games_played == 102  # 1 from fixture, 100 created in this test, 1 created in create_battle
-    assert warrior.next_battle_schedule > timezone.now() + datetime.timedelta(days=365 * 10)
+    warrior_arena.create_battle(other_warrior_arena)
+    warrior_arena.refresh_from_db()
+    assert warrior_arena.games_played == 102  # 1 from fixture, 100 created in this test, 1 created in create_battle
+    assert warrior_arena.next_battle_schedule > timezone.now() + datetime.timedelta(days=365 * 10)
 
     # opponent has games_played recalculated
-    other_warrior.refresh_from_db()
-    assert other_warrior.games_played == 102
+    other_warrior_arena.refresh_from_db()
+    assert other_warrior_arena.games_played == 102
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    ('warrior', 'min_delay_minutes', 'max_delay_minutes'),
+    ('warrior_arena', 'min_delay_minutes', 'max_delay_minutes'),
     [
         ({'games_played': 0}, 0, 0),
         ({'games_played': 1}, 0, 1),
@@ -70,10 +70,10 @@ def test_create_battle_lots_of_games_played(warrior, battle, other_warrior):
         ({'games_played': 3}, 3, 7),
         ({'games_played': 4}, 7, 15),
     ],
-    indirect=['warrior'],
+    indirect=['warrior_arena'],
 )
-def test_next_battle_delay(warrior, min_delay_minutes, max_delay_minutes):
-    delay = warrior.get_next_battle_delay()
+def test_next_battle_delay(warrior_arena, min_delay_minutes, max_delay_minutes):
+    delay = warrior_arena.get_next_battle_delay()
     assert delay >= datetime.timedelta(minutes=min_delay_minutes)
     assert delay <= datetime.timedelta(minutes=max_delay_minutes)
 
