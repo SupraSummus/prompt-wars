@@ -12,7 +12,6 @@ def find_and_unify_warrior():
     logger.info('Doing find_and_unify_warrior')
     warrior_arena = WarriorArena.objects.filter(
         warrior=None,
-        arena__listed=True,
     ).order_by('id').first()
     if not warrior_arena:
         logger.info('No warrior-arena without warrior found')
