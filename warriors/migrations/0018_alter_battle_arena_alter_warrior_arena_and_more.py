@@ -21,7 +21,8 @@ class Migration(migrations.Migration):
             model_name='warrior',
             name='arena',
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to='warriors.arena'
+                on_delete=django.db.models.deletion.CASCADE, to='warriors.arena',
+                related_name='warriors',
             ),
         ),
         migrations.AlterField(

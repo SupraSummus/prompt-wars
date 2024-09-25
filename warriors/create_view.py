@@ -8,10 +8,10 @@ from django.views.generic.edit import CreateView
 from django_goals.models import schedule
 from django_recaptcha.fields import ReCaptchaField
 
-from .cross_arena import get_or_create_warrior
-from .models import MAX_WARRIOR_LENGTH, WarriorArena, WarriorUserPermission
+from .models import WarriorArena, WarriorUserPermission
 from .tasks import do_moderation
 from .views import ArenaViewMixin
+from .warriors import MAX_WARRIOR_LENGTH, Warrior
 
 
 class WarriorCreateForm(forms.ModelForm):
@@ -23,7 +23,7 @@ class WarriorCreateForm(forms.ModelForm):
     captcha = ReCaptchaField(label='')
 
     class Meta:
-        model = WarriorArena
+        model = Warrior
         fields = (
             'body',
             'name',
@@ -61,24 +61,22 @@ class WarriorCreateForm(forms.ModelForm):
         return body
 
     def save(self, commit=True):
-        warrior_arena = WarriorArena.objects.filter(
-            arena=self.arena,
+        warrior = Warrior.objects.filter(
             body_sha_256=self.cleaned_data['body_sha_256'],
         ).first()
 
         # create the spell if it is unique
-        if warrior_arena is None:
-            warrior_arena = super().save(commit=False)
+        if warrior is None:
+            warrior = super().save(commit=False)
 
-            warrior_arena.arena = self.arena
             if self.user.is_authenticated:
-                warrior_arena.created_by = self.user
+                warrior.created_by = self.user
 
-            warrior_arena.body_sha_256 = self.cleaned_data['body_sha_256']
+            warrior.body_sha_256 = self.cleaned_data['body_sha_256']
             assert commit
-            warrior_arena.save()
+            warrior.save()
 
-            schedule(do_moderation, args=[str(warrior_arena.id)])
+            schedule(do_moderation, args=[str(warrior.id)])
 
         # discovery message
         else:
@@ -87,7 +85,10 @@ class WarriorCreateForm(forms.ModelForm):
                 _('The spell already existed. You have discovered it and now you have full access to its secrets.'),
             )
 
-        warrior = get_or_create_warrior(warrior_arena)
+        warrior_arena, warrior_arena_created = WarriorArena.objects.get_or_create(
+            arena=self.arena,
+            warrior=warrior,
+        )
 
         # give the user permission to the spell
         if self.user.is_authenticated:
@@ -103,7 +104,7 @@ class WarriorCreateForm(forms.ModelForm):
             if not perm.warrior:
                 perm.warrior = warrior
                 perm.save(update_fields=['warrior'])
-            warrior_arena.update_public_battle_results()
+            warrior.update_public_battle_results()
         else:
             authorized_warriors = self.session.setdefault('authorized_warriors', [])
             if str(warrior_arena.id) not in authorized_warriors:
@@ -114,7 +115,6 @@ class WarriorCreateForm(forms.ModelForm):
 
 
 class WarriorCreateView(ArenaViewMixin, CreateView):
-    model = WarriorArena
     form_class = WarriorCreateForm
     template_name = 'warriors/warrior_create.html'
 

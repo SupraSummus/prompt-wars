@@ -11,10 +11,10 @@ from . import anthropic
 from .exceptions import RateLimitError
 from .lcs import lcs_len
 from .models import (
-    LLM, MATCHMAKING_COOLDOWN, MAX_WARRIOR_LENGTH, Arena, Battle, Game,
-    WarriorArena,
+    LLM, MATCHMAKING_COOLDOWN, Arena, Battle, Game, WarriorArena,
 )
 from .openai import openai_client, resolve_battle_openai
+from .warriors import MAX_WARRIOR_LENGTH, Warrior
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 def do_moderation(goal, warrior_id):
     now = timezone.now()
-    warrior = WarriorArena.objects.get(id=warrior_id)
+    warrior = Warrior.objects.get(id=warrior_id)
     assert warrior.moderation_date is None
     moderation_results = openai_client.moderations.create(
         input='\n'.join([

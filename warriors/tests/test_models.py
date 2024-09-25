@@ -24,7 +24,7 @@ def test_find_opponents_max_rating_diff(warrior_arena, other_warrior_arena, matc
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('other_warrior_arena', [
+@pytest.mark.parametrize('other_warrior', [
     {'moderation_passed': False},
     {'moderation_passed': None},
 ], indirect=True)
@@ -82,10 +82,10 @@ def test_next_battle_delay(warrior_arena, min_delay_minutes, max_delay_minutes):
 def test_battle_score():
     battle = BattleFactory(
         warrior_1__id=UUID(int=1),
-        warrior_1__body='asdf',
+        warrior_1__warrior__body='asdf',
         warrior_1__rating_playstyle=[0, 0],
         warrior_2__id=UUID(int=2),
-        warrior_2__body='qwerty',
+        warrior_2__warrior__body='qwerty',
         warrior_2__rating_playstyle=[0, 0],
         result_1_2='qwerty',
         lcs_len_1_2_1=0,

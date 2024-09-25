@@ -17,13 +17,13 @@ from .factories import WarriorArenaFactory
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior_arena', [{
+@pytest.mark.parametrize('warrior', [{
     'name': 'Test Warrior',
     'author_name': 'Test Author',
 }], indirect=True)
 @pytest.mark.parametrize('moderation_flagged', [True, False])
-def test_do_moderation(warrior_arena, monkeypatch, moderation_flagged):
-    assert warrior_arena.body
+def test_do_moderation(warrior, monkeypatch, moderation_flagged):
+    assert warrior.body
 
     moderation_result_mock = mock.MagicMock()
     moderation_result_mock.flagged = moderation_flagged
@@ -32,12 +32,12 @@ def test_do_moderation(warrior_arena, monkeypatch, moderation_flagged):
     moderation_mock.return_value.results = [moderation_result_mock]
     monkeypatch.setattr(openai_client.moderations, 'create', moderation_mock)
 
-    do_moderation(None, warrior_arena.id)
+    do_moderation(None, warrior.id)
 
-    warrior_arena.refresh_from_db()
-    assert warrior_arena.moderation_date is not None
-    assert warrior_arena.moderation_passed is (not moderation_flagged)
-    assert warrior_arena.moderation_model == 'moderation-asdf'
+    warrior.refresh_from_db()
+    assert warrior.moderation_date is not None
+    assert warrior.moderation_passed is (not moderation_flagged)
+    assert warrior.moderation_model == 'moderation-asdf'
 
 
 @pytest.mark.django_db

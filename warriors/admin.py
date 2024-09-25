@@ -28,16 +28,14 @@ class ArenaAdmin(admin.ModelAdmin):
 class WarriorArenaAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
     list_display = (
         'id',
-        'moderation_passed',
         'rating',
         'games_played',
-        'created_at',
     )
     list_filter = (
-        'moderation_passed',
+        'warrior__moderation_passed',
     )
-    search_fields = ('id', 'name', 'author_name')
-    date_hierarchy = 'created_at'
+    search_fields = ('id', 'warrior__name', 'warrior__author_name')
+    date_hierarchy = 'warrior__created_at'
 
     fieldsets = (
         (None, {

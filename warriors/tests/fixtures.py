@@ -1,7 +1,7 @@
 import pytest
 
 from .factories import (
-    ArenaFactory, BattleFactory, WarriorArenaFactory,
+    ArenaFactory, BattleFactory, WarriorArenaFactory, WarriorFactory,
     WarriorUserPermissionFactory,
 )
 
@@ -22,8 +22,16 @@ def default_arena(arena, site, settings):
 
 
 @pytest.fixture
-def warrior_arena(request, arena):
+def warrior(request):
+    return WarriorFactory(
+        **getattr(request, 'param', {}),
+    )
+
+
+@pytest.fixture
+def warrior_arena(request, warrior, arena):
     return WarriorArenaFactory(
+        warrior=warrior,
         arena=arena,
         **getattr(request, 'param', {}),
     )
@@ -39,8 +47,16 @@ def warrior_user_permission(request, warrior_arena, user):
 
 
 @pytest.fixture
-def other_warrior_arena(request, arena):
+def other_warrior(request):
+    return WarriorFactory(
+        **getattr(request, 'param', {}),
+    )
+
+
+@pytest.fixture
+def other_warrior_arena(request, other_warrior, arena):
     return WarriorArenaFactory(
+        warrior=other_warrior,
         arena=arena,
         **getattr(request, 'param', {}),
     )

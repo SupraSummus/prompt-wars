@@ -64,6 +64,19 @@ class Warrior(models.Model):
         help_text=_("Indicates whether battle results should be public for this warrior."),
     )
 
+    def update_public_battle_results(self):
+        """Recompute public_battle_results based on per user data"""
+        from .models import WarriorUserPermission
+        user_permissions = list(WarriorUserPermission.objects.filter(
+            warrior_arena__warrior=self,
+        ))
+        if user_permissions:
+            self.public_battle_results = any(
+                up.public_battle_results
+                for up in user_permissions
+            )
+            self.save(update_fields=['public_battle_results'])
+
     users = models.ManyToManyField(
         to=settings.AUTH_USER_MODEL,
         through='WarriorUserPermission',

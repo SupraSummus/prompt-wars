@@ -45,7 +45,7 @@ def test_create_warrior(client, mocked_recaptcha, has_authorized_warriors, defau
     # moderation task scheduled
     goal = Goal.objects.get()
     assert goal.handler == 'warriors.tasks.do_moderation'
-    assert goal.instructions['args'] == [str(warrior.id)]
+    assert goal.instructions['args'] == [str(warrior.warrior.id)]
 
     # session is athorized for new warrior
     assert str(warrior.id) in response.client.session['authorized_warriors']
@@ -139,11 +139,15 @@ def test_create_authenticated(user, user_client, mocked_recaptcha, default_arena
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior_arena', [{
+@pytest.mark.parametrize('warrior', [{
     'name': 'strongest',
     'public_battle_results': False,
 }], indirect=True)
-def test_create_authenticated_duplicate(user, user_client, warrior_arena, mocked_recaptcha, default_arena):
+def test_create_authenticated_duplicate(
+    user, user_client,
+    warrior_arena, warrior,
+    mocked_recaptcha, default_arena,
+):
     response = user_client.post(
         reverse('warrior_create'),
         data={

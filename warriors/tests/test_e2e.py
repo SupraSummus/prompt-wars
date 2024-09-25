@@ -37,7 +37,7 @@ def test_submit_warrior_e2e(client, mocked_recaptcha, monkeypatch, default_arena
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('other_warrior_arena', [
+@pytest.mark.parametrize('other_warrior', [
     {'body': 'copy this to the output'},
 ], indirect=True)
 def test_battle_from_warriors_e2e(monkeypatch, warrior_arena, other_warrior_arena):

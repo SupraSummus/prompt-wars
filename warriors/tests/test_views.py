@@ -16,7 +16,7 @@ def test_arena_detail(client, arena):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior_arena', [
+@pytest.mark.parametrize('warrior', [
     {'moderation_passed': False},
     {'moderation_passed': True},
     {'moderation_passed': None},
@@ -149,7 +149,7 @@ def test_battle_details(client, battle):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior_arena', [
+@pytest.mark.parametrize('warrior', [
     {'public_battle_results': False},
     {'public_battle_results': True},
 ], indirect=True)

@@ -21,7 +21,7 @@ from django_goals.models import schedule
 from .lcs import lcs_ranges
 from .rating import GameScore, get_expected_game_score, get_performance_rating
 from .stats import ArenaStats
-from .warriors import MAX_WARRIOR_LENGTH, Warrior, WarriorQuerySet
+from .warriors import MAX_WARRIOR_LENGTH, Warrior
 
 
 __all__ = ['ArenaStats', 'Warrior']
@@ -80,6 +80,13 @@ class Arena(models.Model):
         return self.name
 
 
+class WarriorArenaQuerySet(models.QuerySet):
+    def battleworthy(self):
+        return self.filter(
+            warrior__moderation_passed=True,
+        )
+
+
 class WarriorArena(models.Model):
     id = models.UUIDField(
         primary_key=True,
@@ -89,37 +96,37 @@ class WarriorArena(models.Model):
     warrior = models.ForeignKey(
         to=Warrior,
         on_delete=models.PROTECT,
-        null=True,
-        blank=True,
         related_name='warrior_arenas',
     )
     arena = models.ForeignKey(
         to=Arena,
         on_delete=models.CASCADE,
+        related_name='warriors',
     )
-    body = models.TextField(
-        max_length=MAX_WARRIOR_LENGTH,
-    )
-    body_sha_256 = models.BinaryField(
-        max_length=32,
-    )
-    created_at = models.DateTimeField(
-        default=timezone.now,
-    )
-    created_by = models.ForeignKey(
-        to=settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-    )
-    name = models.CharField(
-        max_length=40,
-        blank=True,
-    )
-    author_name = models.CharField(
-        max_length=40,
-        blank=True,
-    )
+
+    @property
+    def body(self):
+        return self.warrior.body
+
+    @property
+    def body_sha_256(self):
+        return self.warrior.body_sha_256
+
+    @property
+    def created_at(self):
+        return self.warrior.created_at
+
+    @property
+    def created_by(self):
+        return self.warrior.created_by
+
+    @property
+    def name(self):
+        return self.warrior.name
+
+    @property
+    def author_name(self):
+        return self.warrior.author_name
 
     rating = models.FloatField(
         default=0.0,
@@ -136,28 +143,27 @@ class WarriorArena(models.Model):
         default=0,
     )
 
-    moderation_date = models.DateTimeField(
-        null=True,
-        blank=True,
-    )
-    moderation_passed = models.BooleanField(
-        null=True,
-    )
-    moderation_model = models.CharField(
-        max_length=100,
-        blank=True,
-    )
+    @property
+    def moderation_date(self):
+        return self.warrior.moderation_date
+
+    @property
+    def moderation_passed(self):
+        return self.warrior.moderation_passed
+
+    @property
+    def moderation_model(self):
+        return self.warrior.moderation_model
+
+    @property
+    def public_battle_results(self):
+        return self.warrior.public_battle_results
 
     next_battle_schedule = models.DateTimeField(
         default=timezone.now,
     )
     rating_error = models.FloatField(
         default=0.0,
-    )
-
-    public_battle_results = models.BooleanField(
-        default=False,
-        help_text=_("Indicates whether battle results should be public for this warrior."),
     )
 
     @property
@@ -171,26 +177,15 @@ class WarriorArena(models.Model):
         related_name='warriors',
     )
 
-    objects = WarriorQuerySet.as_manager()
+    objects = WarriorArenaQuerySet.as_manager()
     secret_signer = Signer(salt='warrior')
 
     class Meta:
         ordering = ('id',)
         constraints = [
-            models.CheckConstraint(
-                check=models.Q(body_sha_256=models.Func(
-                    models.Func(
-                        models.F('body'),
-                        models.Value('utf-8'),
-                        function='convert_to',
-                    ),
-                    function='sha256',
-                )),
-                name='body_sha_256',
-            ),
             models.UniqueConstraint(
-                fields=['arena_id', 'body_sha_256'],
-                name='arena_body_sha_256_unique',
+                fields=['arena', 'warrior'],
+                name='arena_warrior_unique',
             ),
         ]
         indexes = [
@@ -334,18 +329,6 @@ class WarriorArena(models.Model):
         ])
 
         return rating_error
-
-    def update_public_battle_results(self):
-        """Recompute public_battle_results based on per user data"""
-        user_permissions = list(WarriorUserPermission.objects.filter(
-            warrior_arena=self,
-        ))
-        if user_permissions:
-            self.public_battle_results = any(
-                up.public_battle_results
-                for up in user_permissions
-            )
-            self.save(update_fields=['public_battle_results'])
 
     @cached_property
     def secret(self):
