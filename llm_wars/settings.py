@@ -201,6 +201,10 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'INFO',
         },
+        'warriors.scheduler': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
     },
     'formatters': {
         'verbose': {
