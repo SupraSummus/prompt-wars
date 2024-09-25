@@ -84,7 +84,9 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
             self.object,
         )[:100].select_related(
             'warrior_1',
+            'warrior_1__warrior',
             'warrior_2',
+            'warrior_2__warrior',
         )
         context['battles'] = [
             battle.get_warrior_viewpoint(self.object)
@@ -220,6 +222,8 @@ class WarriorLeaderboard(ArenaViewMixin, ListView):
     def get_queryset(self):
         return WarriorArena.objects.battleworthy().filter(
             arena=self.arena,
+        ).select_related(
+            'warrior',
         ).order_by('-rating')[:100]
 
     def get_context_data(self, **kwargs):
@@ -244,7 +248,9 @@ class UpcomingBattlesView(ArenaViewMixin, ListView):
     context_object_name = 'warriors'
 
     def get_queryset(self):
-        qs = WarriorArena.objects.battleworthy().filter(arena=self.arena)
+        qs = WarriorArena.objects.battleworthy().filter(arena=self.arena).select_related(
+            'warrior',
+        )
         user = self.request.user
         if user.is_authenticated:
             qs = qs.filter(users=user)
@@ -275,6 +281,8 @@ class RecentBattlesView(ArenaViewMixin, ListView):
             )).distinct()
         qs = qs.order_by('-scheduled_at').select_related(
             'warrior_1',
+            'warrior_1__warrior',
             'warrior_2',
+            'warrior_2__warrior',
         )
         return qs[:100]
