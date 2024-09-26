@@ -1,51 +1,31 @@
-import matplotlib.pyplot as plt
-import numpy as np
-
-from warriors.rating import get_expected_game_score
+from warriors.models import Battle
+from warriors.text_unit import TextUnit
 
 
-our_rating = 0
-opponent_rating = 0
-
-"""
-2d plot of expected game score with given ooponent playstyle
-"""
-
-for n, our_playstyle in enumerate([
-    (1, 1),
-    (10, 10),
-    (10, 0),
-    (10, -10),
-]):
-
-    data = np.array(
-        [
-            [
-                get_expected_game_score(
-                    our_rating, our_playstyle,
-                    opponent_rating, [i, j],
-                    k=1,
-                )
-                for i in range(-20, 20)
-            ]
-            for j in range(-20, 20)
-        ]
+def do_some():
+    battles = (
+        Battle.objects.filter(text_unit_1_2__isnull=True) |
+        Battle.objects.filter(text_unit_2_1__isnull=True)
+    )[:100]
+    battles = list(battles)
+    for battle in battles:
+        battle.text_unit_1_2 = TextUnit.get_or_create_by_content(
+            battle.result_1_2,
+            now=battle.resolved_at_1_2,
+        )
+        battle.text_unit_2_1 = TextUnit.get_or_create_by_content(
+            battle.result_2_1,
+            now=battle.resolved_at_2_1,
+        )
+    Battle.objects.bulk_update(
+        battles,
+        ['text_unit_1_2', 'text_unit_2_1'],
     )
+    return len(battles)
 
-    plt.subplot(2, 2, n + 1)
-    plt.imshow(
-        data,
-        extent=(-20, 20, -20, 20),
-        origin='lower',
-        vmin=0.2,
-        vmax=0.8,
-    )
-    plt.scatter(0, 0, color='red')
-    plt.scatter(our_playstyle[0], our_playstyle[1], color='blue')
-    plt.title(f'Our playstyle: {our_playstyle}')
-    plt.colorbar(
-        label='Expected game score',
-    )
 
-plt.tight_layout()
-plt.savefig('expected_game_score.png')
+while True:
+    count = do_some()
+    print(f'Updated {count} battles')
+    if count == 0:
+        break
