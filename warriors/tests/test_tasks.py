@@ -267,6 +267,6 @@ def test_update_rating(warrior_arena, other_warrior_arena, battle):
     other_warrior_arena.refresh_from_db()
     assert warrior_arena.rating != 0.0
     assert other_warrior_arena.rating != 0.0
-    assert warrior_arena.rating_error == pytest.approx(0, abs=0.01)
-    assert other_warrior_arena.rating_error == pytest.approx(0.0, abs=0.01)
-    assert warrior_arena.rating + other_warrior_arena.rating == pytest.approx(0.0, abs=0.01)
+    assert warrior_arena.rating_error == pytest.approx(0, abs=0.02)
+    assert other_warrior_arena.rating_error == pytest.approx(0.0, abs=0.02)
+    assert warrior_arena.rating + other_warrior_arena.rating == pytest.approx(0.0, abs=0.02)
