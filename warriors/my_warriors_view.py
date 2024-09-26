@@ -30,9 +30,11 @@ template = parse_template('''\
                     <td>{{ warrior.name }}</td>
                     {% for arena, warrior_arena in warrior.warrior_arena_objects %}
                         <td>
-                            <a href="{% url 'warrior_detail' warrior_arena.id %}">
-                                {{ arena.name }}
-                            </a>
+                            {% if warrior_arena %}
+                                <a href="{% url 'warrior_detail' warrior_arena.id %}">
+                                    {{ arena.name }}
+                                </a>
+                            {% endif %}
                         </td>
                     {% endfor %}
                 </tr>
