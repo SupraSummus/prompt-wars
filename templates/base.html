@@ -31,6 +31,9 @@
               <a href="{% url 'home' %}" class="contrast">Prompt wars</a>
             </strong></li>
             <li><a href="{% url 'arena_list' %}">Arenas</a></li>
+            {% if user.is_authenticated %}
+              <li><a href="{% url 'my_warriors:index' %}">My stuff</a></li>
+            {% endif %}
           </ul>
           <ul>
             {% if user.is_authenticated %}

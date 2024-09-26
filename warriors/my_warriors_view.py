@@ -53,7 +53,7 @@ def index(request):
     ))
     warriors = list(Warrior.objects.filter(
         users=request.user,
-    ).prefetch_related('warrior_arenas'))
+    ).prefetch_related('warrior_arenas').order_by('name'))
     for warrior in warriors:
         warrior.warrior_arena_objects = get_warrior_arena_objects(warrior, listed_arenas)
     context = {
