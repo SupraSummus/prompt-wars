@@ -1,43 +1,25 @@
-from warriors.models import Battle
-from warriors.text_unit import TextUnit
+from warriors.models import WarriorUserPermission
 
 
 def do_some():
-    battles_1_2 = Battle.objects.filter(
-        text_unit_1_2__isnull=True,
-        resolved_at_1_2__isnull=False,
-    )[:50]
-    battles_1_2 = list(battles_1_2)
-    for battle in battles_1_2:
-        battle.text_unit_1_2 = TextUnit.get_or_create_by_content(
-            battle.result_1_2,
-            now=battle.resolved_at_1_2,
-        )
-    Battle.objects.bulk_update(
-        battles_1_2,
-        ['text_unit_1_2'],
-    )
-
-    battles_2_1 = Battle.objects.filter(
-        text_unit_2_1__isnull=True,
-        resolved_at_2_1__isnull=False,
-    )[:50]
-    battles_2_1 = list(battles_2_1)
-    for battle in battles_2_1:
-        battle.text_unit_2_1 = TextUnit.get_or_create_by_content(
-            battle.result_2_1,
-            now=battle.resolved_at_2_1,
-        )
-    Battle.objects.bulk_update(
-        battles_2_1,
-        ['text_unit_2_1'],
-    )
-
-    return len(battles_1_2) + len(battles_2_1)
+    permissions = WarriorUserPermission.objects.filter(
+        warrior=None,
+    )[:200]
+    permissions = list(permissions)
+    i = 0
+    for permission in permissions:
+        permission.warrior = permission.warrior_arena.warrior
+        try:
+            permission.save(update_fields=['warrior'])
+        except Exception as e:
+            print(f'Error updating permission {permission.pk}: {e}')
+        else:
+            i += 1
+    return i
 
 
 while True:
     count = do_some()
-    print(f'Updated {count} battles')
+    print(f'Updated {count} permissions')
     if count == 0:
         break
