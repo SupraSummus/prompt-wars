@@ -14,6 +14,7 @@ from .models import (
     LLM, MATCHMAKING_COOLDOWN, Arena, Battle, Game, WarriorArena,
 )
 from .openai import openai_client, resolve_battle_openai
+from .text_unit import TextUnit
 from .warriors import MAX_WARRIOR_LENGTH, Warrior
 
 
@@ -160,6 +161,7 @@ def resolve_battle(battle_id, direction):
         )
     else:
         battle_view.result = result[:MAX_WARRIOR_LENGTH]
+        battle_view.text_unit = TextUnit.get_or_create_by_content(battle_view.result, now=now)
         battle_view.lcs_len_1 = lcs_len(battle_view.warrior_1.body, battle_view.result)
         battle_view.lcs_len_2 = lcs_len(battle_view.warrior_2.body, battle_view.result)
         battle_view.finish_reason = finish_reason
@@ -171,6 +173,7 @@ def resolve_battle(battle_id, direction):
     battle_view.resolved_at = now
     battle_view.save(update_fields=[
         'result',
+        'text_unit',
         'lcs_len_1',
         'lcs_len_2',
         'finish_reason',

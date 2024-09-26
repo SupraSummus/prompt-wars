@@ -21,10 +21,11 @@ from django_goals.models import schedule
 from .lcs import lcs_ranges
 from .rating import GameScore, get_expected_game_score, get_performance_rating
 from .stats import ArenaStats
+from .text_unit import TextUnit
 from .warriors import MAX_WARRIOR_LENGTH, Warrior
 
 
-__all__ = ['ArenaStats', 'Warrior']
+__all__ = ['ArenaStats', 'Warrior', 'TextUnit']
 
 
 MATCHMAKING_MAX_RATING_DIFF = 100  # rating diff of 100 means expected score is 64%
@@ -460,6 +461,13 @@ class Battle(models.Model):
         max_length=MAX_WARRIOR_LENGTH,
         blank=True,
     )
+    text_unit_1_2 = models.ForeignKey(
+        to=TextUnit,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='+',
+    )
     lcs_len_1_2_1 = models.PositiveIntegerField(
         default=0.0,
     )
@@ -482,6 +490,13 @@ class Battle(models.Model):
     result_2_1 = models.TextField(
         max_length=MAX_WARRIOR_LENGTH,
         blank=True,
+    )
+    text_unit_2_1 = models.ForeignKey(
+        to=TextUnit,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='+',
     )
     lcs_len_2_1_1 = models.PositiveIntegerField(
         default=0.0,
@@ -623,6 +638,7 @@ class Battle(models.Model):
                 warrior_2=self.warrior_1,
 
                 result_1_2=self.result_2_1,
+                text_unit_1_2=self.text_unit_2_1,
                 lcs_len_1_2_1=self.lcs_len_2_1_2,
                 lcs_len_1_2_2=self.lcs_len_2_1_1,
                 finish_reason_1_2=self.finish_reason_2_1,
@@ -630,6 +646,7 @@ class Battle(models.Model):
                 resolved_at_1_2=self.resolved_at_2_1,
 
                 result_2_1=self.result_1_2,
+                text_unit_2_1=self.text_unit_1_2,
                 lcs_len_2_1_1=self.lcs_len_1_2_2,
                 lcs_len_2_1_2=self.lcs_len_1_2_1,
                 finish_reason_2_1=self.finish_reason_1_2,
@@ -694,6 +711,7 @@ class Game:
     def map_field_name(self, field_name):
         if field_name in (
             'result',
+            'text_unit',
             'finish_reason',
             'llm_version',
             'resolved_at',
