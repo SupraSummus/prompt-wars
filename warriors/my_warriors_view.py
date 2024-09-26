@@ -65,7 +65,7 @@ def get_warrior_arena_objects(warrior, listed_arenas):
     warrior_arena_objects = []
     for arena in listed_arenas:
         warrior_arena = next(
-            (wa for wa in warrior.warrior_arenas if wa.arena_id == arena.id),
+            (wa for wa in warrior.warrior_arenas.all() if wa.arena_id == arena.id),
             None,
         )
         warrior_arena_objects.append((arena, warrior_arena))
