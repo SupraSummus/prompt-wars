@@ -162,8 +162,7 @@ def test_resolve_battle(arena, battle, monkeypatch):
 
     # DB state is correct
     battle.refresh_from_db()
-    assert battle.text_unit_2_1 is not None
-    assert battle.result_2_1 == 'Some result'
+    assert battle.text_unit_2_1.content == 'Some result'
     assert battle.finish_reason_2_1 == 'stop'
     assert battle.resolved_at_2_1 is not None
     assert battle.llm_version_2_1 == 'gpt-3.5/1234'
@@ -224,7 +223,7 @@ def test_resolve_battle_character_limit(battle, monkeypatch):
     battle.refresh_from_db()
     assert battle.finish_reason_1_2 == 'character_limit'
     assert battle.resolved_at_1_2 is not None
-    assert len(battle.result_1_2) == MAX_WARRIOR_LENGTH
+    assert len(battle.text_unit_1_2.content) == MAX_WARRIOR_LENGTH
 
 
 @pytest.mark.django_db

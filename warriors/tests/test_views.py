@@ -5,6 +5,7 @@ from django.utils import timezone
 from users.tests.factories import UserFactory
 
 from ..models import Battle
+from ..text_unit import TextUnit
 
 
 @pytest.mark.django_db
@@ -155,9 +156,10 @@ def test_battle_details(client, battle):
 ], indirect=True)
 @pytest.mark.parametrize('battle', [{
     'resolved_at_1_2': timezone.now(),
-    'result_1_2': 'asdf1234',
 }], indirect=True)
 def test_battle_details_public(client, battle, warrior_arena):
+    battle.text_unit_1_2 = TextUnit.get_or_create_by_content('asdf1234')
+    battle.save()
     response = client.get(
         reverse('battle_detail', args=(battle.id,))
     )
@@ -168,10 +170,10 @@ def test_battle_details_public(client, battle, warrior_arena):
 @pytest.mark.django_db
 @pytest.mark.parametrize('battle', [{
     'resolved_at_1_2': timezone.now(),
-    'result_1_2': '',
     'finish_reason_1_2': 'error',
 }], indirect=True)
 def test_battle_details_error(user_client, battle, warrior_user_permission):
+    assert battle.text_unit_1_2 is None
     response = user_client.get(
         reverse('battle_detail', args=(battle.id,))
     )

@@ -160,8 +160,7 @@ def resolve_battle(battle_id, direction):
             message='LLM API rate limit',
         )
     else:
-        battle_view.result = result[:MAX_WARRIOR_LENGTH]
-        battle_view.text_unit = TextUnit.get_or_create_by_content(battle_view.result, now=now)
+        battle_view.text_unit = TextUnit.get_or_create_by_content(result[:MAX_WARRIOR_LENGTH], now=now)
         battle_view.lcs_len_1 = lcs_len(battle_view.warrior_1.body, battle_view.result)
         battle_view.lcs_len_2 = lcs_len(battle_view.warrior_2.body, battle_view.result)
         battle_view.finish_reason = finish_reason
@@ -172,7 +171,6 @@ def resolve_battle(battle_id, direction):
 
     battle_view.resolved_at = now
     battle_view.save(update_fields=[
-        'result',
         'text_unit',
         'lcs_len_1',
         'lcs_len_2',

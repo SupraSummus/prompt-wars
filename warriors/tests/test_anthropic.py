@@ -35,6 +35,6 @@ def anthropic_messages_create_mock(monkeypatch):
 def test_resolve_battle(battle, anthropic_messages_create_mock):
     resolve_battle(battle.id, '1_2')
     battle.refresh_from_db()
-    assert battle.result_1_2 == 'battlefield after the battle, littered with the bodies of the fallen'
+    assert battle.text_unit_1_2.content == 'battlefield after the battle, littered with the bodies of the fallen'
     assert battle.llm_version_1_2 == 'claude-3-haiku-20240307'
     assert battle.finish_reason_1_2 == 'end_turn'

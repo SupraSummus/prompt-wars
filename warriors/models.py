@@ -457,10 +457,6 @@ class Battle(models.Model):
         on_delete=models.CASCADE,
     )
 
-    result_1_2 = models.TextField(
-        max_length=MAX_WARRIOR_LENGTH,
-        blank=True,
-    )
     text_unit_1_2 = models.ForeignKey(
         to=TextUnit,
         on_delete=models.PROTECT,
@@ -487,10 +483,6 @@ class Battle(models.Model):
         blank=True,
     )
 
-    result_2_1 = models.TextField(
-        max_length=MAX_WARRIOR_LENGTH,
-        blank=True,
-    )
     text_unit_2_1 = models.ForeignKey(
         to=TextUnit,
         on_delete=models.PROTECT,
@@ -637,7 +629,6 @@ class Battle(models.Model):
                 warrior_1=self.warrior_2,
                 warrior_2=self.warrior_1,
 
-                result_1_2=self.result_2_1,
                 text_unit_1_2=self.text_unit_2_1,
                 lcs_len_1_2_1=self.lcs_len_2_1_2,
                 lcs_len_1_2_2=self.lcs_len_2_1_1,
@@ -645,7 +636,6 @@ class Battle(models.Model):
                 llm_version_1_2=self.llm_version_2_1,
                 resolved_at_1_2=self.resolved_at_2_1,
 
-                result_2_1=self.result_1_2,
                 text_unit_2_1=self.text_unit_1_2,
                 lcs_len_2_1_1=self.lcs_len_1_2_2,
                 lcs_len_2_1_2=self.lcs_len_1_2_1,
@@ -710,7 +700,6 @@ class Game:
 
     def map_field_name(self, field_name):
         if field_name in (
-            'result',
             'text_unit',
             'finish_reason',
             'llm_version',
@@ -729,6 +718,12 @@ class Game:
             return field_name
         else:
             return None
+
+    @property
+    def result(self):
+        if self.text_unit is None:
+            return ''
+        return self.text_unit.content
 
     @property
     def warrior_1_preserved_ratio(self):

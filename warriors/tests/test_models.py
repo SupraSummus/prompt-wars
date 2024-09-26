@@ -5,6 +5,7 @@ import pytest
 from django.utils import timezone
 
 from ..models import Battle
+from ..text_unit import TextUnit
 from .factories import BattleFactory
 
 
@@ -87,10 +88,10 @@ def test_battle_score():
         warrior_2__id=UUID(int=2),
         warrior_2__warrior__body='qwerty',
         warrior_2__rating_playstyle=[0, 0],
-        result_1_2='qwerty',
+        text_unit_1_2=TextUnit.get_or_create_by_content('qwerty'),
         lcs_len_1_2_1=0,
         lcs_len_1_2_2=6,
-        result_2_1='qwerty',
+        text_unit_2_1=TextUnit.get_or_create_by_content('qwerty'),
         lcs_len_2_1_1=0,
         lcs_len_2_1_2=6,
     )
