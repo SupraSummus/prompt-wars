@@ -110,7 +110,7 @@ def ensure_name_generated(goal, warrior_id):
     return AllDone()
 
 
-def generate_warrior_name(warrior, samples=10):
+def generate_warrior_name(warrior, samples=20):
     from .openai import call_llm
 
     # Get 10 random warriors with names and approved moderation
