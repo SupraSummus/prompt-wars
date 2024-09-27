@@ -100,3 +100,30 @@ class Warrior(models.Model):
                 name='warrior_body_sha_256',
             ),
         ]
+
+
+def generate_warrior_name(warrior):
+    from .openai import call_llm
+
+    # Get 10 random warriors with names and approved moderation
+    example_warriors = Warrior.objects.filter(
+        moderation_passed=True,
+    ).exclude(name='').exclude(id=warrior.id).order_by('?')[:10]
+
+    # Prepare examples for call_llm
+    examples = [(w.body, w.name) for w in example_warriors]
+
+    # Call the language model
+    system_prompt = (
+        "You are an AI assistant that generates names for warriors in a game called Prompt Wars. "
+        "This game is inspired by Core War and involves players crafting text pieces "
+        "(warriors/spells/prompts) designed to manipulate large language models (LLMs) into "
+        "echoing the original prompt. Your task is to generate a name for each warrior. "
+        "The name should fit within a database field "
+        "of 40 characters maximum."
+    )
+
+    generated_name, model_info = call_llm(examples, warrior.body, system_prompt)
+
+    warrior.name = generated_name.strip()
+    warrior.save(update_fields=['name'])
