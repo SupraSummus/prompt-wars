@@ -46,3 +46,32 @@ def resolve_battle_openai(prompt_a, prompt_b, system_prompt=''):
             resp_choice.finish_reason,
             response.model + '/' + (response.system_fingerprint or '')
         )
+
+
+def call_llm(examples, prompt, system_prompt=None):
+    messages = []
+    if system_prompt is not None:
+        messages.append({'role': 'system', 'content': system_prompt})
+    for user_text, ai_text in examples:
+        messages.append({
+            'role': 'user',
+            'content': user_text,
+        })
+        messages.append({
+            'role': 'assistant',
+            'content': ai_text,
+        })
+    messages.append({
+        'role': 'user',
+        'content': prompt,
+    })
+    response = openai_client.chat.completions.create(
+        messages=messages,
+        model='gpt-4o-mini',
+        temperature=0,
+    )
+    (resp_choice,) = response.choices
+    return (
+        resp_choice.message.content,
+        response.model + '/' + (response.system_fingerprint or '')
+    )

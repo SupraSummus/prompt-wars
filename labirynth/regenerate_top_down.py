@@ -4,7 +4,7 @@ import openai
 from django.utils import timezone
 from django_goals.models import AllDone, RetryMeLater
 
-from warriors.openai import openai_client
+from warriors.openai import call_llm
 
 from .models import Room, RoomVersion
 
@@ -128,33 +128,6 @@ NEIGHBOR_DELTAS = [
     (1, -1, 0),
     (1, 0, -1),
 ]
-
-
-def call_llm(examples, prompt):
-    messages = []
-    for user_text, ai_text in examples:
-        messages.append({
-            'role': 'user',
-            'content': user_text,
-        })
-        messages.append({
-            'role': 'assistant',
-            'content': ai_text,
-        })
-    messages.append({
-        'role': 'user',
-        'content': prompt,
-    })
-    response = openai_client.chat.completions.create(
-        messages=messages,
-        model='gpt-4o-mini',
-        temperature=0,
-    )
-    (resp_choice,) = response.choices
-    return (
-        resp_choice.message.content,
-        response.model + '/' + (response.system_fingerprint or '')
-    )
 
 
 def get_objects_dict(model, fields, params_list):
