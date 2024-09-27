@@ -48,7 +48,7 @@ def resolve_battle_openai(prompt_a, prompt_b, system_prompt=''):
         )
 
 
-def call_llm(examples, prompt, system_prompt=None):
+def call_llm(examples, prompt, system_prompt=None, max_tokens=None):
     messages = []
     if system_prompt is not None:
         messages.append({'role': 'system', 'content': system_prompt})
@@ -65,10 +65,14 @@ def call_llm(examples, prompt, system_prompt=None):
         'role': 'user',
         'content': prompt,
     })
+    kwargs = {}
+    if max_tokens is not None:
+        kwargs['max_tokens'] = max_tokens
     response = openai_client.chat.completions.create(
         messages=messages,
         model='gpt-4o-mini',
         temperature=0,
+        **kwargs,
     )
     (resp_choice,) = response.choices
     return (
