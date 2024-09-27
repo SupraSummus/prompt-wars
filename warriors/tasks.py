@@ -5,7 +5,7 @@ import random
 from django.db import transaction
 from django.db.models.functions import Abs
 from django.utils import timezone
-from django_goals.models import AllDone, RetryMeLater
+from django_goals.models import AllDone, RetryMeLater, schedule
 
 from . import anthropic
 from .exceptions import RateLimitError
@@ -15,7 +15,7 @@ from .models import (
 )
 from .openai import openai_client, resolve_battle_openai
 from .text_unit import TextUnit
-from .warriors import MAX_WARRIOR_LENGTH, Warrior
+from .warriors import MAX_WARRIOR_LENGTH, Warrior, ensure_name_generated
 
 
 logger = logging.getLogger(__name__)
@@ -41,6 +41,7 @@ def do_moderation(goal, warrior_id):
         'moderation_model',
         'moderation_date',
     ])
+    schedule(ensure_name_generated, args=[str(warrior_id)])
     return AllDone()
 
 

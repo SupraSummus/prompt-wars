@@ -4,6 +4,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django_goals.models import AllDone
 
 
 MAX_WARRIOR_LENGTH = 1000
@@ -102,13 +103,20 @@ class Warrior(models.Model):
         ]
 
 
-def generate_warrior_name(warrior):
+def ensure_name_generated(goal, warrior_id):
+    warrior = Warrior.objects.get(id=warrior_id)
+    if not warrior.name and warrior.moderation_passed:
+        generate_warrior_name(warrior)
+    return AllDone()
+
+
+def generate_warrior_name(warrior, samples=10):
     from .openai import call_llm
 
     # Get 10 random warriors with names and approved moderation
     example_warriors = Warrior.objects.filter(
         moderation_passed=True,
-    ).exclude(name='').exclude(id=warrior.id).order_by('?')[:10]
+    ).exclude(name='').exclude(id=warrior.id).order_by('?')[:samples]
 
     # Prepare examples for call_llm
     examples = [(w.body, w.name) for w in example_warriors]
@@ -125,5 +133,5 @@ def generate_warrior_name(warrior):
 
     generated_name, model_info = call_llm(examples, warrior.body, system_prompt)
 
-    warrior.name = generated_name.strip()
+    warrior.name = generated_name.strip()[:40]
     warrior.save(update_fields=['name'])
