@@ -9,7 +9,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.functions import TransactionNow
 from django.contrib.sites.models import Site
 from django.core.signing import BadSignature, Signer
-from django.db import models
+from django.db import models, transaction
 from django.db.models import F, Q
 from django.db.models.functions import Abs
 from django.urls import reverse
@@ -315,19 +315,30 @@ class WarriorArena(models.Model):
         # update related warriors
         if rating_error and len(scores) > 0:
             error_per_opponent = rating_error / len(scores) / 2
-            WarriorArena.objects.filter(id__in=scores.keys()).update(
-                rating=F('rating') - error_per_opponent,
-                rating_error=F('rating_error') + error_per_opponent,
-            )
-
-        self.rating_error = 0.0
-        self.rating += rating_error / 2
-        self.rating_playstyle = new_playstyle
-        self.save(update_fields=[
-            'rating', 'rating_playstyle',
-            'rating_fit_loss',
-            'rating_error',
-        ])
+            ids_before = []
+            ids_after = []
+            for id_ in scores.keys():
+                assert id_ != self.id
+                if id_ < self.id:
+                    ids_before.append(id_)
+                else:
+                    ids_after.append(id_)
+            with transaction.atomic():
+                # we need to do updates in a speicific order to avoid deadlocks
+                WarriorArena.objects.filter(id__in=ids_before).update(
+                    rating=F('rating') - error_per_opponent,
+                    rating_error=F('rating_error') + error_per_opponent,
+                )
+                WarriorArena.objects.filter(id=self.id).update(
+                    rating=F('rating') + rating_error / 2,
+                    rating_playstyle=new_playstyle,
+                    rating_fit_loss=self.rating_fit_loss,
+                    rating_error=0.0,
+                )
+                WarriorArena.objects.filter(id__in=ids_after).update(
+                    rating=F('rating') - error_per_opponent,
+                    rating_error=F('rating_error') + error_per_opponent,
+                )
 
         return rating_error
 

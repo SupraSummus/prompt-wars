@@ -183,12 +183,8 @@ def resolve_battle(battle_id, direction):
 
 
 def transfer_rating(goal, battle_id):
-    battle = Battle.objects.filter(id=battle_id).select_related(
-        'warrior_1',
-        'warrior_2',
-    ).get()
+    battle = Battle.objects.get(id=battle_id)
     battle.warrior_1.update_rating()
-    battle.warrior_2.refresh_from_db()
     battle.warrior_2.update_rating()
     return AllDone()
 
@@ -196,13 +192,9 @@ def transfer_rating(goal, battle_id):
 def update_rating(n=10):
     errors = []
     for _ in range(n):
-        with transaction.atomic():
-            warrior = WarriorArena.objects.order_by(Abs('rating_error').desc()).select_for_update(
-                no_key=True,
-                skip_locked=True,
-            ).first()
-            if warrior is None:
-                return
-            error = warrior.update_rating()
-            errors.append(error)
+        warrior = WarriorArena.objects.order_by(Abs('rating_error').desc()).first()
+        if warrior is None:
+            return
+        error = warrior.update_rating()
+        errors.append(error)
     return max(abs(e) for e in errors) if errors else 0
