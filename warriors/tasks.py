@@ -197,4 +197,6 @@ def update_rating(n=10):
             return
         error = warrior.update_rating()
         errors.append(error)
-    return max(abs(e) for e in errors) if errors else 0
+    max_error = max(abs(e) for e in errors) if errors else 0
+    logger.info('Updated ratings. Max error: %s', max_error)
+    return max_error
