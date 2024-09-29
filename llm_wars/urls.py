@@ -30,6 +30,7 @@ from warriors.views import (
     ArenaDetailView, BattleDetailView, ChallengeWarriorView, WarriorDetailView,
     WarriorLeaderboard, warrior_set_public_battle_results,
 )
+from warriors import warrior_detail_view
 
 
 class SignedIntConverter:
@@ -75,6 +76,7 @@ urlpatterns = (
     ),
     path('challenge/<uuid:pk>/', ChallengeWarriorView.as_view(), name='challenge_warrior'),
     path('battle/<uuid:pk>/', BattleDetailView.as_view(), name='battle_detail'),
+    path('global-warrior/', warrior_detail_view.router.urls),
 
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
