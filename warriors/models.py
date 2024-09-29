@@ -285,7 +285,7 @@ class WarriorArena(models.Model):
         for b in Battle.objects.with_warrior(self).resolved().select_related(
             'warrior_1',
             'warrior_2',
-        ):
+        ).order_by('scheduled_at'):
             b = b.get_warrior_viewpoint(self)
             if (game_score := b.score) is not None:
                 normalize_playstyle_len(b.warrior_2.rating_playstyle)
