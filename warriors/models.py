@@ -372,8 +372,6 @@ class WarriorUserPermission(models.Model):
     warrior = models.ForeignKey(
         to=Warrior,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
     warrior_arena = models.ForeignKey(
         to=WarriorArena,

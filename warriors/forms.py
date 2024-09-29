@@ -18,7 +18,7 @@ class ChallengeWarriorForm(forms.Form):
 
         self.fields['warrior'].queryset = WarriorArena.objects.filter(
             arena_id=self.opponent.arena_id,
-            users=self.user,
+            warrior__users=self.user,
         ).exclude(
             id=self.opponent.id,
         )

@@ -69,7 +69,7 @@ class Warrior(models.Model):
         """Recompute public_battle_results based on per user data"""
         from .models import WarriorUserPermission
         user_permissions = list(WarriorUserPermission.objects.filter(
-            warrior_arena__warrior=self,
+            warrior=self,
         ))
         if user_permissions:
             self.public_battle_results = any(

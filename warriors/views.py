@@ -107,6 +107,7 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
         if show_secrets and not self.object.is_user_authorized(user) and user.is_authenticated:
             WarriorUserPermission.objects.get_or_create(
                 warrior_arena=self.object,
+                warrior=self.object.warrior,
                 user=user,
             )
 
@@ -125,17 +126,16 @@ class PublicBattleResutsForm(forms.Form):
 def warrior_set_public_battle_results(request, pk):
     warrior_user_perm = get_object_or_404(
         WarriorUserPermission,
-        warrior_arena_id=pk,
+        warrior__warrior_arenas__id=pk,
         user=request.user,
     )
     form = PublicBattleResutsForm(request.POST)
-    warrior_arena = warrior_user_perm.warrior_arena
-    warrior = warrior_arena.warrior
+    warrior = warrior_user_perm.warrior
     if form.is_valid():
         warrior_user_perm.public_battle_results = form.cleaned_data['public_battle_results']
         warrior_user_perm.save(update_fields=['public_battle_results'])
         warrior.update_public_battle_results()
-    return redirect(warrior_arena.get_absolute_url())
+    return redirect('warrior_detail', pk)
 
 
 class ChallengeWarriorView(WarriorViewMixin, FormView):
@@ -254,10 +254,12 @@ class UpcomingBattlesView(ArenaViewMixin, ListView):
         )
         user = self.request.user
         if user.is_authenticated:
-            qs = qs.filter(users=user)
+            qs = qs.filter(warrior__users=user)
         else:
+            authorized_warriors = self.request.session.get('authorized_warriors', [])
             qs = qs.filter(
-                id__in=self.request.session.get('authorized_warriors', []),
+                Q(id__in=authorized_warriors) |
+                Q(warrior__id__in=authorized_warriors)
             )
         return qs.order_by('next_battle_schedule')[:100]
 

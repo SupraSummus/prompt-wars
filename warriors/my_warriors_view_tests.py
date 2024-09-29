@@ -12,9 +12,6 @@ def test_index(
     warrior, warrior_arena,
 ):
     assert warrior.name
-    assert warrior_user_permission.warrior is None
-    warrior_user_permission.warrior = warrior
-    warrior_user_permission.save()
     other_arena = ArenaFactory(listed=True, name="The other arena")
     response = user_client.get(reverse('my_warriors:index'))
     assert response.status_code == 200

@@ -80,8 +80,8 @@ def test_warrior_details_authorized_session(client, warrior_arena, session_autho
 
 
 @pytest.mark.django_db
-def test_warrior_set_public_battle_results(user_client, warrior_arena, warrior_user_permission):
-    assert warrior_arena.public_battle_results is False
+def test_warrior_set_public_battle_results(user_client, warrior, warrior_arena, warrior_user_permission):
+    assert warrior.public_battle_results is False
     assert warrior_user_permission.public_battle_results is False
     response = user_client.post(
         reverse('warrior_set_public_battles', args=(warrior_arena.id,)),
@@ -90,8 +90,8 @@ def test_warrior_set_public_battle_results(user_client, warrior_arena, warrior_u
         },
     )
     assert response.status_code == 302
-    warrior_arena.refresh_from_db()
-    assert warrior_arena.public_battle_results is True
+    warrior.refresh_from_db()
+    assert warrior.public_battle_results is True
     warrior_user_permission.refresh_from_db()
     assert warrior_user_permission.public_battle_results is True
 
@@ -207,12 +207,12 @@ def test_recent_battles(user_client, battle, warrior_user_permission, default_ar
 @pytest.mark.django_db
 def test_recent_battles_no_duplicates(user, user_client, battle, default_arena):
     # this user has access to both warriors
-    battle.warrior_1.users.add(user)
-    battle.warrior_2.users.add(user)
+    battle.warrior_1.warrior.users.add(user)
+    battle.warrior_2.warrior.users.add(user)
     # and there is another user with access to both warriors
     another_user = UserFactory()
-    battle.warrior_1.users.add(another_user)
-    battle.warrior_2.users.add(another_user)
+    battle.warrior_1.warrior.users.add(another_user)
+    battle.warrior_2.warrior.users.add(another_user)
     response = user_client.get(reverse('recent_battles'))
     assert response.status_code == 200
     assert len(response.context['battles']) == 1

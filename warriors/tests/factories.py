@@ -39,7 +39,7 @@ class WarriorUserPermissionFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = WarriorUserPermission
 
-    warrior_arena = factory.SubFactory(WarriorArenaFactory)
+    warrior = factory.SubFactory(WarriorFactory)
     user = factory.SubFactory(UserFactory)
 
 
