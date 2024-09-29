@@ -197,11 +197,7 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'INFO',
         },
-        'warriors.cross_arena': {
-            'handlers': ['console'],
-            'level': 'INFO',
-        },
-        'warriors.scheduler': {
+        'warriors': {
             'handlers': ['console'],
             'level': 'INFO',
         },
