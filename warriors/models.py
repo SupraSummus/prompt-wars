@@ -171,13 +171,6 @@ class WarriorArena(models.Model):
     def rating_error_abs(self):
         return abs(self.rating_error)
 
-    users = models.ManyToManyField(
-        to=settings.AUTH_USER_MODEL,
-        through='WarriorUserPermission',
-        through_fields=('warrior_arena', 'user'),
-        related_name='warriors',
-    )
-
     objects = WarriorArenaQuerySet.as_manager()
     secret_signer = Signer(salt='warrior')
 
@@ -359,8 +352,9 @@ class WarriorArena(models.Model):
         if not user.is_authenticated:
             return False
         return WarriorUserPermission.objects.filter(
-            models.Q(warrior_arena=self) | models.Q(warrior=self.warrior),
-        ).filter(user=user).exists()
+            warrior=self.warrior,
+            user=user,
+        ).exists()
 
 
 class WarriorUserPermission(models.Model):
@@ -372,12 +366,6 @@ class WarriorUserPermission(models.Model):
     warrior = models.ForeignKey(
         to=Warrior,
         on_delete=models.CASCADE,
-    )
-    warrior_arena = models.ForeignKey(
-        to=WarriorArena,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
     )
     user = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
@@ -399,10 +387,6 @@ class WarriorUserPermission(models.Model):
             models.UniqueConstraint(
                 fields=['warrior', 'user'],
                 name='warrior_user_unique',
-            ),
-            models.UniqueConstraint(
-                fields=['warrior_arena', 'user'],
-                name='warrior_arena_user_unique',
             ),
         ]
 
@@ -433,9 +417,7 @@ class BattleQuerySet(models.QuerySet):
         if not user.is_authenticated:
             return self
         return self.filter(
-            Q(warrior_1__users=user) |
             Q(warrior_1__warrior__users=user) |
-            Q(warrior_2__users=user) |
             Q(warrior_2__warrior__users=user),
         ).distinct()
 

@@ -93,17 +93,13 @@ class WarriorCreateForm(forms.ModelForm):
         # give the user permission to the spell
         if self.user.is_authenticated:
             perm, perm_created = WarriorUserPermission.objects.get_or_create(
-                warrior_arena=warrior_arena,
+                warrior=warrior,
                 user=self.user,
                 defaults={
-                    'warrior': warrior,
                     'name': self.cleaned_data['name'],
                     'public_battle_results': self.cleaned_data['public_battle_results'],
                 },
             )
-            if not perm.warrior:
-                perm.warrior = warrior
-                perm.save(update_fields=['warrior'])
             warrior.update_public_battle_results()
         else:
             authorized_warriors = self.session.setdefault('authorized_warriors', [])

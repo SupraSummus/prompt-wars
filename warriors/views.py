@@ -98,7 +98,7 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
         context['warrior_user_permissions'] = None
         if self.request.user.is_authenticated:
             context['warrior_user_permission'] = WarriorUserPermission.objects.filter(
-                warrior_arena=self.object,
+                warrior=self.object.warrior,
                 user=self.request.user,
             ).first()
 
@@ -106,7 +106,6 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
         user = self.request.user
         if show_secrets and not self.object.is_user_authorized(user) and user.is_authenticated:
             WarriorUserPermission.objects.get_or_create(
-                warrior_arena=self.object,
                 warrior=self.object.warrior,
                 user=user,
             )

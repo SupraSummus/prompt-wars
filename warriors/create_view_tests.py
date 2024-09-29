@@ -134,9 +134,9 @@ def test_create_authenticated(user, user_client, mocked_recaptcha, default_arena
         },
     )
     assert response.status_code == 302
-    warrior = WarriorArena.objects.get()
-    assert warrior.created_by == user
-    assert user in warrior.users.all()
+    warrior_arena = WarriorArena.objects.get()
+    assert warrior_arena.created_by == user
+    assert user in warrior_arena.warrior.users.all()
 
 
 @pytest.mark.django_db
@@ -171,7 +171,7 @@ def test_create_authenticated_duplicate(
 
     # user has access to the warrior
     warrior_user_permission = WarriorUserPermission.objects.get(
-        warrior_arena=warrior_arena,
+        warrior=warrior,
         user=user,
     )
     assert warrior_user_permission.name == 'surely a duplicate'
