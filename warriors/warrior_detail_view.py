@@ -1,47 +1,18 @@
 from collections import Counter
+
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
-from djsfc import Router
 
-from .models import WarriorArena, Battle, WarriorUserPermission
+from djsfc import Router, parse_template
+
+from .models import Battle, WarriorArena, WarriorUserPermission
 from .views import is_request_authorized
+
 
 router = Router(__name__)
 
-@router.route('GET', '<uuid:warrior_id>/')
-def warrior_detail(request, warrior_id):
-    warrior = get_object_or_404(WarriorArena, id=warrior_id)
-    
-    battles_qs = Battle.objects.with_warrior(warrior).select_related(
-        'warrior_1', 'warrior_1__warrior', 'warrior_2', 'warrior_2__warrior'
-    )
 
-    show_secrets = is_request_authorized(warrior, request)
-    warrior_user_permission = None
-    if request.user.is_authenticated:
-        warrior_user_permission = WarriorUserPermission.objects.filter(
-            warrior=warrior.warrior,
-            user=request.user,
-        ).first()
-
-    top_opponents = Counter(
-        battle.opponent(warrior) for battle in battles_qs
-    ).most_common(5)
-
-    context = {
-        'warrior': warrior,
-        'total_battles': battles_qs.count(),
-        'battles': [battle.get_warrior_viewpoint(warrior) for battle in battles_qs[:100]],
-        'show_secrets': show_secrets,
-        'warrior_user_permission': warrior_user_permission,
-        'last_battle': battles_qs.order_by('-scheduled_at').first(),
-        'top_opponents': top_opponents,
-        'arena': warrior.arena,
-    }
-
-    return TemplateResponse(request, 'warrior_detail.html', context)
-
-TEMPLATE = '''
+template = parse_template('''\
 {% extends "base.html" %}
 
 {% block title %}{{ warrior.name }} - Global Warrior Details{% endblock %}
@@ -84,7 +55,7 @@ TEMPLATE = '''
         <form method="post" action="{% url 'warrior_set_public_battles' warrior.id %}">
           {% csrf_token %}
           <label>
-            <input type="checkbox" name="public_battle_results" 
+            <input type="checkbox" name="public_battle_results"
                    {% if warrior_user_permission.public_battle_results %}checked{% endif %}>
             Public battle results
           </label>
@@ -124,6 +95,38 @@ TEMPLATE = '''
 
   <a href="{% url 'challenge_warrior' warrior.id %}" role="button">Challenge this warrior</a>
 {% endblock %}
-'''
+''', router=router)
 
-router.add_template('warrior_detail.html', TEMPLATE)
+
+@router.route('GET', '<uuid:warrior_id>/')
+def warrior_detail(request, warrior_id):
+    warrior = get_object_or_404(WarriorArena, id=warrior_id)
+
+    battles_qs = Battle.objects.with_warrior(warrior).select_related(
+        'warrior_1', 'warrior_1__warrior', 'warrior_2', 'warrior_2__warrior'
+    )
+
+    show_secrets = is_request_authorized(warrior, request)
+    warrior_user_permission = None
+    if request.user.is_authenticated:
+        warrior_user_permission = WarriorUserPermission.objects.filter(
+            warrior=warrior.warrior,
+            user=request.user,
+        ).first()
+
+    top_opponents = Counter(
+        battle.opponent(warrior) for battle in battles_qs
+    ).most_common(5)
+
+    context = {
+        'warrior': warrior,
+        'total_battles': battles_qs.count(),
+        'battles': [battle.get_warrior_viewpoint(warrior) for battle in battles_qs[:100]],
+        'show_secrets': show_secrets,
+        'warrior_user_permission': warrior_user_permission,
+        'last_battle': battles_qs.order_by('-scheduled_at').first(),
+        'top_opponents': top_opponents,
+        'arena': warrior.arena,
+    }
+
+    return TemplateResponse(request, template, context)
