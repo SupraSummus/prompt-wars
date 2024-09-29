@@ -24,13 +24,12 @@ from djsfc import Router
 from labirynth.map_view import router as labirynth_router
 from stories.models import router as stories_router
 from users.views import SignupView
-from warriors import my_warriors_view
+from warriors import my_warriors_view, warrior_detail_view
 from warriors.create_view import WarriorCreateView
 from warriors.views import (
     ArenaDetailView, BattleDetailView, ChallengeWarriorView, WarriorDetailView,
     WarriorLeaderboard, warrior_set_public_battle_results,
 )
-from warriors import warrior_detail_view
 
 
 class SignedIntConverter:
