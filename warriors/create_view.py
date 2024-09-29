@@ -109,7 +109,9 @@ class WarriorCreateForm(forms.ModelForm):
             authorized_warriors = self.session.setdefault('authorized_warriors', [])
             if str(warrior_arena.id) not in authorized_warriors:
                 authorized_warriors.append(str(warrior_arena.id))
-                self.session.save()
+            if str(warrior.id) not in authorized_warriors:
+                authorized_warriors.append(str(warrior.id))
+            self.session.save()
 
         return warrior_arena
 

@@ -49,6 +49,7 @@ def test_create_warrior(client, mocked_recaptcha, has_authorized_warriors, defau
 
     # session is athorized for new warrior
     assert str(warrior.id) in response.client.session['authorized_warriors']
+    assert str(warrior.warrior.id) in response.client.session['authorized_warriors']
 
 
 @pytest.mark.django_db

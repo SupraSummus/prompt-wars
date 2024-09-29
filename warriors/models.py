@@ -358,7 +358,9 @@ class WarriorArena(models.Model):
     def is_user_authorized(self, user):
         if not user.is_authenticated:
             return False
-        return self.users.filter(id=user.id).exists()
+        return WarriorUserPermission.objects.filter(
+            models.Q(warrior_arena=self) | models.Q(warrior=self.warrior),
+        ).filter(user=user).exists()
 
 
 class WarriorUserPermission(models.Model):
@@ -433,8 +435,10 @@ class BattleQuerySet(models.QuerySet):
         if not user.is_authenticated:
             return self
         return self.filter(
-            Q(warrior_1__users=user) |  # noqa: W504
-            Q(warrior_2__users=user)
+            Q(warrior_1__users=user) |
+            Q(warrior_1__warrior__users=user) |
+            Q(warrior_2__users=user) |
+            Q(warrior_2__warrior__users=user),
         ).distinct()
 
     def recent(self):

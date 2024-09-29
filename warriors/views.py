@@ -161,11 +161,12 @@ class ChallengeWarriorView(WarriorViewMixin, FormView):
         return self.battle.get_absolute_url()
 
 
-def is_request_authorized(warrior, request):
+def is_request_authorized(warrior_arena, request):
     return (
-        warrior.is_secret_valid(request.GET.get('secret', default='')) or  # noqa: W504
-        warrior.is_user_authorized(request.user) or  # noqa: W504
-        str(warrior.id) in request.session.get('authorized_warriors', [])
+        warrior_arena.is_secret_valid(request.GET.get('secret', default='')) or
+        warrior_arena.is_user_authorized(request.user) or
+        str(warrior_arena.id) in request.session.get('authorized_warriors', []) or
+        str(warrior_arena.warrior_id) in request.session.get('authorized_warriors', [])
     )
 
 
