@@ -22,7 +22,7 @@ def schedule_losing_battle_top():
 
 def schedule_losing_battle_arena(arena):
     rating = 4000  # arbitrary value, higer than any real rating
-    while True:
+    for i in range(10):
         warrior_arena = WarriorArena.objects.filter(
             arena=arena,
             rating__lt=rating,
