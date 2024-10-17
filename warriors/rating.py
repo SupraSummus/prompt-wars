@@ -21,6 +21,7 @@ def get_expected_game_score(
 ) -> float:
     """
     Calculate expected score for a game between two players.
+    0 means we lose, 1 means we win.
     """
     own_playstyle = numpy.array(own_playstyle)
     assert own_playstyle.shape == (2 * k,)
