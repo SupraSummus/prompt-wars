@@ -22,7 +22,7 @@ def schedule_losing_battle_top():
 
 def schedule_losing_battle_arena(arena):
     rating = 4000  # arbitrary value, higer than any real rating
-    for i in range(10):
+    while True:
         warrior_arena = WarriorArena.objects.filter(
             arena=arena,
             rating__lt=rating,
@@ -36,7 +36,9 @@ def schedule_losing_battle_arena(arena):
 
 
 def schedule_losing_battle(warrior_arena):
-    for opponent in get_strongest_opponents(warrior_arena)[:3]:
+    for opponent in get_strongest_opponents(warrior_arena).filter(
+        rating__lt=warrior_arena.rating,
+    )[:3]:
         has_recent_battle = Battle.objects.with_warriors(warrior_arena, opponent).recent().exists()
         if has_recent_battle:
             continue
