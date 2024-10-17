@@ -1,7 +1,37 @@
 import pytest
 
-from .matchmaking_challenge import get_strongest_opponents
+from .matchmaking_challenge import (
+    get_strongest_opponents, schedule_losing_battle,
+    schedule_losing_battle_top,
+)
+from .models import Battle
 from .tests.factories import WarriorArenaFactory
+
+
+@pytest.mark.django_db
+def test_schedule_losing_battle_top_empty(arena):
+    # test we wont crash if there are no warriors
+    schedule_losing_battle_top()
+
+
+@pytest.mark.django_db
+def test_schedule_losing_battle_top(arena):
+    warrior = WarriorArenaFactory(arena=arena, rating_playstyle=[1, 1], rating=30)
+    opponent_strong = WarriorArenaFactory(arena=arena, rating=20)
+    WarriorArenaFactory(arena=arena, rating=10)
+    schedule_losing_battle_top()
+    assert Battle.objects.count() == 1
+    battle = Battle.objects.first()
+    assert {battle.warrior_1, battle.warrior_2} == {warrior, opponent_strong}
+
+
+@pytest.mark.django_db
+def test_schedule_losing_battle_already_battled(arena):
+    warrior = WarriorArenaFactory(arena=arena, rating_playstyle=[1, 1])
+    opponent = WarriorArenaFactory(arena=arena)
+    Battle.create_from_warriors(warrior, opponent)
+    battle = schedule_losing_battle(warrior)
+    assert battle is None
 
 
 @pytest.mark.django_db
