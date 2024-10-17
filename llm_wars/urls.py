@@ -49,6 +49,7 @@ router = Router(__name__)
 router.route_all('labirynth/', labirynth_router, name='labirynth')
 router.route_all('stories/', stories_router, name='stories')
 router.route_all('my-warriors/', my_warriors_view.router, name='my_warriors')
+router.route_all('warrior-detail/', warrior_detail_view.router, name='warrior_detail')
 
 urlpatterns = (
     path('', TemplateView.as_view(template_name="home.html"), name='home'),
@@ -75,7 +76,6 @@ urlpatterns = (
     ),
     path('challenge/<uuid:pk>/', ChallengeWarriorView.as_view(), name='challenge_warrior'),
     path('battle/<uuid:pk>/', BattleDetailView.as_view(), name='battle_detail'),
-    path('global-warrior/', warrior_detail_view.router.urls),
 
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
