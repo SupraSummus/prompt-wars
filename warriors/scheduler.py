@@ -1,6 +1,7 @@
 import logging
 import sched
 
+from .challenge_matchmaking import schedule_losing_battle_top
 from .stats import create_arena_stats
 from .tasks import schedule_battle, schedule_battles_top, update_rating
 
@@ -28,3 +29,4 @@ scheduler.enter_recurring(1, 0, schedule_battle)
 scheduler.enter_recurring(60 * 10, 0, schedule_battles_top)
 scheduler.enter_recurring(60, 0, update_rating)
 scheduler.enter_recurring(60 * 60, 0, create_arena_stats)
+scheduler.enter_recurring(60 * 10, 0, schedule_losing_battle_top)

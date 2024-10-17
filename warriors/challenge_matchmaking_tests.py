@@ -1,6 +1,6 @@
 import pytest
 
-from .matchmaking_challenge import (
+from .challenge_matchmaking import (
     get_strongest_opponents, schedule_losing_battle,
     schedule_losing_battle_top,
 )
