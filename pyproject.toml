@@ -4,7 +4,7 @@ readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "3.12.6"
+python = "3.12.7"
 django = "==4.2.*"
 openai = "*"
 django-environ = "*"
