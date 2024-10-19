@@ -38,7 +38,8 @@ def schedule_losing_battle_arena(arena):
 def schedule_losing_battle(warrior_arena):
     for opponent in get_strongest_opponents(warrior_arena).filter(
         rating__lt=warrior_arena.rating,
-    )[:3]:
+        relative_rating__gte=0,
+    )[:5]:
         has_recent_battle = Battle.objects.with_warriors(warrior_arena, opponent).recent().exists()
         if has_recent_battle:
             continue
@@ -58,6 +59,6 @@ def get_strongest_opponents(warrior_arena):
         relative_rating=F('rating') - (
             F('rating_playstyle__0') * rating_correction[0] +
             F('rating_playstyle__1') * rating_correction[1]
-        ),
+        ) - warrior_arena.rating
     ).order_by('-relative_rating')
     return qs

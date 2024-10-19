@@ -17,7 +17,11 @@ def test_schedule_losing_battle_top_empty(arena):
 @pytest.mark.django_db
 def test_schedule_losing_battle_top(arena):
     warrior = WarriorArenaFactory(arena=arena, rating_playstyle=[1, 1], rating=30)
-    opponent_strong = WarriorArenaFactory(arena=arena, rating=20)
+    opponent_strong = WarriorArenaFactory(
+        arena=arena,
+        rating_playstyle=[10, -10],
+        rating=20,
+    )
     WarriorArenaFactory(arena=arena, rating=10)
     schedule_losing_battle_top()
     assert Battle.objects.count() == 1
