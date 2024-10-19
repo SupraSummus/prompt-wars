@@ -18,6 +18,7 @@ numpy = "*"
 scipy = "*"
 django-goals = {url = "https://github.com/EE/django-goals/archive/4a589235e3615c0e97f80426ed10e4096ddfc14c.zip"}
 humanize = "*"
+voyageai = "^0.2.4"
 
 
 [tool.poetry.group.dev.dependencies]

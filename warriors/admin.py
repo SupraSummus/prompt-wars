@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 
 from .models import Arena, Battle, WarriorArena
+from .text_unit import TextUnit
 
 
 class ReadOnlyModelAdminMixin:
@@ -74,3 +75,12 @@ class WarriorArenaAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
 class BattleAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
     list_display = ('warrior_1', 'warrior_2', 'scheduled_at')
     date_hierarchy = 'scheduled_at'
+
+
+@admin.register(TextUnit)
+class TextUnitAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
+    list_display = ('id', 'sha_256_hex', 'created_at')
+    date_hierarchy = 'created_at'
+
+    def sha_256_hex(self, obj):
+        return obj.sha_256.hex()
