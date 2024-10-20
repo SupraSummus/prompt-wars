@@ -6,6 +6,8 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django_goals.models import AllDone
 
+from .embeddings import EmbeddingMixin
+
 
 MAX_WARRIOR_LENGTH = 1000
 
@@ -17,7 +19,7 @@ class WarriorQuerySet(models.QuerySet):
         )
 
 
-class Warrior(models.Model):
+class Warrior(EmbeddingMixin, models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
@@ -26,6 +28,11 @@ class Warrior(models.Model):
     body = models.TextField(
         max_length=MAX_WARRIOR_LENGTH,
     )
+
+    @property
+    def content(self):
+        return self.body
+
     body_sha_256 = models.BinaryField(
         max_length=32,
         unique=True,

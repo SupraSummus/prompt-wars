@@ -42,6 +42,7 @@ def do_moderation(goal, warrior_id):
         'moderation_date',
     ])
     schedule(ensure_name_generated, args=[str(warrior_id)])
+    warrior.schedule_voyage_3_embedding()
     return AllDone()
 
 
