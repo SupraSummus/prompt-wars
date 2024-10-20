@@ -47,7 +47,11 @@ def _ensure_voyage_3_embedding(instance):
 
 
 def get_embedding(content):
-    response = voyage_client.embed([content], model='voyage-3')
+    response = voyage_client.embed(
+        [content],
+        model='voyage-3',
+        truncation=False,
+    )
     return response.embeddings[0]
 
 

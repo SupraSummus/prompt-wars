@@ -4,6 +4,7 @@ import uuid
 from functools import cached_property, lru_cache
 from urllib.parse import urlencode
 
+import numpy
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.functions import TransactionNow
@@ -763,6 +764,22 @@ class Game:
     def result_marked_for_2(self):
         return lcs_mark(self.result, self.warrior_2.body)
 
+    @cached_property
+    def warrior_1_similarity(self):
+        return _warrior_similarity(self.text_unit, self.warrior_1.warrior)
+
+    @cached_property
+    def warrior_2_similarity(self):
+        return _warrior_similarity(self.text_unit, self.warrior_2.warrior)
+
+    @property
+    def warrior_1_similarity_relative(self):
+        return _softmax(self.warrior_1_similarity, [self.warrior_1_similarity, self.warrior_2_similarity])
+
+    @property
+    def warrior_2_similarity_relative(self):
+        return _softmax(self.warrior_2_similarity, [self.warrior_1_similarity, self.warrior_2_similarity])
+
 
 def lcs_mark(result, warrior_body):
     mark_ranges = lcs_ranges(result, warrior_body)
@@ -779,3 +796,21 @@ def lcs_mark(result, warrior_body):
         ))
     parts.append(escape(result[i:]))
     return mark_safe(''.join(parts))
+
+
+def _warrior_similarity(text_unit, warrior):
+    if (
+        not text_unit or
+        not text_unit.voyage_3_embedding or
+        not warrior.voyage_3_embedding
+    ):
+        return None
+    result_embedding = numpy.array(text_unit.voyage_3_embedding)
+    warrior_embedding = numpy.array(warrior.voyage_3_embedding)
+    return numpy.dot(result_embedding, warrior_embedding)
+
+
+def _softmax(value, values):
+    if any(v is None for v in values):
+        return None
+    return numpy.exp(value) / sum(numpy.exp(v) for v in values)

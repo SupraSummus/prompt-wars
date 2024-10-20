@@ -3,6 +3,7 @@ from django.utils.html import format_html
 
 from .models import Arena, Battle, WarriorArena
 from .text_unit import TextUnit
+from .warriors import Warrior
 
 
 class ReadOnlyModelAdminMixin:
@@ -23,6 +24,21 @@ class ArenaAdmin(admin.ModelAdmin):
         'site',
     )
     search_fields = ('id', 'name')
+
+
+@admin.register(Warrior)
+class WarriorAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
+    list_display = (
+        'id',
+        'name',
+        'created_at',
+        'moderation_passed',
+    )
+    list_filter = (
+        'moderation_passed',
+    )
+    search_fields = ('id', 'name', 'author_name')
+    date_hierarchy = 'created_at'
 
 
 @admin.register(WarriorArena)
