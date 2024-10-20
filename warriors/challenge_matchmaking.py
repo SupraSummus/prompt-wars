@@ -39,7 +39,7 @@ def schedule_losing_battle(warrior_arena):
     for opponent in get_strongest_opponents(warrior_arena).filter(
         rating__lt=warrior_arena.rating,
         relative_rating__gte=0,
-    )[:5]:
+    )[:10]:
         has_recent_battle = Battle.objects.with_warriors(warrior_arena, opponent).recent().exists()
         if has_recent_battle:
             continue
