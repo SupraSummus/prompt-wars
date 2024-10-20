@@ -77,18 +77,18 @@
       <thead>
         <tr>
           <th></th>
-          <th>Warrior 1</th>
-          <th>Warrior 2</th>
+          <th>Result similarity</th>
+          <th>Relative (100% sum)</th>
         </tr>
       </thead>
       <tr>
-        <td>Result - warrior similarity</td>
+        <td>Warrior 1</td>
         <td>{{ game.warrior_1_similarity|percentage }}</td>
-        <td>{{ game.warrior_2_similarity|percentage }}</td>
+        <td>{{ game.warrior_1_similarity_relative|percentage }}</td>
       </tr>
       <tr>
-        <td>Relative</td>
-        <td>{{ game.warrior_1_similarity_relative|percentage }}</td>
+        <td>Warrior 2</td>
+        <td>{{ game.warrior_2_similarity|percentage }}</td>
         <td>{{ game.warrior_2_similarity_relative|percentage }}</td>
       </tr>
     </table>
