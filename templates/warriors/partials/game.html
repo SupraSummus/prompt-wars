@@ -71,24 +71,27 @@
     </details>
   {% endif %}
 
-  <h3>Winner by embedding</h3>
-  <table>
-    <thead>
+  <details>
+    <summary>Winner by embedding (experimental)</summary>
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Warrior 1</th>
+          <th>Warrior 2</th>
+        </tr>
+      </thead>
       <tr>
-        <th></th>
-        <th>Warrior 1</th>
-        <th>Warrior 2</th>
+        <td>Result - warrior similarity</td>
+        <td>{{ game.warrior_1_similarity|percentage }}</td>
+        <td>{{ game.warrior_2_similarity|percentage }}</td>
       </tr>
-    </thead>
-    <tr>
-      <td>Result - warrior similarity</td>
-      <td>{{ game.warrior_1_similarity|percentage }}</td>
-      <td>{{ game.warrior_2_similarity|percentage }}</td>
-    </tr>
-    <tr>
-      <td>Relative</td>
-      <td>{{ game.warrior_1_similarity_relative|percentage }}</td>
-      <td>{{ game.warrior_2_similarity_relative|percentage }}</td>
-    </tr>
-  </table>
+      <tr>
+        <td>Relative</td>
+        <td>{{ game.warrior_1_similarity_relative|percentage }}</td>
+        <td>{{ game.warrior_2_similarity_relative|percentage }}</td>
+      </tr>
+    </table>
+  </details>
+
 </div>
