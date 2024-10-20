@@ -28,22 +28,21 @@ class EmbeddingMixin(models.Model):
             self.voyage_3_embedding_goal
         ):
             return
-        self.voyage_3_embedding_goal = schedule(ensure_voyage_3_embedding)
+        self.voyage_3_embedding_goal = schedule(self.ensure_voyage_3_embedding_handler)
         self.save(update_fields=('voyage_3_embedding_goal',))
 
 
-def ensure_voyage_3_embedding(goal):
-    text_unit = goal.textunit
-    if text_unit.voyage_3_embedding:
+def _ensure_voyage_3_embedding(instance):
+    if instance.voyage_3_embedding:
         return AllDone()
     try:
-        text_unit.voyage_3_embedding = get_embedding(text_unit.content)
+        instance.voyage_3_embedding = get_embedding(instance.content)
     except voyageai.error.RateLimitError:
         return RetryMeLater(
             message='Voyage AI rate limit exceeded',
             precondition_date=timezone.now() + timezone.timedelta(minutes=1),
         )
-    text_unit.save(update_fields=('voyage_3_embedding',))
+    instance.save(update_fields=('voyage_3_embedding',))
     return AllDone()
 
 

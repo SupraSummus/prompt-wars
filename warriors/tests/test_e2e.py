@@ -34,6 +34,7 @@ def test_submit_warrior_e2e(client, mocked_recaptcha, monkeypatch, default_arena
     worker_turn(timezone.now())  # run async tasks
     warrior.refresh_from_db()
     assert warrior.moderation_date is not None
+    assert warrior.warrior.voyage_3_embedding
 
 
 @pytest.mark.django_db

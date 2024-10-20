@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django_goals.models import AllDone
 
-from .embeddings import EmbeddingMixin
+from .embeddings import EmbeddingMixin, _ensure_voyage_3_embedding
 
 
 MAX_WARRIOR_LENGTH = 1000
@@ -108,6 +108,15 @@ class Warrior(EmbeddingMixin, models.Model):
                 name='warrior_body_sha_256',
             ),
         ]
+
+    @property
+    def ensure_voyage_3_embedding_handler(self):
+        return ensure_voyage_3_embedding
+
+
+def ensure_voyage_3_embedding(goal):
+    instance = goal.warrior
+    return _ensure_voyage_3_embedding(instance)
 
 
 def ensure_name_generated(goal, warrior_id):

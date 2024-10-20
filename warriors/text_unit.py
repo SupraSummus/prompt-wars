@@ -4,7 +4,7 @@ import uuid
 from django.db import models
 from django.utils import timezone
 
-from .embeddings import EmbeddingMixin
+from .embeddings import EmbeddingMixin, _ensure_voyage_3_embedding
 
 
 class TextUnit(EmbeddingMixin, models.Model):
@@ -55,3 +55,12 @@ class TextUnit(EmbeddingMixin, models.Model):
         )
         text_unit.schedule_voyage_3_embedding()
         return text_unit
+
+    @property
+    def ensure_voyage_3_embedding_handler(self):
+        return ensure_voyage_3_embedding
+
+
+def ensure_voyage_3_embedding(goal):
+    instance = goal.textunit
+    return _ensure_voyage_3_embedding(instance)
