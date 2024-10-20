@@ -229,6 +229,13 @@ class WarriorArena(models.Model):
         opponent.games_played = Battle.objects.with_warrior(opponent).count()
         opponent.save(update_fields=['games_played'])
 
+        # Generate voyage 3 embeddings in case not already generated.
+        # Normally we generate them when warrior is created.
+        # This is for old warriors created before we introduced embeddings.
+        # Possibly this can be removed in the future.
+        self.warrior.schedule_voyage_3_embedding()
+        opponent.warrior.schedule_voyage_3_embedding()
+
         return battle
 
     def find_opponent(self, **kwargs):
