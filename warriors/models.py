@@ -6,13 +6,11 @@ from urllib.parse import urlencode
 
 import numpy
 from django.conf import settings
-from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.functions import TransactionNow
 from django.contrib.sites.models import Site
 from django.core.signing import BadSignature, Signer
-from django.db import models, transaction
-from django.db.models import F, Q
-from django.db.models.functions import Abs
+from django.db import models
+from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import escape, format_html, mark_safe
@@ -20,7 +18,8 @@ from django.utils.translation import gettext_lazy as _
 from django_goals.models import schedule
 
 from .lcs import lcs_ranges
-from .rating import GameScore, get_expected_game_score, get_performance_rating
+from .rating import get_expected_game_score
+from .rating_models import M_ELO_K, RatingMixin, normalize_playstyle_len
 from .stats import ArenaStats
 from .text_unit import TextUnit
 from .warriors import MAX_WARRIOR_LENGTH, Warrior
@@ -30,12 +29,9 @@ __all__ = ['ArenaStats', 'Warrior', 'TextUnit']
 
 
 MATCHMAKING_MAX_RATING_DIFF = 100  # rating diff of 100 means expected score is 64%
-MAX_ALLOWED_RATING_PER_GAME = 100
 
 # once two warriors battled we want to wait for a while before they can be matched again
 MATCHMAKING_COOLDOWN = datetime.timedelta(days=122)  # 4 months
-
-M_ELO_K = 1
 
 
 class LLM(models.TextChoices):
@@ -89,7 +85,7 @@ class WarriorArenaQuerySet(models.QuerySet):
         )
 
 
-class WarriorArena(models.Model):
+class WarriorArena(RatingMixin, models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
@@ -130,17 +126,6 @@ class WarriorArena(models.Model):
     def author_name(self):
         return self.warrior.author_name
 
-    rating = models.FloatField(
-        default=0.0,
-    )
-    rating_playstyle = ArrayField(
-        size=M_ELO_K * 2,
-        base_field=models.FloatField(),
-        default=list,
-    )
-    rating_fit_loss = models.FloatField(
-        default=0.0,
-    )
     games_played = models.PositiveIntegerField(
         default=0,
     )
@@ -164,9 +149,6 @@ class WarriorArena(models.Model):
     next_battle_schedule = models.DateTimeField(
         default=timezone.now,
     )
-    rating_error = models.FloatField(
-        default=0.0,
-    )
 
     @property
     def rating_error_abs(self):
@@ -184,15 +166,7 @@ class WarriorArena(models.Model):
             ),
         ]
         indexes = [
-            models.Index(
-                fields=['arena', 'rating'],
-                name='rating_index',
-                condition=models.Q(moderation_passed=True),
-            ),
-            models.Index(
-                Abs('rating_error'),
-                name='rating_error_index',
-            ),
+            *RatingMixin.Meta.indexes,
             models.Index(
                 fields=['next_battle_schedule'],
                 name='next_battle_schedule_index',
@@ -281,67 +255,6 @@ class WarriorArena(models.Model):
             K ** exponent - 1,
             0,
         ) * time_unit
-
-    def update_rating(self):
-        """
-        Compute rating based on games played.
-
-        We assume all battles form a tournament.
-        """
-        # compute rating
-        scores = {}  # opponent_id -> GameScore(score, opponent_rating, opponent_playstyle)
-        for b in Battle.objects.with_warrior(self).resolved().select_related(
-            'warrior_1',
-            'warrior_2',
-        ).order_by('scheduled_at'):
-            b = b.get_warrior_viewpoint(self)
-            if (game_score := b.score) is not None:
-                normalize_playstyle_len(b.warrior_2.rating_playstyle)
-                scores[b.warrior_2.id] = GameScore(
-                    score=game_score,
-                    opponent_rating=b.warrior_2.rating,
-                    opponent_playstyle=b.warrior_2.rating_playstyle,
-                )
-
-        # we limit rating range for warriors with few games played
-        max_allowed_rating = MAX_ALLOWED_RATING_PER_GAME * len(scores)
-        normalize_playstyle_len(self.rating_playstyle)
-        new_rating, new_playstyle, self.rating_fit_loss = get_performance_rating(
-            list(scores.values()),
-            allowed_rating_range=max_allowed_rating,
-            k=M_ELO_K,
-        )
-        rating_error = new_rating - self.rating
-
-        # update related warriors
-        if rating_error and len(scores) > 0:
-            error_per_opponent = rating_error / len(scores) / 2
-            ids_before = []
-            ids_after = []
-            for id_ in scores.keys():
-                assert id_ != self.id
-                if id_ < self.id:
-                    ids_before.append(id_)
-                else:
-                    ids_after.append(id_)
-            with transaction.atomic():
-                # we need to do updates in a speicific order to avoid deadlocks
-                WarriorArena.objects.filter(id__in=ids_before).update(
-                    rating=F('rating') - error_per_opponent,
-                    rating_error=F('rating_error') + error_per_opponent,
-                )
-                WarriorArena.objects.filter(id=self.id).update(
-                    rating=F('rating') + rating_error / 2,
-                    rating_playstyle=new_playstyle,
-                    rating_fit_loss=self.rating_fit_loss,
-                    rating_error=0.0,
-                )
-                WarriorArena.objects.filter(id__in=ids_after).update(
-                    rating=F('rating') - error_per_opponent,
-                    rating_error=F('rating_error') + error_per_opponent,
-                )
-
-        return rating_error
 
     @cached_property
     def secret(self):
@@ -651,17 +564,6 @@ class Battle(models.Model):
                 game_1_id=self.game_2_id,
                 game_2_id=self.game_1_id,
             )
-
-
-def normalize_playstyle_len(playstyle):
-    # Make sure playstyle vector is of fixed length.
-    # This is used to automatically migrate data from different versions of M_ELO_K.
-    # Also by default playstyle is initialized as empty array, so this functions as a default value.
-    while len(playstyle) < M_ELO_K * 2:
-        playstyle.append(random.random())
-    while len(playstyle) > M_ELO_K * 2:
-        playstyle.pop()
-    assert len(playstyle) == M_ELO_K * 2
 
 
 class Game:

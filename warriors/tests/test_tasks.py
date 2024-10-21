@@ -11,7 +11,6 @@ from ..models import MAX_WARRIOR_LENGTH, Battle, WarriorArena
 from ..tasks import (
     do_moderation, openai_client, resolve_battle, schedule_battle,
     schedule_battle_top_arena, schedule_battles, transfer_rating,
-    update_rating,
 )
 from .factories import WarriorArenaFactory
 
@@ -237,36 +236,3 @@ def test_resolve_battle_character_limit(battle, monkeypatch):
 }], indirect=True)
 def test_transfer_rating(battle):
     transfer_rating(None, battle.id)
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize('battle', [{
-    'resolved_at_1_2': timezone.now(),
-    'lcs_len_1_2_1': 31,
-    'lcs_len_1_2_2': 32,
-    'resolved_at_2_1': timezone.now(),
-    'lcs_len_2_1_1': 23,
-    'lcs_len_2_1_2': 18,
-}], indirect=True)
-@pytest.mark.parametrize('warrior_arena', [{
-    'rating_playstyle': [0, 0],
-    'rating_error': 1,
-}], indirect=True)
-@pytest.mark.parametrize('other_warrior_arena', [{
-    'rating_playstyle': [0, 0],
-    'rating_error': -1,
-}], indirect=True)
-def test_update_rating(warrior_arena, other_warrior_arena, battle):
-    WarriorArenaFactory.create_batch(3, rating_error=0)  # distraction
-    assert warrior_arena.rating == 0.0
-    assert other_warrior_arena.rating == 0.0
-
-    update_rating(n=2)
-
-    warrior_arena.refresh_from_db()
-    other_warrior_arena.refresh_from_db()
-    assert warrior_arena.rating != 0.0
-    assert other_warrior_arena.rating != 0.0
-    assert warrior_arena.rating_error == pytest.approx(0, abs=0.02)
-    assert other_warrior_arena.rating_error == pytest.approx(0.0, abs=0.02)
-    assert warrior_arena.rating + other_warrior_arena.rating == pytest.approx(0.0, abs=0.02)

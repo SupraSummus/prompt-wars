@@ -2,8 +2,9 @@ import logging
 import sched
 
 from .challenge_matchmaking import schedule_losing_battle_top
+from .rating_models import update_rating
 from .stats import create_arena_stats
-from .tasks import schedule_battle, schedule_battles_top, update_rating
+from .tasks import schedule_battle, schedule_battles_top
 
 
 logger = logging.getLogger(__name__)

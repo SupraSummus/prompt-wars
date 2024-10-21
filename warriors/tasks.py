@@ -3,7 +3,6 @@ import logging
 import random
 
 from django.db import transaction
-from django.db.models.functions import Abs
 from django.utils import timezone
 from django_goals.models import AllDone, RetryMeLater, schedule
 
@@ -188,16 +187,3 @@ def transfer_rating(goal, battle_id):
     battle.warrior_1.update_rating()
     battle.warrior_2.update_rating()
     return AllDone()
-
-
-def update_rating(n=10):
-    errors = []
-    for _ in range(n):
-        warrior = WarriorArena.objects.order_by(Abs('rating_error').desc()).first()
-        if warrior is None:
-            return
-        error = warrior.update_rating()
-        errors.append(error)
-    max_error = max(abs(e) for e in errors) if errors else 0
-    logger.info('Updated ratings. Max error: %s', max_error)
-    return max_error
