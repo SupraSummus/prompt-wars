@@ -87,6 +87,10 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
             'warrior_1__warrior',
             'warrior_2',
             'warrior_2__warrior',
+            'text_unit_1_2',
+            'text_unit_2_1',
+        ).prefetch_related(
+            'arena',
         )
         context['battles'] = [
             battle.get_warrior_viewpoint(self.object)

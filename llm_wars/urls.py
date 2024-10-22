@@ -14,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import path, register_converter
@@ -80,3 +81,8 @@ urlpatterns = (
     path('logout/', LogoutView.as_view(), name='logout'),
     path('signup/', SignupView.as_view(), name='signup'),
 ) + router.urls
+
+
+if settings.ENABLE_DEBUG_TOOLBAR:
+    from debug_toolbar.toolbar import debug_toolbar_urls
+    urlpatterns += tuple(debug_toolbar_urls())

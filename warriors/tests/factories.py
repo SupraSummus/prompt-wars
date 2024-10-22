@@ -5,6 +5,7 @@ import factory
 from users.tests.factories import UserFactory
 
 from ..models import LLM, Arena, Battle, WarriorArena, WarriorUserPermission
+from ..text_unit import TextUnit
 from ..warriors import Warrior
 
 
@@ -50,3 +51,13 @@ class BattleFactory(factory.django.DjangoModelFactory):
     arena = factory.SubFactory(ArenaFactory)
     warrior_1 = factory.SubFactory(WarriorArenaFactory)
     warrior_2 = factory.SubFactory(WarriorArenaFactory)
+
+
+class TextUnitFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = TextUnit
+
+    content = factory.Sequence(lambda n: f'factory-made text unit body {n}')
+    sha_256 = factory.LazyAttribute(
+        lambda o: hashlib.sha256(o.content.encode('utf-8')).digest()
+    )

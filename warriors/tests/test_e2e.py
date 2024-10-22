@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django_goals.models import schedule, worker_turn
 
+from .. import embeddings
 from ..exceptions import RateLimitError
 from ..models import Battle, WarriorArena
 from ..tasks import openai_client, resolve_battle_1_2
@@ -18,6 +19,8 @@ def test_submit_warrior_e2e(client, mocked_recaptcha, monkeypatch, default_arena
     moderation_mock.return_value.model = 'mderation-asdf'
     moderation_mock.return_value.results = [moderation_result_mock]
     monkeypatch.setattr(openai_client.moderations, 'create', moderation_mock)
+
+    monkeypatch.setattr(embeddings, 'get_embedding', mock.MagicMock(return_value=[0.0] * 1024))
 
     response = client.post(
         reverse('warrior_create'),

@@ -6,6 +6,7 @@ from users.tests.factories import UserFactory
 
 from ..models import Battle
 from ..text_unit import TextUnit
+from .factories import BattleFactory, TextUnitFactory, WarriorArenaFactory
 
 
 @pytest.mark.django_db
@@ -77,6 +78,27 @@ def test_warrior_details_authorized_session(client, warrior_arena, session_autho
     assert response.status_code == 200
     assert response.context['show_secrets'] == session_authorized
     assert (warrior_arena.body in response.content.decode()) == session_authorized
+
+
+@pytest.mark.django_db
+def test_warrior_details_do_few_sql_queries(client, arena, warrior_arena, django_assert_max_num_queries):
+    n = 100
+    for _ in range(n):
+        other_warrior_arena = WarriorArenaFactory(arena=arena)
+        if other_warrior_arena.id < warrior_arena.id:
+            kwargs = {'warrior_1': other_warrior_arena, 'warrior_2': warrior_arena}
+        else:
+            kwargs = {'warrior_1': warrior_arena, 'warrior_2': other_warrior_arena}
+        BattleFactory(
+            arena=arena,
+            **kwargs,
+            text_unit_1_2=TextUnitFactory(),
+            text_unit_2_1=TextUnitFactory(),
+        )
+    with django_assert_max_num_queries(n // 2):
+        client.get(
+            reverse('warrior_detail', args=(warrior_arena.id,))
+        )
 
 
 @pytest.mark.django_db
