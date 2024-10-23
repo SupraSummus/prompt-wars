@@ -108,9 +108,9 @@ def schedule_battle_top_arena(arena_id):
             ).exclude(
                 id=warrior.id,
             ).exclude(
-                id__in=historic_battles.values('warrior_1'),
+                id__in=historic_battles.values('warrior_arena_1'),
             ).exclude(
-                id__in=historic_battles.values('warrior_2'),
+                id__in=historic_battles.values('warrior_arena_2'),
             ).order_by('rating').first()
 
             if opponent is not None:
@@ -129,8 +129,8 @@ def resolve_battle(battle_id, direction):
     now = timezone.now()
     battle = Battle.objects.filter(id=battle_id).select_related(
         'arena',
-        'warrior_1',
-        'warrior_2',
+        'warrior_arena_1',
+        'warrior_arena_2',
     ).get()
     battle_view = Game(battle, direction)
 
@@ -150,8 +150,8 @@ def resolve_battle(battle_id, direction):
             finish_reason,
             llm_version,
         ) = resolve_battle_function(
-            battle_view.warrior_1.body,
-            battle_view.warrior_2.body,
+            battle_view.warrior_arena_1.body,
+            battle_view.warrior_arena_2.body,
             battle_view.arena.prompt,
         )
     except RateLimitError:
@@ -162,8 +162,8 @@ def resolve_battle(battle_id, direction):
         )
     else:
         battle_view.text_unit = TextUnit.get_or_create_by_content(result[:MAX_WARRIOR_LENGTH], now=now)
-        battle_view.lcs_len_1 = lcs_len(battle_view.warrior_1.body, battle_view.result)
-        battle_view.lcs_len_2 = lcs_len(battle_view.warrior_2.body, battle_view.result)
+        battle_view.lcs_len_1 = lcs_len(battle_view.warrior_arena_1.body, battle_view.result)
+        battle_view.lcs_len_2 = lcs_len(battle_view.warrior_arena_2.body, battle_view.result)
         battle_view.finish_reason = finish_reason
         # but the API finish reason doesn't matter if we cut the response
         if len(result) > MAX_WARRIOR_LENGTH:
@@ -184,6 +184,6 @@ def resolve_battle(battle_id, direction):
 
 def transfer_rating(goal, battle_id):
     battle = Battle.objects.get(id=battle_id)
-    battle.warrior_1.update_rating()
-    battle.warrior_2.update_rating()
+    battle.warrior_arena_1.update_rating()
+    battle.warrior_arena_2.update_rating()
     return AllDone()

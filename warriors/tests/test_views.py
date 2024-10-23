@@ -86,9 +86,15 @@ def test_warrior_details_do_few_sql_queries(client, arena, warrior_arena, django
     for _ in range(n):
         other_warrior_arena = WarriorArenaFactory(arena=arena)
         if other_warrior_arena.id < warrior_arena.id:
-            kwargs = {'warrior_1': other_warrior_arena, 'warrior_2': warrior_arena}
+            kwargs = {
+                'warrior_arena_1': other_warrior_arena,
+                'warrior_arena_2': warrior_arena,
+            }
         else:
-            kwargs = {'warrior_1': warrior_arena, 'warrior_2': other_warrior_arena}
+            kwargs = {
+                'warrior_arena_1': warrior_arena,
+                'warrior_arena_2': other_warrior_arena,
+            }
         BattleFactory(
             arena=arena,
             **kwargs,
@@ -229,12 +235,12 @@ def test_recent_battles(user_client, battle, warrior_user_permission, default_ar
 @pytest.mark.django_db
 def test_recent_battles_no_duplicates(user, user_client, battle, default_arena):
     # this user has access to both warriors
-    battle.warrior_1.warrior.users.add(user)
-    battle.warrior_2.warrior.users.add(user)
+    battle.warrior_arena_1.warrior.users.add(user)
+    battle.warrior_arena_2.warrior.users.add(user)
     # and there is another user with access to both warriors
     another_user = UserFactory()
-    battle.warrior_1.warrior.users.add(another_user)
-    battle.warrior_2.warrior.users.add(another_user)
+    battle.warrior_arena_1.warrior.users.add(another_user)
+    battle.warrior_arena_2.warrior.users.add(another_user)
     response = user_client.get(reverse('recent_battles'))
     assert response.status_code == 200
     assert len(response.context['battles']) == 1

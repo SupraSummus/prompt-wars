@@ -23,8 +23,8 @@ def test_update_rating_takes_newer_battles(battle):
     # warrior_1 won the second battle
     new_then = then + datetime.timedelta(days=1)
     BattleFactory(
-        warrior_1=battle.warrior_1,
-        warrior_2=battle.warrior_2,
+        warrior_arena_1=battle.warrior_arena_1,
+        warrior_arena_2=battle.warrior_arena_2,
         scheduled_at=new_then,
         resolved_at_1_2=new_then,
         lcs_len_1_2_1=6,
@@ -34,11 +34,11 @@ def test_update_rating_takes_newer_battles(battle):
         lcs_len_2_1_2=0,
     )
 
-    battle.warrior_1.update_rating()
+    battle.warrior_arena_1.update_rating()
 
-    battle.warrior_1.refresh_from_db()
-    battle.warrior_2.refresh_from_db()
-    assert battle.warrior_1.rating > battle.warrior_2.rating
+    battle.warrior_arena_1.refresh_from_db()
+    battle.warrior_arena_2.refresh_from_db()
+    assert battle.warrior_arena_1.rating > battle.warrior_arena_2.rating
 
 
 @pytest.mark.django_db

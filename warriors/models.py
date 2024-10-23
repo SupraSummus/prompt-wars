@@ -235,9 +235,9 @@ class WarriorArena(RatingMixin, models.Model):
         ).exclude(
             id=self.id,
         ).exclude(
-            id__in=historic_battles.values('warrior_1'),
+            id__in=historic_battles.values('warrior_arena_1'),
         ).exclude(
-            id__in=historic_battles.values('warrior_2'),
+            id__in=historic_battles.values('warrior_arena_2'),
         )
 
     def get_next_battle_delay(self):
@@ -315,15 +315,16 @@ class WarriorUserPermission(models.Model):
 class BattleQuerySet(models.QuerySet):
     def with_warrior(self, warrior):
         return self.filter(
-            models.Q(warrior_1=warrior) | models.Q(warrior_2=warrior),
+            models.Q(warrior_arena_1=warrior) |
+            models.Q(warrior_arena_2=warrior),
         )
 
     def with_warriors(self, warrior_1, warrior_2):
         if warrior_1.id > warrior_2.id:
             warrior_1, warrior_2 = warrior_2, warrior_1
         return self.filter(
-            warrior_1=warrior_1,
-            warrior_2=warrior_2,
+            warrior_arena_1=warrior_1,
+            warrior_arena_2=warrior_2,
         )
 
     def resolved(self):
@@ -338,8 +339,8 @@ class BattleQuerySet(models.QuerySet):
         if not user.is_authenticated:
             return self
         return self.filter(
-            Q(warrior_1__warrior__users=user) |
-            Q(warrior_2__warrior__users=user),
+            Q(warrior_arena_1__warrior__users=user) |
+            Q(warrior_arena_2__warrior__users=user),
         ).distinct()
 
     def recent(self):
@@ -362,12 +363,12 @@ class Battle(models.Model):
         db_index=True,
         default=timezone.now,
     )
-    warrior_1 = models.ForeignKey(
+    warrior_arena_1 = models.ForeignKey(
         to=WarriorArena,
         related_name='warrior1',
         on_delete=models.CASCADE,
     )
-    warrior_2 = models.ForeignKey(
+    warrior_arena_2 = models.ForeignKey(
         to=WarriorArena,
         related_name='warrior2',
         on_delete=models.CASCADE,
@@ -440,7 +441,7 @@ class Battle(models.Model):
         constraints = [
             models.CheckConstraint(
                 check=models.Q(
-                    warrior_1_id__lt=models.F('warrior_2_id'),
+                    warrior_arena_1_id__lt=models.F('warrior_arena_2_id'),
                 ),
                 name='warrior_ordering',
             ),
@@ -453,8 +454,8 @@ class Battle(models.Model):
             warrior_1, warrior_2 = warrior_2, warrior_1
         battle = cls.objects.create(
             arena_id=warrior_1.arena_id,
-            warrior_1=warrior_1,
-            warrior_2=warrior_2,
+            warrior_arena_1=warrior_1,
+            warrior_arena_2=warrior_2,
             scheduled_at=TransactionNow(),
         )
         from .tasks import (
@@ -504,13 +505,13 @@ class Battle(models.Model):
         score = self.score
         if score is None:
             return None
-        normalize_playstyle_len(self.warrior_1.rating_playstyle)
-        normalize_playstyle_len(self.warrior_2.rating_playstyle)
+        normalize_playstyle_len(self.warrior_arena_1.rating_playstyle)
+        normalize_playstyle_len(self.warrior_arena_2.rating_playstyle)
         return score - get_expected_game_score(
-            self.warrior_1.rating,
-            self.warrior_1.rating_playstyle,
-            self.warrior_2.rating,
-            self.warrior_2.rating_playstyle,
+            self.warrior_arena_1.rating,
+            self.warrior_arena_1.rating_playstyle,
+            self.warrior_arena_2.rating,
+            self.warrior_arena_2.rating_playstyle,
             k=M_ELO_K,
         )
 
@@ -531,19 +532,22 @@ class Battle(models.Model):
 
     @property
     def public_battle_results(self):
-        return self.warrior_1.public_battle_results or self.warrior_2.public_battle_results
+        return (
+            self.warrior_arena_1.public_battle_results or
+            self.warrior_arena_2.public_battle_results
+        )
 
     def get_warrior_viewpoint(self, warrior):
-        """Return Battle such that warrior_1 == warrior"""
-        if warrior == self.warrior_1:
+        """Return Battle such that warrior_arena_1 == warrior"""
+        if warrior == self.warrior_arena_1:
             return self
-        elif warrior == self.warrior_2:
+        elif warrior == self.warrior_arena_2:
             return Battle(
                 id=self.id,
                 arena=self.arena,
                 scheduled_at=self.scheduled_at,
-                warrior_1=self.warrior_2,
-                warrior_2=self.warrior_1,
+                warrior_arena_1=self.warrior_arena_2,
+                warrior_arena_2=self.warrior_arena_1,
 
                 text_unit_1_2=self.text_unit_2_1,
                 lcs_len_1_2_1=self.lcs_len_2_1_2,
@@ -615,10 +619,10 @@ class Game:
             return f'lcs_len_{self.direction}_{self.direction_from}'
         elif field_name == 'lcs_len_2':
             return f'lcs_len_{self.direction}_{self.direction_to}'
-        elif field_name == 'warrior_1':
-            return f'warrior_{self.direction_from}'
-        elif field_name == 'warrior_2':
-            return f'warrior_{self.direction_to}'
+        elif field_name == 'warrior_arena_1':
+            return f'warrior_arena_{self.direction_from}'
+        elif field_name == 'warrior_arena_2':
+            return f'warrior_arena_{self.direction_to}'
         elif field_name == 'arena':
             return field_name
         else:
@@ -633,14 +637,14 @@ class Game:
     @property
     def warrior_1_preserved_ratio(self):
         return self.lcs_len_1 / max(
-            len(self.warrior_1.body),
+            len(self.warrior_arena_1.body),
             len(self.result),
         )
 
     @property
     def warrior_2_preserved_ratio(self):
         return self.lcs_len_2 / max(
-            len(self.warrior_2.body),
+            len(self.warrior_arena_2.body),
             len(self.result),
         )
 
@@ -667,19 +671,19 @@ class Game:
 
     @cached_property
     def result_marked_for_1(self):
-        return lcs_mark(self.result, self.warrior_1.body)
+        return lcs_mark(self.result, self.warrior_arena_1.body)
 
     @cached_property
     def result_marked_for_2(self):
-        return lcs_mark(self.result, self.warrior_2.body)
+        return lcs_mark(self.result, self.warrior_arena_2.body)
 
     @cached_property
     def warrior_1_similarity(self):
-        return _warrior_similarity(self.text_unit, self.warrior_1.warrior)
+        return _warrior_similarity(self.text_unit, self.warrior_arena_1.warrior)
 
     @cached_property
     def warrior_2_similarity(self):
-        return _warrior_similarity(self.text_unit, self.warrior_2.warrior)
+        return _warrior_similarity(self.text_unit, self.warrior_arena_2.warrior)
 
     @property
     def warrior_1_similarity_relative(self):

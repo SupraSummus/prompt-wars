@@ -83,10 +83,10 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
         battles_qs = Battle.objects.with_warrior(
             self.object,
         )[:100].select_related(
-            'warrior_1',
-            'warrior_1__warrior',
-            'warrior_2',
-            'warrior_2__warrior',
+            'warrior_arena_1',
+            'warrior_arena_1__warrior',
+            'warrior_arena_2',
+            'warrior_arena_2__warrior',
             'text_unit_1_2',
             'text_unit_2_1',
         ).prefetch_related(
@@ -180,19 +180,21 @@ class BattleDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        show_secrets_1 = is_request_authorized(self.object.warrior_1, self.request)
-        show_secrets_2 = is_request_authorized(self.object.warrior_2, self.request)
+        show_secrets_1 = is_request_authorized(self.object.warrior_arena_1, self.request)
+        show_secrets_2 = is_request_authorized(self.object.warrior_arena_2, self.request)
         show_battle_results = (
             show_secrets_1 or show_secrets_2 or  # noqa: W504
             self.object.public_battle_results
         )
 
         # Add meta title
-        context['meta_title'] = f"Prompt Wars Battle: {self.object.warrior_1} vs {self.object.warrior_2}"
+        context['meta_title'] = (
+            f"Prompt Wars Battle: {self.object.warrior_arena_1} vs {self.object.warrior_arena_2}"
+        )
 
         # Add meta description
         context['meta_description'] = (
-            f"AI battle between '{self.object.warrior_1}' and '{self.object.warrior_2}'. "
+            f"AI battle between '{self.object.warrior_arena_1}' and '{self.object.warrior_arena_2}'. "
             "View the results of this AI prompt engineering duel."
         )
 
@@ -281,14 +283,14 @@ class RecentBattlesView(ArenaViewMixin, ListView):
         else:
             authorized_warriors = self.request.session.get('authorized_warriors', [])
             qs = qs.filter(Q(
-                warrior_1__id__in=authorized_warriors,
+                warrior_arena_1__id__in=authorized_warriors,
             ) | Q(
-                warrior_2__id__in=authorized_warriors,
+                warrior_arena_2__id__in=authorized_warriors,
             )).distinct()
         qs = qs.order_by('-scheduled_at').select_related(
-            'warrior_1',
-            'warrior_1__warrior',
-            'warrior_2',
-            'warrior_2__warrior',
+            'warrior_arena_1',
+            'warrior_arena_1__warrior',
+            'warrior_arena_2',
+            'warrior_arena_2__warrior',
         )
         return qs[:100]

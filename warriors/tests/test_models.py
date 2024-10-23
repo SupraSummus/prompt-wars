@@ -48,8 +48,8 @@ def test_find_opponents_exclude_already_battled(warrior_arena, other_warrior_are
 def test_create_battle_lots_of_games_played(warrior_arena, battle, other_warrior_arena):
     BattleFactory.create_batch(
         100,
-        warrior_1=battle.warrior_1,
-        warrior_2=battle.warrior_2,
+        warrior_arena_1=battle.warrior_arena_1,
+        warrior_arena_2=battle.warrior_arena_2,
     )
     warrior_arena.create_battle(other_warrior_arena)
     warrior_arena.refresh_from_db()
@@ -82,12 +82,12 @@ def test_next_battle_delay(warrior_arena, min_delay_minutes, max_delay_minutes):
 @pytest.mark.django_db
 def test_battle_score():
     battle = BattleFactory(
-        warrior_1__id=UUID(int=1),
-        warrior_1__warrior__body='asdf',
-        warrior_1__rating_playstyle=[0, 0],
-        warrior_2__id=UUID(int=2),
-        warrior_2__warrior__body='qwerty',
-        warrior_2__rating_playstyle=[0, 0],
+        warrior_arena_1__id=UUID(int=1),
+        warrior_arena_1__warrior__body='asdf',
+        warrior_arena_1__rating_playstyle=[0, 0],
+        warrior_arena_2__id=UUID(int=2),
+        warrior_arena_2__warrior__body='qwerty',
+        warrior_arena_2__rating_playstyle=[0, 0],
         text_unit_1_2=TextUnit.get_or_create_by_content('qwerty'),
         lcs_len_1_2_1=0,
         lcs_len_1_2_2=6,

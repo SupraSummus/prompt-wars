@@ -49,8 +49,8 @@ class BattleFactory(factory.django.DjangoModelFactory):
         model = Battle
 
     arena = factory.SubFactory(ArenaFactory)
-    warrior_1 = factory.SubFactory(WarriorArenaFactory)
-    warrior_2 = factory.SubFactory(WarriorArenaFactory)
+    warrior_arena_1 = factory.SubFactory(WarriorArenaFactory)
+    warrior_arena_2 = factory.SubFactory(WarriorArenaFactory)
 
 
 class TextUnitFactory(factory.django.DjangoModelFactory):

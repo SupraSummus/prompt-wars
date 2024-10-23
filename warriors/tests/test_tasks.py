@@ -61,8 +61,8 @@ def test_schedule_battles(arena):
     schedule_battles()
     participants = set()
     for b in Battle.objects.all():
-        participants.add(b.warrior_1)
-        participants.add(b.warrior_2)
+        participants.add(b.warrior_arena_1)
+        participants.add(b.warrior_arena_2)
     assert participants == warriors
 
 
@@ -110,7 +110,7 @@ def test_schedule_battle_top(warrior_arena, other_warrior_arena, arena, monkeypa
     monkeypatch.setattr('random.random', lambda: 0.9999)
     battle = schedule_battle_top_arena(str(arena.id))
     assert battle is not None
-    assert {warrior_arena, other_warrior_arena} == {battle.warrior_1, battle.warrior_2}
+    assert {warrior_arena, other_warrior_arena} == {battle.warrior_arena_1, battle.warrior_arena_2}
 
 
 @pytest.mark.django_db
@@ -119,8 +119,8 @@ def test_schedule_battle_top(warrior_arena, other_warrior_arena, arena, monkeypa
     {'prompt': ''},
 ], indirect=True)
 def test_resolve_battle(arena, battle, monkeypatch):
-    assert battle.warrior_1.body
-    assert battle.warrior_2.body
+    assert battle.warrior_arena_1.body
+    assert battle.warrior_arena_2.body
 
     completion_mock = mock.MagicMock()
     completion_mock.message.content = 'Some result'
@@ -146,18 +146,18 @@ def test_resolve_battle(arena, battle, monkeypatch):
             'content': arena.prompt,
         }, {
             'role': 'user',
-            'content': battle.warrior_2.body + battle.warrior_1.body,
+            'content': battle.warrior_arena_2.body + battle.warrior_arena_1.body,
         }]
     else:
         assert create_mock.call_args.kwargs['messages'] == [{
             'role': 'user',
-            'content': battle.warrior_2.body + battle.warrior_1.body,
+            'content': battle.warrior_arena_2.body + battle.warrior_arena_1.body,
         }]
 
     # lcs_len was properly invoked
     assert lcs_len_mock.call_count == 2
-    assert lcs_len_mock.call_args_list[0].args == (battle.warrior_2.body, 'Some result')
-    assert lcs_len_mock.call_args_list[1].args == (battle.warrior_1.body, 'Some result')
+    assert lcs_len_mock.call_args_list[0].args == (battle.warrior_arena_2.body, 'Some result')
+    assert lcs_len_mock.call_args_list[1].args == (battle.warrior_arena_1.body, 'Some result')
 
     # DB state is correct
     battle.refresh_from_db()

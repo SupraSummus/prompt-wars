@@ -55,16 +55,16 @@ class RatingMixin(models.Model):
         # compute rating
         scores = {}  # opponent_id -> GameScore(score, opponent_rating, opponent_playstyle)
         for b in Battle.objects.with_warrior(self).resolved().select_related(
-            'warrior_1',
-            'warrior_2',
+            'warrior_arena_1',
+            'warrior_arena_2',
         ).order_by('scheduled_at'):
             b = b.get_warrior_viewpoint(self)
             if (game_score := b.score) is not None:
-                normalize_playstyle_len(b.warrior_2.rating_playstyle)
-                scores[b.warrior_2.id] = GameScore(
+                normalize_playstyle_len(b.warrior_arena_2.rating_playstyle)
+                scores[b.warrior_arena_2.id] = GameScore(
                     score=game_score,
-                    opponent_rating=b.warrior_2.rating,
-                    opponent_playstyle=b.warrior_2.rating_playstyle,
+                    opponent_rating=b.warrior_arena_2.rating,
+                    opponent_playstyle=b.warrior_arena_2.rating_playstyle,
                 )
 
         # we limit rating range for warriors with few games played

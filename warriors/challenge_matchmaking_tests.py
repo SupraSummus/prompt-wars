@@ -26,7 +26,7 @@ def test_schedule_losing_battle_top(arena):
     schedule_losing_battle_top()
     assert Battle.objects.count() == 1
     battle = Battle.objects.first()
-    assert {battle.warrior_1, battle.warrior_2} == {warrior, opponent_strong}
+    assert {battle.warrior_arena_1, battle.warrior_arena_2} == {warrior, opponent_strong}
 
 
 @pytest.mark.django_db

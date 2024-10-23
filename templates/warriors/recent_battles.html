@@ -31,8 +31,12 @@
               {% include 'time.html' with time=battle.scheduled_at %}
             </a></td>
             <td>{{ battle.scheduled_at|timesince }}</td>
-            <td><a href="{% url 'warrior_detail' battle.warrior_1.id %}">{{ battle.warrior_1 }}</a></td>
-            <td><a href="{% url 'warrior_detail' battle.warrior_2.id %}">{{ battle.warrior_2 }}</a></td>
+            <td><a href="{% url 'warrior_detail' battle.warrior_arena_1.id %}">
+              {{ battle.warrior_arena_1 }}
+            </a></td>
+            <td><a href="{% url 'warrior_detail' battle.warrior_arena_2.id %}">
+              {{ battle.warrior_arena_2 }}
+            </a></td>
           </tr>
         {% endfor %}
       </tbody>
