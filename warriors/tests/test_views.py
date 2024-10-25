@@ -33,7 +33,7 @@ def test_warrior_details(client, warrior_arena, battle):
         reverse('warrior_detail', args=(warrior_arena.id,))
     )
     assert response.status_code == 200
-    assert battle in response.context['battles']
+    assert battle.get_warrior_viewpoint(warrior_arena) in response.context['battles']
 
 
 @pytest.mark.django_db
@@ -98,7 +98,9 @@ def test_warrior_details_do_few_sql_queries(client, arena, warrior_arena, django
         BattleFactory(
             arena=arena,
             **kwargs,
+            resolved_at_1_2=timezone.now(),
             text_unit_1_2=TextUnitFactory(),
+            resolved_at_2_1=timezone.now(),
             text_unit_2_1=TextUnitFactory(),
         )
     with django_assert_max_num_queries(n // 2):

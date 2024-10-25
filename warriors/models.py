@@ -1,6 +1,7 @@
 import datetime
 import random
 import uuid
+from dataclasses import dataclass
 from functools import cached_property, lru_cache
 from urllib.parse import urlencode
 
@@ -477,13 +478,27 @@ class Battle(models.Model):
 
         return battle
 
-    def __init__(self, *args, game_1_id='1_2', game_2_id='2_1', **kwargs):
-        super().__init__(*args, **kwargs)
-        self.game_1_id = game_1_id
-        self.game_2_id = game_2_id
-
     def get_absolute_url(self):
         return reverse('battle_detail', args=[str(self.id)])
+
+    def get_warrior_viewpoint(self, warrior):
+        """Return Battle such that warrior_arena_1 == warrior"""
+        if warrior == self.warrior_arena_1:
+            return BattleViewpoint(self, '1')
+        elif warrior == self.warrior_arena_2:
+            return BattleViewpoint(self, '2')
+        else:
+            raise ValueError('warrior not in battle')
+
+
+@dataclass(frozen=True)
+class BattleViewpoint:
+    """
+    Battle presented from the viewpoint of one of the warriors.
+    Viewpoint 1_2 is same as original Battle. Viewpoint 2_1 is "backwards".
+    """
+    battle: Battle
+    viewpoint: str
 
     @property
     def score(self):
@@ -537,37 +552,80 @@ class Battle(models.Model):
             self.warrior_arena_2.public_battle_results
         )
 
-    def get_warrior_viewpoint(self, warrior):
-        """Return Battle such that warrior_arena_1 == warrior"""
-        if warrior == self.warrior_arena_1:
-            return self
-        elif warrior == self.warrior_arena_2:
-            return Battle(
-                id=self.id,
-                arena=self.arena,
-                scheduled_at=self.scheduled_at,
-                warrior_arena_1=self.warrior_arena_2,
-                warrior_arena_2=self.warrior_arena_1,
-
-                text_unit_1_2=self.text_unit_2_1,
-                lcs_len_1_2_1=self.lcs_len_2_1_2,
-                lcs_len_1_2_2=self.lcs_len_2_1_1,
-                finish_reason_1_2=self.finish_reason_2_1,
-                llm_version_1_2=self.llm_version_2_1,
-                resolved_at_1_2=self.resolved_at_2_1,
-
-                text_unit_2_1=self.text_unit_1_2,
-                lcs_len_2_1_1=self.lcs_len_1_2_2,
-                lcs_len_2_1_2=self.lcs_len_1_2_1,
-                finish_reason_2_1=self.finish_reason_1_2,
-                llm_version_2_1=self.llm_version_1_2,
-                resolved_at_2_1=self.resolved_at_1_2,
-
-                rating_transferred_at=self.rating_transferred_at,
-
-                game_1_id=self.game_2_id,
-                game_2_id=self.game_1_id,
+    def __getattr__(self, field_name):
+        mapped_name = self.map_field_name(field_name)
+        if mapped_name is not None:
+            return getattr(
+                self.battle,
+                mapped_name,
             )
+        else:
+            return super().__getattribute__(field_name)
+
+    def map_field_name(self, field_name):
+        if field_name in (
+            'id',
+            'arena',
+            'arena_id',
+            'scheduled_at',
+            'rating_transferred_at',
+        ):
+            return field_name
+        if field_name in (
+            'warrior_arena_1',
+            'warrior_arena_2',
+        ):
+            return self.map_field_name_x(field_name)
+        if field_name in (
+            'text_unit_1_2',
+            'text_unit_2_1',
+            'finish_reason_1_2',
+            'finish_reason_2_1',
+            'llm_version_1_2',
+            'llm_version_2_1',
+            'resolved_at_1_2',
+            'resolved_at_2_1',
+        ):
+            return self.map_field_name_x_x(field_name)
+        if field_name in (
+            'lcs_len_1_2_1',
+            'lcs_len_1_2_2',
+            'lcs_len_2_1_1',
+            'lcs_len_2_1_2',
+        ):
+            return self.map_field_name_x_x_x(field_name)
+
+    def map_field_name_x(self, field_name):
+        if self.viewpoint == '1':
+            return field_name
+        elif self.viewpoint == '2':
+            base, n = field_name.rsplit('_', 1)
+            n = {'1': '2', '2': '1'}[n]
+            return f'{base}_{n}'
+
+    def map_field_name_x_x(self, field_name):
+        if self.viewpoint == '1':
+            return field_name
+        elif self.viewpoint == '2':
+            base, n, m = field_name.rsplit('_', 2)
+            return f'{base}_{m}_{n}'
+
+    def map_field_name_x_x_x(self, field_name):
+        if self.viewpoint == '1':
+            return field_name
+        elif self.viewpoint == '2':
+            base, n, m, k = field_name.rsplit('_', 3)
+            k = {'1': '2', '2': '1'}[k]
+            return f'{base}_{m}_{n}_{k}'
+
+    # game_1_id and game_2_id are used for anchor links
+    @property
+    def game_1_id(self):
+        return '1_2' if self.viewpoint == '1' else '2_1'
+
+    @property
+    def game_2_id(self):
+        return '2_1' if self.viewpoint == '1' else '1_2'
 
 
 class Game:
@@ -586,7 +644,7 @@ class Game:
         if mapped_name is not None:
             return getattr(
                 self.battle,
-                self.map_field_name(field_name),
+                mapped_name,
             )
         else:
             return super().__getattribute__(field_name)
@@ -596,7 +654,7 @@ class Game:
         if mapped_name is not None:
             setattr(
                 self.battle,
-                self.map_field_name(field_name),
+                mapped_name,
                 value,
             )
         else:

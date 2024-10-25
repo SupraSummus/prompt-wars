@@ -4,7 +4,7 @@ from uuid import UUID
 import pytest
 from django.utils import timezone
 
-from ..models import Battle
+from ..models import Battle, BattleViewpoint
 from ..text_unit import TextUnit
 from .factories import BattleFactory
 
@@ -95,13 +95,14 @@ def test_battle_score():
         lcs_len_2_1_1=0,
         lcs_len_2_1_2=6,
     )
+    battle_viewpoint = BattleViewpoint(battle, '1')
 
     # lets consider a single game there - the one where propmt is warrior_1 || warrior_2
-    game = battle.game_1_2
+    game = battle_viewpoint.game_1_2
     assert game.score == 0  # this means that warrior_1 was totaly erased, and warrior_2 totally preserved
 
     # second game - warrior_2 || warrior_1
-    assert battle.game_2_1.score == 1
+    assert battle_viewpoint.game_2_1.score == 1
 
-    assert battle.score == 0
-    assert battle.performance == -0.5  # it could have been closer to -1 if there was a discrepancy in the ratings
+    assert battle_viewpoint.score == 0
+    assert battle_viewpoint.performance == -0.5  # it could have been closer to -1 if there was a discrepancy in the ratings

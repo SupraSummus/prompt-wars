@@ -11,7 +11,9 @@ from django.views.generic.edit import FormView
 from django.views.generic.list import ListView
 
 from .forms import ChallengeWarriorForm
-from .models import Arena, Battle, WarriorArena, WarriorUserPermission
+from .models import (
+    Arena, Battle, BattleViewpoint, WarriorArena, WarriorUserPermission,
+)
 from .stats import ArenaStats
 
 
@@ -89,8 +91,6 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
             'warrior_arena_2__warrior',
             'text_unit_1_2',
             'text_unit_2_1',
-        ).prefetch_related(
-            'arena',
         )
         context['battles'] = [
             battle.get_warrior_viewpoint(self.object)
@@ -176,6 +176,10 @@ def is_request_authorized(warrior_arena, request):
 class BattleDetailView(DetailView):
     model = Battle
     context_object_name = 'battle'
+
+    def get_object(self):
+        battle = super().get_object()
+        return BattleViewpoint(battle, '1')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
