@@ -364,6 +364,20 @@ class Battle(models.Model):
         db_index=True,
         default=timezone.now,
     )
+    warrior_1 = models.ForeignKey(
+        to=Warrior,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name='+',
+    )
+    warrior_2 = models.ForeignKey(
+        to=Warrior,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name='+',
+    )
     warrior_arena_1 = models.ForeignKey(
         to=WarriorArena,
         related_name='warrior1',
@@ -442,21 +456,37 @@ class Battle(models.Model):
         constraints = [
             models.CheckConstraint(
                 check=models.Q(
-                    warrior_arena_1_id__lt=models.F('warrior_arena_2_id'),
+                    warrior_1_id__lt=models.F('warrior_2_id'),
                 ),
                 name='warrior_ordering',
+            ),
+            models.CheckConstraint(
+                check=models.Q(
+                    warrior_arena_1_id__lt=models.F('warrior_arena_2_id'),
+                ),
+                name='warrior_arena_ordering',
             ),
         ]
 
     @classmethod
-    def create_from_warriors(cls, warrior_1, warrior_2):
-        assert warrior_1.arena_id == warrior_2.arena_id
+    def create_from_warriors(cls, warrior_arena_1, warrior_arena_2):
+        assert warrior_arena_1.arena_id == warrior_arena_2.arena_id
+        arena_id = warrior_arena_1.arena_id
+
+        if warrior_arena_1.id > warrior_arena_2.id:
+            warrior_arena_1, warrior_arena_2 = warrior_arena_2, warrior_arena_1
+
+        warrior_1 = warrior_arena_1.warrior
+        warrior_2 = warrior_arena_2.warrior
         if warrior_1.id > warrior_2.id:
             warrior_1, warrior_2 = warrior_2, warrior_1
+
         battle = cls.objects.create(
-            arena_id=warrior_1.arena_id,
-            warrior_arena_1=warrior_1,
-            warrior_arena_2=warrior_2,
+            arena_id=arena_id,
+            warrior_1=warrior_1,
+            warrior_2=warrior_2,
+            warrior_arena_1=warrior_arena_1,
+            warrior_arena_2=warrior_arena_2,
             scheduled_at=TransactionNow(),
         )
         from .tasks import (
