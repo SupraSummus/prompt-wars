@@ -23,6 +23,8 @@ def test_update_rating_takes_newer_battles(battle):
     # warrior_1 won the second battle
     new_then = then + datetime.timedelta(days=1)
     BattleFactory(
+        warrior_1=battle.warrior_1,
+        warrior_2=battle.warrior_2,
         warrior_arena_1=battle.warrior_arena_1,
         warrior_arena_2=battle.warrior_arena_2,
         scheduled_at=new_then,

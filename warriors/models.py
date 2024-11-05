@@ -366,15 +366,11 @@ class Battle(models.Model):
     )
     warrior_1 = models.ForeignKey(
         to=Warrior,
-        null=True,
-        blank=True,
         on_delete=models.PROTECT,
         related_name='+',
     )
     warrior_2 = models.ForeignKey(
         to=Warrior,
-        null=True,
-        blank=True,
         on_delete=models.PROTECT,
         related_name='+',
     )

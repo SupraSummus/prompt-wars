@@ -63,11 +63,19 @@ def other_warrior_arena(request, other_warrior, arena):
 
 
 @pytest.fixture
-def battle(request, arena, warrior_arena, other_warrior_arena):
+def battle(
+    request, arena,
+    warrior, other_warrior,
+    warrior_arena, other_warrior_arena,
+):
     if warrior_arena.id > other_warrior_arena.id:
         warrior_arena, other_warrior_arena = other_warrior_arena, warrior_arena
+    if warrior.id > other_warrior.id:
+        warrior, other_warrior = other_warrior, warrior
     return BattleFactory(
         arena=arena,
+        warrior_1=warrior,
+        warrior_2=other_warrior,
         warrior_arena_1=warrior_arena,
         warrior_arena_2=other_warrior_arena,
         **getattr(request, 'param', {}),

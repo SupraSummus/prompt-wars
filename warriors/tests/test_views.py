@@ -85,19 +85,20 @@ def test_warrior_details_do_few_sql_queries(client, arena, warrior_arena, django
     n = 100
     for _ in range(n):
         other_warrior_arena = WarriorArenaFactory(arena=arena)
-        if other_warrior_arena.id < warrior_arena.id:
-            kwargs = {
-                'warrior_arena_1': other_warrior_arena,
-                'warrior_arena_2': warrior_arena,
-            }
-        else:
-            kwargs = {
-                'warrior_arena_1': warrior_arena,
-                'warrior_arena_2': other_warrior_arena,
-            }
+        battle_warrior_1 = warrior_arena.warrior
+        battle_warrior_2 = other_warrior_arena.warrior
+        if battle_warrior_1.id > battle_warrior_2.id:
+            battle_warrior_1, battle_warrior_2 = battle_warrior_2, battle_warrior_1
+        battle_warrior_arena_1 = warrior_arena
+        battle_warrior_arena_2 = other_warrior_arena
+        if battle_warrior_arena_1.id > battle_warrior_arena_2.id:
+            battle_warrior_arena_1, battle_warrior_arena_2 = battle_warrior_arena_2, battle_warrior_arena_1
         BattleFactory(
             arena=arena,
-            **kwargs,
+            warrior_1=battle_warrior_1,
+            warrior_2=battle_warrior_2,
+            warrior_arena_1=battle_warrior_arena_1,
+            warrior_arena_2=battle_warrior_arena_2,
             resolved_at_1_2=timezone.now(),
             text_unit_1_2=TextUnitFactory(),
             resolved_at_2_1=timezone.now(),
