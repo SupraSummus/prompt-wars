@@ -1,9 +1,23 @@
-from warriors.models import WarriorArena
+from warriors.models import Battle
 
 
-for warrior_arena in WarriorArena.objects.battleworthy().filter(
-    warrior__voyage_3_embedding=[],
-    warrior__voyage_3_embedding_goal=None,
-).order_by('-rating')[:10]:
-    print(warrior_arena.id, warrior_arena.name)
-    warrior_arena.warrior.schedule_voyage_3_embedding()
+def do_some():
+    qs = Battle.objects.filter(warrior_1=None) | Battle.objects.filter(warrior_2=None)
+    qs = qs.select_related('warrior_arena_1', 'warrior_arena_2')
+    battles = list(qs[:1000])
+    for battle in battles:
+        warrior_1_id = battle.warrior_arena_1.warrior_id
+        warrior_2_id = battle.warrior_arena_2.warrior_id
+        if warrior_1_id > warrior_2_id:
+            warrior_1_id, warrior_2_id = warrior_2_id, warrior_1_id
+        battle.warrior_1_id = warrior_1_id
+        battle.warrior_2_id = warrior_2_id
+    Battle.objects.bulk_update(battles, ['warrior_1_id', 'warrior_2_id'])
+    return len(battles)
+
+
+while True:
+    n = do_some()
+    if n == 0:
+        break
+    print('Updated', n)
