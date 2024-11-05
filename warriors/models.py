@@ -512,7 +512,7 @@ class Battle(models.Model):
         return reverse('battle_detail', args=[str(self.id)])
 
     def get_warrior_viewpoint(self, warrior):
-        """Return Battle such that warrior_arena_1 == warrior"""
+        """Return Battle viewpoint such that warrior_arena_1 == warrior"""
         if warrior == self.warrior_arena_1:
             return BattleViewpoint(self, '1')
         elif warrior == self.warrior_arena_2:
@@ -525,7 +525,7 @@ class Battle(models.Model):
 class BattleViewpoint:
     """
     Battle presented from the viewpoint of one of the warriors.
-    Viewpoint 1_2 is same as original Battle. Viewpoint 2_1 is "backwards".
+    Viewpoint 1 is same as original Battle. Viewpoint 2 is "backwards".
     """
     battle: Battle
     viewpoint: str
