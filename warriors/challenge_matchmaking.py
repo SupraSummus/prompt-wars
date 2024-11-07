@@ -40,7 +40,10 @@ def schedule_losing_battle(warrior_arena):
         rating__lt=warrior_arena.rating,
         relative_rating__gte=0,
     ):
-        has_recent_battle = Battle.objects.with_warriors(warrior_arena, opponent).recent().exists()
+        has_recent_battle = Battle.objects.with_warrior_arenas(
+            warrior_arena,
+            opponent,
+        ).recent().exists()
         if has_recent_battle:
             continue
         return warrior_arena.create_battle(opponent)

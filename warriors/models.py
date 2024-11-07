@@ -194,14 +194,14 @@ class WarriorArena(RatingMixin, models.Model):
 
         battle = Battle.create_from_warriors(self, opponent)
 
-        self.games_played = Battle.objects.with_warrior(self).count()
+        self.games_played = Battle.objects.with_warrior_arena(self).count()
         self.next_battle_schedule = now + self.get_next_battle_delay()
         self.save(update_fields=[
             'games_played',
             'next_battle_schedule',
         ])
 
-        opponent.games_played = Battle.objects.with_warrior(opponent).count()
+        opponent.games_played = Battle.objects.with_warrior_arena(opponent).count()
         opponent.save(update_fields=['games_played'])
 
         # Generate voyage 3 embeddings in case not already generated.
@@ -227,7 +227,7 @@ class WarriorArena(RatingMixin, models.Model):
         top_rating = self.rating + max_rating_diff
         bottom_rating = self.rating - max_rating_diff
 
-        historic_battles = Battle.objects.with_warrior(self).recent()
+        historic_battles = Battle.objects.with_warrior_arena(self).recent()
 
         return battle_worthy_qs.filter(
             arena_id=self.arena_id,
@@ -314,18 +314,18 @@ class WarriorUserPermission(models.Model):
 
 
 class BattleQuerySet(models.QuerySet):
-    def with_warrior(self, warrior):
+    def with_warrior_arena(self, warrior_arena):
         return self.filter(
-            models.Q(warrior_arena_1=warrior) |
-            models.Q(warrior_arena_2=warrior),
+            models.Q(warrior_arena_1=warrior_arena) |
+            models.Q(warrior_arena_2=warrior_arena),
         )
 
-    def with_warriors(self, warrior_1, warrior_2):
-        if warrior_1.id > warrior_2.id:
-            warrior_1, warrior_2 = warrior_2, warrior_1
+    def with_warrior_arenas(self, warrior_arena_1, warrior_arena_2):
+        if warrior_arena_1.id > warrior_arena_2.id:
+            warrior_arena_1, warrior_arena_2 = warrior_arena_2, warrior_arena_1
         return self.filter(
-            warrior_arena_1=warrior_1,
-            warrior_arena_2=warrior_2,
+            warrior_arena_1=warrior_arena_1,
+            warrior_arena_2=warrior_arena_2,
         )
 
     def resolved(self):

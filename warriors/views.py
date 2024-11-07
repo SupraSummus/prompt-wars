@@ -82,7 +82,7 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        battles_qs = Battle.objects.with_warrior(
+        battles_qs = Battle.objects.with_warrior_arena(
             self.object,
         )[:100].select_related(
             'warrior_arena_1',

@@ -145,7 +145,7 @@ def test_challenge_warrior_post(user_client, warrior_arena, warrior_user_permiss
         },
     )
     assert response.status_code == 302
-    assert Battle.objects.with_warriors(warrior_arena, other_warrior_arena).exists()
+    assert Battle.objects.with_warrior_arenas(warrior_arena, other_warrior_arena).exists()
 
 
 @pytest.mark.django_db

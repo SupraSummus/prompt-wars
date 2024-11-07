@@ -28,7 +28,7 @@ class ChallengeWarriorForm(forms.Form):
             return
         cleaned_data = super().clean()
         warrior = cleaned_data['warrior']
-        earlier_battle = Battle.objects.with_warriors(
+        earlier_battle = Battle.objects.with_warrior_arenas(
             self.opponent,
             warrior,
         ).recent().exists()

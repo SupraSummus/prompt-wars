@@ -100,7 +100,7 @@ def schedule_battle_top_arena(arena_id):
                 continue
 
             # try find and opponent among the warriors above
-            historic_battles = Battle.objects.with_warrior(warrior).filter(
+            historic_battles = Battle.objects.with_warrior_arena(warrior).filter(
                 scheduled_at__gt=timezone.now() - MATCHMAKING_COOLDOWN,
             )
             opponent = WarriorArena.objects.filter(

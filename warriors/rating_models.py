@@ -54,7 +54,7 @@ class RatingMixin(models.Model):
 
         # compute rating
         scores = {}  # opponent_id -> GameScore(score, opponent_rating, opponent_playstyle)
-        for b in Battle.objects.with_warrior(self).resolved().select_related(
+        for b in Battle.objects.with_warrior_arena(self).resolved().select_related(
             'warrior_arena_1',
             'warrior_arena_2',
         ).order_by('scheduled_at'):
