@@ -37,30 +37,13 @@ def test_warrior_details(client, warrior_arena, battle):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('good_secret', [True, False])
-@pytest.mark.parametrize('battle', [{
-    'resolved_at_1_2': timezone.now(),
-    'lcs_len_1_2_1': 23,
-    'lcs_len_1_2_2': 32,
-}], indirect=True)
-def test_warrior_details_secret(client, warrior_arena, good_secret, battle):
-    if good_secret:
-        secret = warrior_arena.secret
-    else:
-        secret = 'asdf'
-    response = client.get(
-        reverse('warrior_detail', args=(warrior_arena.id,)) + '?secret=' + secret
-    )
-    assert response.status_code == 200
-    assert response.context['show_secrets'] == good_secret
-    assert (warrior_arena.body in response.content.decode()) == good_secret
-
-
-@pytest.mark.django_db
 def test_warrior_details_creates_user_permission(user, user_client, warrior_arena, warrior):
     assert user not in warrior.users.all()
+    session = user_client.session
+    session['authorized_warriors'] = [str(warrior_arena.id)]
+    session.save()
     response = user_client.get(
-        reverse('warrior_detail', args=(warrior_arena.id,)) + '?secret=' + warrior_arena.secret
+        reverse('warrior_detail', args=(warrior_arena.id,)),
     )
     assert response.status_code == 200
     assert user in warrior.users.all()

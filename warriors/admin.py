@@ -1,5 +1,4 @@
 from django.contrib import admin
-from django.utils.html import format_html
 
 from .models import Arena, Battle, WarriorArena
 from .text_unit import TextUnit
@@ -61,7 +60,6 @@ class WarriorArenaAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
                 'author_name',
                 'body',
                 'created_at',
-                'secret_link',
             ),
         }),
         ('Stats', {
@@ -78,13 +76,6 @@ class WarriorArenaAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
             ),
         }),
     )
-
-    def secret_link(self, obj):
-        return format_html(
-            '<a href="{}">{}</a>',
-            obj.get_absolute_url_secret(),
-            obj.get_absolute_url_secret(),
-        )
 
 
 @admin.register(Battle)

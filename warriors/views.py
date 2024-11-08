@@ -166,7 +166,6 @@ class ChallengeWarriorView(WarriorViewMixin, FormView):
 
 def is_request_authorized(warrior_arena, request):
     return (
-        warrior_arena.is_secret_valid(request.GET.get('secret', default='')) or
         warrior_arena.is_user_authorized(request.user) or
         str(warrior_arena.id) in request.session.get('authorized_warriors', []) or
         str(warrior_arena.warrior_id) in request.session.get('authorized_warriors', [])

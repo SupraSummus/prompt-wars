@@ -3,13 +3,11 @@ import random
 import uuid
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
-from urllib.parse import urlencode
 
 import numpy
 from django.conf import settings
 from django.contrib.postgres.functions import TransactionNow
 from django.contrib.sites.models import Site
-from django.core.signing import BadSignature, Signer
 from django.db import models
 from django.db.models import Q
 from django.urls import reverse
@@ -156,7 +154,6 @@ class WarriorArena(RatingMixin, models.Model):
         return abs(self.rating_error)
 
     objects = WarriorArenaQuerySet.as_manager()
-    secret_signer = Signer(salt='warrior')
 
     class Meta:
         ordering = ('id',)
@@ -182,11 +179,6 @@ class WarriorArena(RatingMixin, models.Model):
 
     def get_absolute_url(self):
         return reverse('warrior_detail', args=[str(self.id)])
-
-    def get_absolute_url_secret(self):
-        return self.get_absolute_url() + '?' + urlencode({
-            'secret': self.secret,
-        })
 
     def create_battle(self, opponent, now=None):
         if now is None:
@@ -256,18 +248,6 @@ class WarriorArena(RatingMixin, models.Model):
             K ** exponent - 1,
             0,
         ) * time_unit
-
-    @cached_property
-    def secret(self):
-        return self.secret_signer.sign(str(self.id)).split(':')[1]
-
-    def is_secret_valid(self, key):
-        full_key = f'{self.id}:{key}'
-        try:
-            self.secret_signer.unsign(full_key)
-            return True
-        except BadSignature:
-            return False
 
     @lru_cache(maxsize=16)
     def is_user_authorized(self, user):
