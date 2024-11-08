@@ -24,7 +24,7 @@ def resolve_battle(prompt_a, prompt_b, system_prompt=''):
         extra_kwargs['system_prompt'] = system_prompt
     try:
         response = client.messages.create(
-            model="claude-3-haiku-20240307",
+            model="claude-3-5-haiku-20241022",
             max_tokens=MAX_WARRIOR_LENGTH,
             temperature=0,
             messages=messages,
