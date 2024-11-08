@@ -5,7 +5,9 @@ from django.utils import timezone
 
 from .models import WarriorArena
 from .rating_models import update_rating
-from .tests.factories import BattleFactory, WarriorArenaFactory
+from .tests.factories import (
+    ArenaFactory, BattleFactory, WarriorArenaFactory, WarriorFactory,
+)
 
 
 @pytest.mark.django_db
@@ -43,6 +45,65 @@ def test_update_rating_takes_newer_battles(battle):
     warrior_arena_1.refresh_from_db()
     warrior_arena_2.refresh_from_db()
     assert warrior_arena_1.rating > warrior_arena_2.rating
+
+
+@pytest.mark.django_db
+def test_rating_is_isolated_for_each_arena():
+    now = timezone.now()
+    warrior_1 = WarriorFactory()
+    warrior_2 = WarriorFactory()
+    if warrior_1.id > warrior_2.id:
+        warrior_1, warrior_2 = warrior_2, warrior_1
+
+    arena_1 = ArenaFactory()
+    warrior_1_arena_1 = WarriorArenaFactory(warrior=warrior_1, arena=arena_1)
+    warrior_2_arena_1 = WarriorArenaFactory(warrior=warrior_2, arena=arena_1)
+    BattleFactory(
+        arena=arena_1,
+        warrior_1=warrior_1,
+        warrior_2=warrior_2,
+        resolved_at_1_2=now,
+        lcs_len_1_2_1=10,
+        lcs_len_1_2_2=1,
+        resolved_at_2_1=now,
+        lcs_len_2_1_1=10,
+        lcs_len_2_1_2=1,
+    )
+
+    arena_2 = ArenaFactory()
+    warrior_1_arena_2 = WarriorArenaFactory(warrior=warrior_1, arena=arena_2)
+    warrior_2_arena_2 = WarriorArenaFactory(warrior=warrior_2, arena=arena_2)
+    BattleFactory(
+        arena=arena_2,
+        warrior_1=warrior_1,
+        warrior_2=warrior_2,
+        resolved_at_1_2=now,
+        lcs_len_1_2_1=1,
+        lcs_len_1_2_2=10,
+        resolved_at_2_1=now,
+        lcs_len_2_1_1=1,
+        lcs_len_2_1_2=10,
+    )
+
+    for _ in range(2):
+        warrior_1_arena_1.refresh_from_db()
+        warrior_1_arena_1.update_rating()
+        warrior_2_arena_1.refresh_from_db()
+        warrior_2_arena_1.update_rating()
+        warrior_1_arena_2.refresh_from_db()
+        warrior_1_arena_2.update_rating()
+        warrior_2_arena_2.refresh_from_db()
+        warrior_2_arena_2.update_rating()
+
+    warrior_1_arena_1.refresh_from_db()
+    warrior_2_arena_1.refresh_from_db()
+    warrior_1_arena_2.refresh_from_db()
+    warrior_2_arena_2.refresh_from_db()
+
+    assert warrior_1_arena_1.rating > 40
+    assert warrior_1_arena_1.rating == -warrior_2_arena_1.rating
+    assert warrior_2_arena_2.rating == -warrior_1_arena_2.rating
+    assert warrior_1_arena_1.rating == warrior_2_arena_2.rating
 
 
 @pytest.mark.django_db

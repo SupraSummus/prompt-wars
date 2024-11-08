@@ -556,8 +556,8 @@ class BattleViewpoint:
             return field_name
         if field_name in (
             'warrior_1',
-            'warrior_2',
             'warrior_1_id',
+            'warrior_2',
             'warrior_2_id',
             'warrior_arena_1',
             'warrior_arena_2',
@@ -565,7 +565,9 @@ class BattleViewpoint:
             return self.map_field_name_x(field_name)
         if field_name in (
             'text_unit_1_2',
+            'text_unit_1_2_id',
             'text_unit_2_1',
+            'text_unit_2_1_id',
             'finish_reason_1_2',
             'finish_reason_2_1',
             'llm_version_1_2',
@@ -596,8 +598,11 @@ class BattleViewpoint:
         if self.viewpoint == '1':
             return field_name
         elif self.viewpoint == '2':
-            base, n, m = field_name.rsplit('_', 2)
-            return f'{base}_{m}_{n}'
+            if '1_2' in field_name:
+                return field_name.replace('1_2', '2_1')
+            elif '2_1' in field_name:
+                return field_name.replace('2_1', '1_2')
+        assert False
 
     def map_field_name_x_x_x(self, field_name):
         if self.viewpoint == '1':
