@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from ..models import Battle, BattleViewpoint
 from ..text_unit import TextUnit
-from .factories import BattleFactory
+from .factories import BattleFactory, WarriorArenaFactory
 
 
 @pytest.mark.django_db
@@ -48,10 +48,9 @@ def test_find_opponents_exclude_already_battled(warrior_arena, other_warrior_are
 def test_create_battle_lots_of_games_played(warrior_arena, battle, other_warrior_arena):
     BattleFactory.create_batch(
         100,
+        arena=battle.arena,
         warrior_1=battle.warrior_1,
         warrior_2=battle.warrior_2,
-        warrior_arena_1=battle.warrior_arena_1,
-        warrior_arena_2=battle.warrior_arena_2,
     )
     warrior_arena.create_battle(other_warrior_arena)
     warrior_arena.refresh_from_db()
@@ -88,12 +87,6 @@ def test_battle_score():
         warrior_1__body='asdf',
         warrior_2__id=UUID(int=2),
         warrior_2__body='qwerty',
-        warrior_arena_1__id=UUID(int=1),
-        warrior_arena_1__warrior_id=UUID(int=1),
-        warrior_arena_1__rating_playstyle=[0, 0],
-        warrior_arena_2__id=UUID(int=2),
-        warrior_arena_2__warrior_id=UUID(int=2),
-        warrior_arena_2__rating_playstyle=[0, 0],
         text_unit_1_2=TextUnit.get_or_create_by_content('qwerty'),
         lcs_len_1_2_1=0,
         lcs_len_1_2_2=6,
@@ -111,4 +104,8 @@ def test_battle_score():
     assert battle_viewpoint.game_2_1.score == 1
 
     assert battle_viewpoint.score == 0
-    assert battle_viewpoint.performance == -0.5  # it could have been closer to -1 if there was a discrepancy in the ratings
+
+    # to compute performance we must assign warrior_arens (not in the db)
+    battle.warrior_arena_1 = WarriorArenaFactory(warrior=battle.warrior_1)
+    battle.warrior_arena_2 = WarriorArenaFactory(warrior=battle.warrior_2)
+    assert battle_viewpoint.performance == pytest.approx(-0.5, abs=0.01)  # it could have been closer to 1 if there was a discrepancy in the ratings

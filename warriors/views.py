@@ -15,6 +15,7 @@ from .models import (
     Arena, Battle, BattleViewpoint, WarriorArena, WarriorUserPermission,
 )
 from .stats import ArenaStats
+from .warriors import Warrior
 
 
 def arena_list(request):
@@ -85,19 +86,18 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
         battles_qs = Battle.objects.with_warrior_arena(
             self.object,
         )[:100].select_related(
-            'warrior_arena_1',
-            'warrior_arena_1__warrior',
-            'warrior_arena_2',
-            'warrior_arena_2__warrior',
             'text_unit_1_2',
             'text_unit_2_1',
         )
+        battles = list(battles_qs)
+        prefetch_warriors(battles)
+        prefetch_warrior_arenas(self.object.arena, battles)
         context['battles'] = [
             battle.get_warrior_viewpoint(self.object)
-            for battle in battles_qs
+            for battle in battles
         ]
 
-        show_secrets = is_request_authorized(self.object, self.request)
+        show_secrets = is_request_authorized(self.object.warrior, self.request)
         context['show_secrets'] = show_secrets
         context['warrior_user_permissions'] = None
         if self.request.user.is_authenticated:
@@ -108,13 +108,38 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
 
         # save the authorization for user if it's not already saved
         user = self.request.user
-        if show_secrets and not self.object.is_user_authorized(user) and user.is_authenticated:
+        if show_secrets and not self.object.warrior.is_user_authorized(user) and user.is_authenticated:
             WarriorUserPermission.objects.get_or_create(
                 warrior=self.object.warrior,
                 user=user,
             )
 
         return context
+
+
+def prefetch_warriors(battles):
+    warrior_ids = {battle.warrior_1_id for battle in battles} | {battle.warrior_2_id for battle in battles}
+    warriors = {
+        warrior.id: warrior
+        for warrior in Warrior.objects.filter(id__in=warrior_ids)
+    }
+    for battle in battles:
+        battle.warrior_1 = warriors[battle.warrior_1_id]
+        battle.warrior_2 = warriors[battle.warrior_2_id]
+
+
+def prefetch_warrior_arenas(arena, battles):
+    warrior_ids = {battle.warrior_1_id for battle in battles} | {battle.warrior_2_id for battle in battles}
+    warrior_arenas = {
+        warrior_arena.warrior_id: warrior_arena
+        for warrior_arena in WarriorArena.objects.filter(
+            warrior_id__in=warrior_ids,
+            arena=arena,
+        )
+    }
+    for battle in battles:
+        battle.warrior_arena_1 = warrior_arenas[battle.warrior_1_id]
+        battle.warrior_arena_2 = warrior_arenas[battle.warrior_2_id]
 
 
 class PublicBattleResutsForm(forms.Form):
@@ -164,11 +189,10 @@ class ChallengeWarriorView(WarriorViewMixin, FormView):
         return self.battle.get_absolute_url()
 
 
-def is_request_authorized(warrior_arena, request):
+def is_request_authorized(warrior, request):
     return (
-        warrior_arena.is_user_authorized(request.user) or
-        str(warrior_arena.id) in request.session.get('authorized_warriors', []) or
-        str(warrior_arena.warrior_id) in request.session.get('authorized_warriors', [])
+        warrior.is_user_authorized(request.user) or
+        str(warrior.id) in request.session.get('authorized_warriors', [])
     )
 
 
@@ -183,8 +207,8 @@ class BattleDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        show_secrets_1 = is_request_authorized(self.object.warrior_arena_1, self.request)
-        show_secrets_2 = is_request_authorized(self.object.warrior_arena_2, self.request)
+        show_secrets_1 = is_request_authorized(self.object.warrior_1, self.request)
+        show_secrets_2 = is_request_authorized(self.object.warrior_2, self.request)
         show_battle_results = (
             show_secrets_1 or show_secrets_2 or  # noqa: W504
             self.object.public_battle_results
@@ -192,12 +216,12 @@ class BattleDetailView(DetailView):
 
         # Add meta title
         context['meta_title'] = (
-            f"Prompt Wars Battle: {self.object.warrior_arena_1} vs {self.object.warrior_arena_2}"
+            f"Prompt Wars Battle: {self.object.warrior_1} vs {self.object.warrior_2}"
         )
 
         # Add meta description
         context['meta_description'] = (
-            f"AI battle between '{self.object.warrior_arena_1}' and '{self.object.warrior_arena_2}'. "
+            f"AI battle between '{self.object.warrior_1}' and '{self.object.warrior_2}'. "
             "View the results of this AI prompt engineering duel."
         )
 
@@ -208,6 +232,17 @@ class BattleDetailView(DetailView):
         self.object.game_2_1.show_secrets_2 = show_secrets_1
         self.object.game_2_1.show_battle_results = show_battle_results
 
+        battle = self.object.battle
+        battle.warrior_arena_1 = WarriorArena.objects.get(
+            warrior=battle.warrior_1,
+            arena=battle.arena,
+        )
+        battle.warrior_arena_2 = WarriorArena.objects.get(
+            warrior=battle.warrior_2,
+            arena=battle.arena,
+        )
+
+        # find prev/next battles
         battles_qs = Battle.objects.for_user(self.request.user).filter(
             arena_id=self.object.arena_id,
         )
@@ -286,14 +321,12 @@ class RecentBattlesView(ArenaViewMixin, ListView):
         else:
             authorized_warriors = self.request.session.get('authorized_warriors', [])
             qs = qs.filter(Q(
-                warrior_arena_1__id__in=authorized_warriors,
+                warrior_1__id__in=authorized_warriors,
             ) | Q(
-                warrior_arena_2__id__in=authorized_warriors,
+                warrior_2__id__in=authorized_warriors,
             )).distinct()
-        qs = qs.order_by('-scheduled_at').select_related(
-            'warrior_arena_1',
-            'warrior_arena_1__warrior',
-            'warrior_arena_2',
-            'warrior_arena_2__warrior',
-        )
-        return qs[:100]
+        qs = qs.order_by('-scheduled_at')
+        battles = list(qs[:100])
+        prefetch_warriors(battles)
+        prefetch_warrior_arenas(self.arena, battles)
+        return battles

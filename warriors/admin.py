@@ -80,7 +80,7 @@ class WarriorArenaAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
 
 @admin.register(Battle)
 class BattleAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
-    list_display = ('warrior_arena_1', 'warrior_arena_2', 'scheduled_at')
+    list_display = ('warrior_1', 'warrior_2', 'scheduled_at')
     date_hierarchy = 'scheduled_at'
 
 

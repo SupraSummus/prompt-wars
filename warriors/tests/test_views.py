@@ -40,7 +40,7 @@ def test_warrior_details(client, warrior_arena, battle):
 def test_warrior_details_creates_user_permission(user, user_client, warrior_arena, warrior):
     assert user not in warrior.users.all()
     session = user_client.session
-    session['authorized_warriors'] = [str(warrior_arena.id)]
+    session['authorized_warriors'] = [str(warrior.id)]
     session.save()
     response = user_client.get(
         reverse('warrior_detail', args=(warrior_arena.id,)),
@@ -51,9 +51,9 @@ def test_warrior_details_creates_user_permission(user, user_client, warrior_aren
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('session_authorized', [True, False])
-def test_warrior_details_authorized_session(client, warrior_arena, session_authorized):
+def test_warrior_details_authorized_session(client, warrior, warrior_arena, session_authorized):
     session = client.session
-    session['authorized_warriors'] = [str(warrior_arena.id)] if session_authorized else []
+    session['authorized_warriors'] = [str(warrior.id)] if session_authorized else []
     session.save()
     response = client.get(
         reverse('warrior_detail', args=(warrior_arena.id,))
@@ -72,16 +72,10 @@ def test_warrior_details_do_few_sql_queries(client, arena, warrior_arena, django
         battle_warrior_2 = other_warrior_arena.warrior
         if battle_warrior_1.id > battle_warrior_2.id:
             battle_warrior_1, battle_warrior_2 = battle_warrior_2, battle_warrior_1
-        battle_warrior_arena_1 = warrior_arena
-        battle_warrior_arena_2 = other_warrior_arena
-        if battle_warrior_arena_1.id > battle_warrior_arena_2.id:
-            battle_warrior_arena_1, battle_warrior_arena_2 = battle_warrior_arena_2, battle_warrior_arena_1
         BattleFactory(
             arena=arena,
             warrior_1=battle_warrior_1,
             warrior_2=battle_warrior_2,
-            warrior_arena_1=battle_warrior_arena_1,
-            warrior_arena_2=battle_warrior_arena_2,
             resolved_at_1_2=timezone.now(),
             text_unit_1_2=TextUnitFactory(),
             resolved_at_2_1=timezone.now(),
@@ -221,12 +215,12 @@ def test_recent_battles(user_client, battle, warrior_user_permission, default_ar
 @pytest.mark.django_db
 def test_recent_battles_no_duplicates(user, user_client, battle, default_arena):
     # this user has access to both warriors
-    battle.warrior_arena_1.warrior.users.add(user)
-    battle.warrior_arena_2.warrior.users.add(user)
+    battle.warrior_1.users.add(user)
+    battle.warrior_2.users.add(user)
     # and there is another user with access to both warriors
     another_user = UserFactory()
-    battle.warrior_arena_1.warrior.users.add(another_user)
-    battle.warrior_arena_2.warrior.users.add(another_user)
+    battle.warrior_1.users.add(another_user)
+    battle.warrior_2.users.add(another_user)
     response = user_client.get(reverse('recent_battles'))
     assert response.status_code == 200
     assert len(response.context['battles']) == 1

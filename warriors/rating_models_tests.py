@@ -3,6 +3,7 @@ import datetime
 import pytest
 from django.utils import timezone
 
+from .models import WarriorArena
 from .rating_models import update_rating
 from .tests.factories import BattleFactory, WarriorArenaFactory
 
@@ -23,10 +24,9 @@ def test_update_rating_takes_newer_battles(battle):
     # warrior_1 won the second battle
     new_then = then + datetime.timedelta(days=1)
     BattleFactory(
+        arena=battle.arena,
         warrior_1=battle.warrior_1,
         warrior_2=battle.warrior_2,
-        warrior_arena_1=battle.warrior_arena_1,
-        warrior_arena_2=battle.warrior_arena_2,
         scheduled_at=new_then,
         resolved_at_1_2=new_then,
         lcs_len_1_2_1=6,
@@ -35,12 +35,14 @@ def test_update_rating_takes_newer_battles(battle):
         lcs_len_2_1_1=6,
         lcs_len_2_1_2=0,
     )
+    warrior_arena_1 = WarriorArena.objects.get(warrior=battle.warrior_1, arena=battle.arena)
+    warrior_arena_2 = WarriorArena.objects.get(warrior=battle.warrior_2, arena=battle.arena)
 
-    battle.warrior_arena_1.update_rating()
+    warrior_arena_1.update_rating()
 
-    battle.warrior_arena_1.refresh_from_db()
-    battle.warrior_arena_2.refresh_from_db()
-    assert battle.warrior_arena_1.rating > battle.warrior_arena_2.rating
+    warrior_arena_1.refresh_from_db()
+    warrior_arena_2.refresh_from_db()
+    assert warrior_arena_1.rating > warrior_arena_2.rating
 
 
 @pytest.mark.django_db

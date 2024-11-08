@@ -52,21 +52,33 @@ class RatingMixin(models.Model):
         """
         from .models import Battle, WarriorArena
 
-        # compute rating
-        scores = {}  # opponent_id -> GameScore(score, opponent_rating, opponent_playstyle)
-        for b in Battle.objects.with_warrior_arena(self).resolved().select_related(
-            'warrior_arena_1',
-            'warrior_arena_2',
-        ).order_by('scheduled_at'):
+        # collect relevant battles
+        battles = {}  # opponent warrior id -> our BattleViewpoint
+        for b in Battle.objects.with_warrior_arena(self).resolved().order_by('scheduled_at'):
             b = b.get_warrior_viewpoint(self)
-            if (game_score := b.score) is not None:
-                normalize_playstyle_len(b.warrior_arena_2.rating_playstyle)
-                scores[b.warrior_arena_2.id] = GameScore(
-                    score=game_score,
-                    opponent_rating=b.warrior_arena_2.rating,
-                    opponent_playstyle=b.warrior_arena_2.rating_playstyle,
-                )
+            if b.score is None:
+                continue
+            battles[b.warrior_2_id] = b
 
+        # collect scores
+        scores = {}  # opponent warrior_arena id -> GameScore(score, opponent_rating, opponent_playstyle)
+        warrior_arenas = {
+            w.warrior_id: w
+            for w in WarriorArena.objects.filter(
+                arena_id=self.arena_id,
+                warrior_id__in=battles.keys(),
+            )
+        }
+        for b in battles.values():
+            opponent = warrior_arenas[b.warrior_2_id]
+            normalize_playstyle_len(opponent.rating_playstyle)
+            scores[opponent.id] = GameScore(
+                score=b.score,
+                opponent_rating=opponent.rating,
+                opponent_playstyle=opponent.rating_playstyle,
+            )
+
+        # find rating fitting our scores
         # we limit rating range for warriors with few games played
         max_allowed_rating = MAX_ALLOWED_RATING_PER_GAME * len(scores)
         normalize_playstyle_len(self.rating_playstyle)

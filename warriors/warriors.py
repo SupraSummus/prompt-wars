@@ -1,4 +1,5 @@
 import uuid
+from functools import lru_cache
 
 from django.conf import settings
 from django.db import models
@@ -109,9 +110,20 @@ class Warrior(EmbeddingMixin, models.Model):
             ),
         ]
 
+    def __str__(self):
+        if self.moderation_passed is not True:
+            return str(self.id)
+        return self.name or str(self.id)
+
     @property
     def ensure_voyage_3_embedding_handler(self):
         return ensure_voyage_3_embedding
+
+    @lru_cache(maxsize=16)
+    def is_user_authorized(self, user):
+        if not user.is_authenticated:
+            return False
+        return self.users.filter(id=user.id).exists()
 
 
 def ensure_voyage_3_embedding(goal):

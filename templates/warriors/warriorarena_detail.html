@@ -71,7 +71,7 @@
                 {% include 'time.html' with time=battle.scheduled_at %}
               </a></td>
               <td><a href="{% url 'battle_detail' battle.id %}?{{ request.GET.urlencode }}">
-                {{ battle.warrior_arena_2 }}
+                {{ battle.warrior_2 }}
               </a></td>
               <td>
                 <a href="{% url 'battle_detail' battle.id %}?{{ request.GET.urlencode }}#{{ battle.game_1_id }}">

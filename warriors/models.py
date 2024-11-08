@@ -2,7 +2,7 @@ import datetime
 import random
 import uuid
 from dataclasses import dataclass
-from functools import cached_property, lru_cache
+from functools import cached_property
 
 import numpy
 from django.conf import settings
@@ -228,9 +228,9 @@ class WarriorArena(RatingMixin, models.Model):
         ).exclude(
             id=self.id,
         ).exclude(
-            id__in=historic_battles.values('warrior_arena_1'),
+            warrior_id__in=historic_battles.values('warrior_1'),
         ).exclude(
-            id__in=historic_battles.values('warrior_arena_2'),
+            warrior_id__in=historic_battles.values('warrior_2'),
         )
 
     def get_next_battle_delay(self):
@@ -248,15 +248,6 @@ class WarriorArena(RatingMixin, models.Model):
             K ** exponent - 1,
             0,
         ) * time_unit
-
-    @lru_cache(maxsize=16)
-    def is_user_authorized(self, user):
-        if not user.is_authenticated:
-            return False
-        return WarriorUserPermission.objects.filter(
-            warrior=self.warrior,
-            user=user,
-        ).exists()
 
 
 class WarriorUserPermission(models.Model):
@@ -296,16 +287,23 @@ class WarriorUserPermission(models.Model):
 class BattleQuerySet(models.QuerySet):
     def with_warrior_arena(self, warrior_arena):
         return self.filter(
-            models.Q(warrior_arena_1=warrior_arena) |
-            models.Q(warrior_arena_2=warrior_arena),
+            arena_id=warrior_arena.arena_id,
+        ).filter(
+            models.Q(warrior_1_id=warrior_arena.warrior_id) |
+            models.Q(warrior_2_id=warrior_arena.warrior_id),
         )
 
     def with_warrior_arenas(self, warrior_arena_1, warrior_arena_2):
-        if warrior_arena_1.id > warrior_arena_2.id:
-            warrior_arena_1, warrior_arena_2 = warrior_arena_2, warrior_arena_1
+        assert warrior_arena_1.arena_id == warrior_arena_2.arena_id
+        arena_id = warrior_arena_1.arena_id
+        warrior_1_id = warrior_arena_1.warrior_id
+        warrior_2_id = warrior_arena_2.warrior_id
+        if warrior_1_id > warrior_2_id:
+            warrior_1_id, warrior_2_id = warrior_2_id, warrior_1_id
         return self.filter(
-            warrior_arena_1=warrior_arena_1,
-            warrior_arena_2=warrior_arena_2,
+            arena_id=arena_id,
+            warrior_1_id=warrior_1_id,
+            warrior_2_id=warrior_2_id,
         )
 
     def resolved(self):
@@ -320,8 +318,8 @@ class BattleQuerySet(models.QuerySet):
         if not user.is_authenticated:
             return self
         return self.filter(
-            Q(warrior_arena_1__warrior__users=user) |
-            Q(warrior_arena_2__warrior__users=user),
+            Q(warrior_1__users=user) |
+            Q(warrior_2__users=user),
         ).distinct()
 
     def recent(self):
@@ -353,16 +351,6 @@ class Battle(models.Model):
         to=Warrior,
         on_delete=models.PROTECT,
         related_name='+',
-    )
-    warrior_arena_1 = models.ForeignKey(
-        to=WarriorArena,
-        related_name='warrior1',
-        on_delete=models.CASCADE,
-    )
-    warrior_arena_2 = models.ForeignKey(
-        to=WarriorArena,
-        related_name='warrior2',
-        on_delete=models.CASCADE,
     )
 
     text_unit_1_2 = models.ForeignKey(
@@ -436,21 +424,12 @@ class Battle(models.Model):
                 ),
                 name='warrior_ordering',
             ),
-            models.CheckConstraint(
-                check=models.Q(
-                    warrior_arena_1_id__lt=models.F('warrior_arena_2_id'),
-                ),
-                name='warrior_arena_ordering',
-            ),
         ]
 
     @classmethod
     def create_from_warriors(cls, warrior_arena_1, warrior_arena_2):
         assert warrior_arena_1.arena_id == warrior_arena_2.arena_id
         arena_id = warrior_arena_1.arena_id
-
-        if warrior_arena_1.id > warrior_arena_2.id:
-            warrior_arena_1, warrior_arena_2 = warrior_arena_2, warrior_arena_1
 
         warrior_1 = warrior_arena_1.warrior
         warrior_2 = warrior_arena_2.warrior
@@ -461,8 +440,6 @@ class Battle(models.Model):
             arena_id=arena_id,
             warrior_1=warrior_1,
             warrior_2=warrior_2,
-            warrior_arena_1=warrior_arena_1,
-            warrior_arena_2=warrior_arena_2,
             scheduled_at=TransactionNow(),
         )
         from .tasks import (
@@ -487,11 +464,11 @@ class Battle(models.Model):
     def get_absolute_url(self):
         return reverse('battle_detail', args=[str(self.id)])
 
-    def get_warrior_viewpoint(self, warrior):
-        """Return Battle viewpoint such that warrior_arena_1 == warrior"""
-        if warrior == self.warrior_arena_1:
+    def get_warrior_viewpoint(self, warrior_arena):
+        """Return Battle viewpoint such that warrior_arena_1 == warrior_arena"""
+        if warrior_arena.warrior_id == self.warrior_1_id:
             return BattleViewpoint(self, '1')
-        elif warrior == self.warrior_arena_2:
+        elif warrior_arena.warrior_id == self.warrior_2_id:
             return BattleViewpoint(self, '2')
         else:
             raise ValueError('warrior not in battle')
@@ -554,8 +531,8 @@ class BattleViewpoint:
     @property
     def public_battle_results(self):
         return (
-            self.warrior_arena_1.public_battle_results or
-            self.warrior_arena_2.public_battle_results
+            self.warrior_1.public_battle_results or
+            self.warrior_2.public_battle_results
         )
 
     def __getattr__(self, field_name):
@@ -578,6 +555,10 @@ class BattleViewpoint:
         ):
             return field_name
         if field_name in (
+            'warrior_1',
+            'warrior_2',
+            'warrior_1_id',
+            'warrior_2_id',
             'warrior_arena_1',
             'warrior_arena_2',
         ):
@@ -605,9 +586,11 @@ class BattleViewpoint:
         if self.viewpoint == '1':
             return field_name
         elif self.viewpoint == '2':
-            base, n = field_name.rsplit('_', 1)
-            n = {'1': '2', '2': '1'}[n]
-            return f'{base}_{n}'
+            if '1' in field_name:
+                return field_name.replace('1', '2')
+            elif '2' in field_name:
+                return field_name.replace('2', '1')
+        assert False
 
     def map_field_name_x_x(self, field_name):
         if self.viewpoint == '1':
@@ -683,6 +666,14 @@ class Game:
             return f'lcs_len_{self.direction}_{self.direction_from}'
         elif field_name == 'lcs_len_2':
             return f'lcs_len_{self.direction}_{self.direction_to}'
+        elif field_name == 'warrior_1':
+            return f'warrior_{self.direction_from}'
+        elif field_name == 'warrior_2':
+            return f'warrior_{self.direction_to}'
+        elif field_name == 'warrior_1_id':
+            return f'warrior_{self.direction_from}_id'
+        elif field_name == 'warrior_2_id':
+            return f'warrior_{self.direction_to}_id'
         elif field_name == 'warrior_arena_1':
             return f'warrior_arena_{self.direction_from}'
         elif field_name == 'warrior_arena_2':
@@ -701,14 +692,14 @@ class Game:
     @property
     def warrior_1_preserved_ratio(self):
         return self.lcs_len_1 / max(
-            len(self.warrior_arena_1.body),
+            len(self.warrior_1.body),
             len(self.result),
         )
 
     @property
     def warrior_2_preserved_ratio(self):
         return self.lcs_len_2 / max(
-            len(self.warrior_arena_2.body),
+            len(self.warrior_2.body),
             len(self.result),
         )
 
@@ -735,19 +726,19 @@ class Game:
 
     @cached_property
     def result_marked_for_1(self):
-        return lcs_mark(self.result, self.warrior_arena_1.body)
+        return lcs_mark(self.result, self.warrior_1.body)
 
     @cached_property
     def result_marked_for_2(self):
-        return lcs_mark(self.result, self.warrior_arena_2.body)
+        return lcs_mark(self.result, self.warrior_2.body)
 
     @cached_property
     def warrior_1_similarity(self):
-        return _warrior_similarity(self.text_unit, self.warrior_arena_1.warrior)
+        return _warrior_similarity(self.text_unit, self.warrior_1)
 
     @cached_property
     def warrior_2_similarity(self):
-        return _warrior_similarity(self.text_unit, self.warrior_arena_2.warrior)
+        return _warrior_similarity(self.text_unit, self.warrior_2)
 
     @property
     def warrior_1_similarity_relative(self):
