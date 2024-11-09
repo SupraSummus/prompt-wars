@@ -361,10 +361,10 @@ class Battle(models.Model):
         related_name='+',
     )
     lcs_len_1_2_1 = models.PositiveIntegerField(
-        default=0.0,
+        default=0,
     )
     lcs_len_1_2_2 = models.PositiveIntegerField(
-        default=0.0,
+        default=0,
     )
     finish_reason_1_2 = models.CharField(
         max_length=20,
@@ -387,10 +387,10 @@ class Battle(models.Model):
         related_name='+',
     )
     lcs_len_2_1_1 = models.PositiveIntegerField(
-        default=0.0,
+        default=0,
     )
     lcs_len_2_1_2 = models.PositiveIntegerField(
-        default=0.0,
+        default=0,
     )
     finish_reason_2_1 = models.CharField(
         max_length=20,
