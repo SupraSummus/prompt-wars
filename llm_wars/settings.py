@@ -165,7 +165,7 @@ SILENCED_SYSTEM_CHECKS.append('django_recaptcha.recaptcha_test_key_error')
 if SENTRY_DSN := env.str('SENTRY_DSN', default=''):
     sentry_sdk.init(
         dsn=SENTRY_DSN,
-        traces_sample_rate=0.01,
+        traces_sample_rate=0.1,
         profiles_sample_rate=0.01,
     )
 
