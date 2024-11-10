@@ -1,23 +1,10 @@
 from warriors.models import Battle
 
 
-def do_some():
-    qs = Battle.objects.filter(warrior_1=None) | Battle.objects.filter(warrior_2=None)
-    qs = qs.select_related('warrior_arena_1', 'warrior_arena_2')
-    battles = list(qs[:1000])
-    for battle in battles:
-        warrior_1_id = battle.warrior_arena_1.warrior_id
-        warrior_2_id = battle.warrior_arena_2.warrior_id
-        if warrior_1_id > warrior_2_id:
-            warrior_1_id, warrior_2_id = warrior_2_id, warrior_1_id
-        battle.warrior_1_id = warrior_1_id
-        battle.warrior_2_id = warrior_2_id
-    Battle.objects.bulk_update(battles, ['warrior_1_id', 'warrior_2_id'])
-    return len(battles)
-
-
-while True:
-    n = do_some()
-    if n == 0:
-        break
-    print('Updated', n)
+for battle in Battle.objects.filter(
+    scheduled_at__gte='2024-10-31T21:04:57.175374+00:00',
+    scheduled_at__lte='2024-11-08T22:23:21.981115+00:00',
+):
+    print(battle.id)
+    battle.lcs_len_1_2_2, battle.lcs_len_2_1_1 = battle.lcs_len_2_1_1, battle.lcs_len_1_2_2
+    battle.save(update_fields=['lcs_len_1_2_2', 'lcs_len_2_1_1'])
