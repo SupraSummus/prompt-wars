@@ -72,6 +72,7 @@ def battle(
         warrior, other_warrior = other_warrior, warrior
     return BattleFactory(
         arena=arena,
+        llm=arena.llm,
         warrior_1=warrior,
         warrior_2=other_warrior,
         **getattr(request, 'param', {}),

@@ -49,6 +49,7 @@ def test_create_battle_lots_of_games_played(warrior_arena, battle, other_warrior
     BattleFactory.create_batch(
         100,
         arena=battle.arena,
+        llm=battle.llm,
         warrior_1=battle.warrior_1,
         warrior_2=battle.warrior_2,
     )

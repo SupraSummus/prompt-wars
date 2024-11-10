@@ -128,7 +128,6 @@ def resolve_battle_2_1(goal, battle_id):
 def resolve_battle(battle_id, direction):
     now = timezone.now()
     battle = Battle.objects.filter(id=battle_id).select_related(
-        'arena',
         'warrior_1',
         'warrior_2',
     ).get()
@@ -141,7 +140,7 @@ def resolve_battle(battle_id, direction):
     resolve_battle_function = {
         LLM.OPENAI_GPT: resolve_battle_openai,
         LLM.CLAUDE_3_HAIKU: anthropic.resolve_battle,
-    }[battle_view.arena.llm]
+    }[battle_view.llm]
 
     try:
         (

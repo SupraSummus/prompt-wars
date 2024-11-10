@@ -27,6 +27,7 @@ def test_update_rating_takes_newer_battles(battle):
     new_then = then + datetime.timedelta(days=1)
     BattleFactory(
         arena=battle.arena,
+        llm=battle.llm,
         warrior_1=battle.warrior_1,
         warrior_2=battle.warrior_2,
         scheduled_at=new_then,
@@ -55,11 +56,12 @@ def test_rating_is_isolated_for_each_arena():
     if warrior_1.id > warrior_2.id:
         warrior_1, warrior_2 = warrior_2, warrior_1
 
-    arena_1 = ArenaFactory()
+    arena_1 = ArenaFactory(llm='model1')
     warrior_1_arena_1 = WarriorArenaFactory(warrior=warrior_1, arena=arena_1)
     warrior_2_arena_1 = WarriorArenaFactory(warrior=warrior_2, arena=arena_1)
     BattleFactory(
         arena=arena_1,
+        llm=arena_1.llm,
         warrior_1=warrior_1,
         warrior_2=warrior_2,
         resolved_at_1_2=now,
@@ -70,11 +72,12 @@ def test_rating_is_isolated_for_each_arena():
         lcs_len_2_1_2=1,
     )
 
-    arena_2 = ArenaFactory()
+    arena_2 = ArenaFactory(llm='model2')
     warrior_1_arena_2 = WarriorArenaFactory(warrior=warrior_1, arena=arena_2)
     warrior_2_arena_2 = WarriorArenaFactory(warrior=warrior_2, arena=arena_2)
     BattleFactory(
         arena=arena_2,
+        llm=arena_2.llm,
         warrior_1=warrior_1,
         warrior_2=warrior_2,
         resolved_at_1_2=now,

@@ -282,7 +282,7 @@ class WarriorUserPermission(models.Model):
 class BattleQuerySet(models.QuerySet):
     def with_warrior_arena(self, warrior_arena):
         return self.filter(
-            arena_id=warrior_arena.arena_id,
+            llm=warrior_arena.arena.llm,
         ).filter(
             models.Q(warrior_1_id=warrior_arena.warrior_id) |
             models.Q(warrior_2_id=warrior_arena.warrior_id),
@@ -290,13 +290,12 @@ class BattleQuerySet(models.QuerySet):
 
     def with_warrior_arenas(self, warrior_arena_1, warrior_arena_2):
         assert warrior_arena_1.arena_id == warrior_arena_2.arena_id
-        arena_id = warrior_arena_1.arena_id
         warrior_1_id = warrior_arena_1.warrior_id
         warrior_2_id = warrior_arena_2.warrior_id
         if warrior_1_id > warrior_2_id:
             warrior_1_id, warrior_2_id = warrior_2_id, warrior_1_id
         return self.filter(
-            arena_id=arena_id,
+            llm=warrior_arena_1.arena.llm,
             warrior_1_id=warrior_1_id,
             warrior_2_id=warrior_2_id,
         )
@@ -550,6 +549,7 @@ class BattleViewpoint:
             'id',
             'arena',
             'arena_id',
+            'llm',
             'scheduled_at',
             'rating_transferred_at',
         ):
@@ -683,7 +683,7 @@ class Game:
             return f'warrior_arena_{self.direction_from}'
         elif field_name == 'warrior_arena_2':
             return f'warrior_arena_{self.direction_to}'
-        elif field_name == 'arena':
+        elif field_name in ('arena', 'llm'):
             return field_name
         else:
             return None
