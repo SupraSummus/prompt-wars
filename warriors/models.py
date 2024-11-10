@@ -21,7 +21,7 @@ from .rating import get_expected_game_score
 from .rating_models import M_ELO_K, RatingMixin, normalize_playstyle_len
 from .stats import ArenaStats
 from .text_unit import TextUnit
-from .warriors import MAX_WARRIOR_LENGTH, Warrior
+from .warriors import Warrior
 
 
 __all__ = ['ArenaStats', 'Warrior', 'TextUnit']
@@ -34,7 +34,6 @@ MATCHMAKING_COOLDOWN = datetime.timedelta(days=122)  # 4 months
 
 
 class LLM(models.TextChoices):
-    GPT_3_5_TURBO = 'gpt-3.5-turbo', 'GPT-3.5 Turbo'  # TODO: remove
     OPENAI_GPT = 'openai-gpt', _('OpenAI GPT')
     CLAUDE_3_HAIKU = 'claude-3-haiku', _('Claude 3 Haiku')
 
@@ -61,10 +60,6 @@ class Arena(models.Model):
     llm = models.CharField(
         max_length=20,
         choices=LLM.choices,
-    )
-    prompt = models.TextField(
-        max_length=MAX_WARRIOR_LENGTH,
-        blank=True,
     )
     description = models.TextField(
         blank=True,

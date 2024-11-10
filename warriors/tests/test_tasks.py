@@ -7,11 +7,12 @@ import pytest
 from django.utils import timezone
 from django_goals.models import RetryMeLater
 
-from ..models import MAX_WARRIOR_LENGTH, Battle, WarriorArena
+from ..models import Battle, WarriorArena
 from ..tasks import (
     do_moderation, openai_client, resolve_battle, schedule_battle,
     schedule_battle_top_arena, schedule_battles, transfer_rating,
 )
+from ..warriors import MAX_WARRIOR_LENGTH
 from .factories import WarriorArenaFactory
 
 
@@ -114,10 +115,6 @@ def test_schedule_battle_top(warrior_arena, other_warrior_arena, arena, monkeypa
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('arena', [
-    {'prompt': 'arena specific prompt'},
-    {'prompt': ''},
-], indirect=True)
 def test_resolve_battle(arena, battle, monkeypatch):
     assert battle.warrior_1.body
     assert battle.warrior_2.body
@@ -140,19 +137,10 @@ def test_resolve_battle(arena, battle, monkeypatch):
 
     # LLM was properly invoked
     assert create_mock.call_count == 1
-    if arena.prompt:
-        assert create_mock.call_args.kwargs['messages'] == [{
-            'role': 'system',
-            'content': arena.prompt,
-        }, {
-            'role': 'user',
-            'content': battle.warrior_2.body + battle.warrior_1.body,
-        }]
-    else:
-        assert create_mock.call_args.kwargs['messages'] == [{
-            'role': 'user',
-            'content': battle.warrior_2.body + battle.warrior_1.body,
-        }]
+    assert create_mock.call_args.kwargs['messages'] == [{
+        'role': 'user',
+        'content': battle.warrior_2.body + battle.warrior_1.body,
+    }]
 
     # lcs_len was properly invoked
     assert lcs_len_mock.call_count == 2

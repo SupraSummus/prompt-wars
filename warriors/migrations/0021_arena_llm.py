@@ -15,7 +15,6 @@ class Migration(migrations.Migration):
             name='llm',
             field=models.CharField(
                 choices=[
-                    ('gpt-3.5-turbo', 'GPT-3.5 Turbo'),
                     ('openai-gpt', 'OpenAI GPT'),
                     ('claude-3-haiku', 'Claude 3 Haiku'),
                 ],

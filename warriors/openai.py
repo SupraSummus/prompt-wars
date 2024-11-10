@@ -4,7 +4,7 @@ import openai
 from django.conf import settings
 
 from .exceptions import RateLimitError
-from .models import MAX_WARRIOR_LENGTH
+from .warriors import MAX_WARRIOR_LENGTH
 
 
 logger = logging.getLogger(__name__)

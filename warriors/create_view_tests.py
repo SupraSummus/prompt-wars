@@ -2,7 +2,8 @@ import pytest
 from django.urls import reverse
 from django_goals.models import Goal
 
-from .models import MAX_WARRIOR_LENGTH, WarriorArena, WarriorUserPermission
+from .models import WarriorArena, WarriorUserPermission
+from .warriors import MAX_WARRIOR_LENGTH
 
 
 @pytest.mark.django_db

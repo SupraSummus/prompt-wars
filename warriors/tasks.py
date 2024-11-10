@@ -139,7 +139,6 @@ def resolve_battle(battle_id, direction):
         return AllDone()
 
     resolve_battle_function = {
-        LLM.GPT_3_5_TURBO: resolve_battle_openai,
         LLM.OPENAI_GPT: resolve_battle_openai,
         LLM.CLAUDE_3_HAIKU: anthropic.resolve_battle,
     }[battle_view.arena.llm]
@@ -152,7 +151,6 @@ def resolve_battle(battle_id, direction):
         ) = resolve_battle_function(
             battle_view.warrior_1.body,
             battle_view.warrior_2.body,
-            battle_view.arena.prompt,
         )
     except RateLimitError:
         # try again in some time
