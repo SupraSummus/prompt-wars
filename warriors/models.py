@@ -333,6 +333,10 @@ class Battle(models.Model):
         to=Arena,
         on_delete=models.CASCADE,
     )
+    llm = models.CharField(
+        max_length=20,
+        choices=LLM.choices,
+    )
     scheduled_at = models.DateTimeField(
         db_index=True,
         default=timezone.now,
@@ -433,6 +437,7 @@ class Battle(models.Model):
 
         battle = cls.objects.create(
             arena_id=arena_id,
+            llm=warrior_arena_1.arena.llm,
             warrior_1=warrior_1,
             warrior_2=warrior_2,
             scheduled_at=TransactionNow(),

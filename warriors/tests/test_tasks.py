@@ -83,6 +83,8 @@ def test_schedule_battle(arena, warrior_arena, other_warrior_arena):
 
     battle = Battle.objects.get()
     assert battle.arena == arena
+    assert battle.llm
+    assert battle.llm == arena.llm
 
     warrior_arena.refresh_from_db()
     # it advances the next_battle_schedule
