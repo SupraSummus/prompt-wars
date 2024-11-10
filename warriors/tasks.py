@@ -7,11 +7,10 @@ from django.utils import timezone
 from django_goals.models import AllDone, RetryMeLater, schedule
 
 from . import anthropic
+from .battles import LLM, MATCHMAKING_COOLDOWN, Battle, Game
 from .exceptions import RateLimitError
 from .lcs import lcs_len
-from .models import (
-    LLM, MATCHMAKING_COOLDOWN, Arena, Battle, Game, WarriorArena,
-)
+from .models import Arena, WarriorArena
 from .openai import openai_client, resolve_battle_openai
 from .text_unit import TextUnit
 from .warriors import MAX_WARRIOR_LENGTH, Warrior, ensure_name_generated

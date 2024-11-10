@@ -4,7 +4,7 @@ from uuid import UUID
 import pytest
 from django.utils import timezone
 
-from ..models import Battle, BattleViewpoint
+from ..battles import Battle, BattleViewpoint
 from ..text_unit import TextUnit
 from .factories import BattleFactory, WarriorArenaFactory
 

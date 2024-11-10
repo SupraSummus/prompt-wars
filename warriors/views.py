@@ -10,10 +10,9 @@ from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormView
 from django.views.generic.list import ListView
 
+from .battles import Battle, BattleViewpoint
 from .forms import ChallengeWarriorForm
-from .models import (
-    Arena, Battle, BattleViewpoint, WarriorArena, WarriorUserPermission,
-)
+from .models import Arena, WarriorArena, WarriorUserPermission
 from .stats import ArenaStats
 from .warriors import Warrior
 
