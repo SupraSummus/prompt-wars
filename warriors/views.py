@@ -268,7 +268,13 @@ class WarriorLeaderboard(ArenaViewMixin, ListView):
             arena=self.arena,
         ).select_related(
             'warrior',
-        ).order_by('-rating')[:100]
+        ).order_by('-rating')[:100].only(
+            'rating',
+            'rating_playstyle',
+            'games_played',
+            'warrior__name',
+            'warrior__moderation_passed',
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

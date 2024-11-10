@@ -198,6 +198,15 @@ def test_leaderboard(client, arena, settings, warrior_arena, default_arena):
 
 
 @pytest.mark.django_db
+def test_loaderboard_sql_queries(client, arena, django_assert_max_num_queries):
+    n = 100
+    WarriorArenaFactory.create_batch(n, arena=arena)
+    with django_assert_max_num_queries(n // 2):
+        response = client.get(reverse('arena_leaderboard', args=(arena.id,)))
+    assert response.context['warriors'].count() == n
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize('warrior_arena', [{'next_battle_schedule': timezone.now()}], indirect=True)
 def test_upcoming_battles(user_client, warrior_arena, warrior_user_permission, default_arena):
     response = user_client.get(reverse('upcoming_battles'))
