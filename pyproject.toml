@@ -16,7 +16,7 @@ whitenoise = "*"
 anthropic = "*"
 numpy = "*"
 scipy = "*"
-django-goals = {url = "https://github.com/EE/django-goals/archive/4a589235e3615c0e97f80426ed10e4096ddfc14c.zip"}
+django-goals = {url = "https://github.com/EE/django-goals/archive/35dda85c69c079faaf5aaa3d737a22a40e780d1d.zip"}
 humanize = "*"
 voyageai = "^0.2.4"
 
