@@ -25,7 +25,7 @@ class Arena(models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
-        editable=False
+        editable=False,
     )
     site = models.OneToOneField(
         to=Site,

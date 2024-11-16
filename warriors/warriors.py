@@ -20,6 +20,11 @@ class WarriorQuerySet(models.QuerySet):
         )
 
 
+class WarriorManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().defer('voyage_3_embedding')
+
+
 class Warrior(EmbeddingMixin, models.Model):
     id = models.UUIDField(
         primary_key=True,
@@ -92,7 +97,7 @@ class Warrior(EmbeddingMixin, models.Model):
         related_name='+',  # TODO: change to 'warriors'
     )
 
-    objects = WarriorQuerySet.as_manager()
+    objects = WarriorManager.from_queryset(WarriorQuerySet)()
 
     class Meta:
         ordering = ('id',)
