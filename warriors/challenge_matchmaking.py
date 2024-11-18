@@ -9,6 +9,7 @@ from django.db.models import F
 
 from .models import Arena, Battle, WarriorArena
 from .rating import compute_omega_matrix
+from .rating_models import normalize_playstyle_len
 
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,7 @@ def schedule_losing_battle(warrior_arena):
 
 
 def get_strongest_opponents(warrior_arena):
+    normalize_playstyle_len(warrior_arena.rating_playstyle)
     assert len(warrior_arena.rating_playstyle) == 2
     omega = compute_omega_matrix(k=1)  # it should be 2x2 matrix
     our_playstyle = numpy.array(warrior_arena.rating_playstyle)
