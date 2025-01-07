@@ -16,9 +16,9 @@ whitenoise = "*"
 anthropic = "*"
 numpy = "*"
 scipy = "*"
-django-goals = {url = "https://github.com/EE/django-goals/archive/35dda85c69c079faaf5aaa3d737a22a40e780d1d.zip"}
+django-goals = {url = "https://github.com/EE/django-goals/archive/9a7a3415a495231b5c0d9408b2f12ae5b8b150ea.zip"}
 humanize = "*"
-voyageai = "^0.2.4"
+voyageai = "*"
 
 
 [tool.poetry.group.dev.dependencies]
