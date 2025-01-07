@@ -4,7 +4,7 @@ readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "3.12.7"
+python = "3.13.*"
 django = "==4.2.*"
 openai = "*"
 django-environ = "*"
@@ -30,8 +30,7 @@ pytest-django = "*"
 pylint-django = "*"
 flake8-pyproject = "*"
 factory-boy = "*"
-aider-chat = "*"
-django-debug-toolbar = "^4.4.6"
+django-debug-toolbar = "*"
 
 [build-system]
 requires = ["poetry-core"]
