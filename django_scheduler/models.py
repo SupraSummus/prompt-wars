@@ -1,11 +1,13 @@
-from django.db import models
+import datetime
+import inspect
+import logging
+import time
 import uuid
 from dataclasses import dataclass
 from typing import Callable
-import datetime
-import logging
+
+from django.db import models, transaction
 from django.utils import timezone
-import time
 
 
 logger = logging.getLogger(__name__)
@@ -33,9 +35,15 @@ class LocalJob:
 _local_jobs = []
 
 
-def register_job(handler, interval):
-    job = LocalJob(key=handler.__name__, handler=handler, interval=interval)
+def register_job(handler, interval, key=None):
+    job = get_job_from_function(handler, interval, key)
     _local_jobs.append(job)
+
+
+def get_job_from_function(handler, interval, key=None):
+    if key is None:
+        key = inspect.getmodule(handler).__name__ + '.' + handler.__name__
+    return LocalJob(key=key, handler=handler, interval=interval)
 
 
 def run(local_jobs=None, blocking=True):
@@ -64,7 +72,7 @@ def run(local_jobs=None, blocking=True):
             logger.info("No jobs in queue, exiting")
             break
 
-        next_run, local_jon = queue[0]
+        next_run, local_job = queue[0]
         if next_run > now:
             if not blocking:
                 logger.info("Next job is in the future, exiting")
@@ -107,8 +115,8 @@ def run_job(local_job):
         db_job = get_or_create_db_jobs([local_job])[local_job.key]
 
     logger.info("Running job %s", local_job.key)
-    db_job.last_run = timezone.now()
-    try:
-        local_job.handler()
+    now = timezone.now()
+    db_job.last_run = now
+    local_job.handler(now)
     db_job.save(update_fields=['last_run'])
     return db_job
