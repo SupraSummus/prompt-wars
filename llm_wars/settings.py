@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django_recaptcha',
     'django_goals',
+    'django_scheduler.apps.DjangoSchedulerConfig',
     'django_object_actions',
     'users.apps.UsersConfig',
     'warriors.apps.WarriorsConfig',
@@ -198,6 +199,10 @@ LOGGING = {
     },
     'loggers': {
         'django_goals': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'django_scheduler': {
             'handlers': ['console'],
             'level': 'INFO',
         },
