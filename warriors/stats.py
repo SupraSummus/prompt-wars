@@ -31,9 +31,10 @@ def rating_quantile_labels():
     return [i / 100 for i in range(101)]
 
 
-def create_arena_stats():
+def create_arena_stats(now=None):
     from .models import Arena
-    now = timezone.now()
+    if now is None:
+        now = timezone.now()
     for arena in Arena.objects.all():
         create_arena_stats_for_arena(arena, now)
 

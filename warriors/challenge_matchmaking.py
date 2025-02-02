@@ -15,7 +15,7 @@ from .rating_models import normalize_playstyle_len
 logger = logging.getLogger(__name__)
 
 
-def schedule_losing_battle_top():
+def schedule_losing_battle_top(now=None):
     for arena in Arena.objects.all():
         battle = schedule_losing_battle_arena(arena)
         logger.info('Scheduled battle %s', battle)

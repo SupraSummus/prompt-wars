@@ -1,5 +1,6 @@
-import logging
-import sched
+from datetime import timedelta
+
+from django_scheduler.models import register_job
 
 from .challenge_matchmaking import schedule_losing_battle_top
 from .rating_models import update_rating
@@ -7,27 +8,8 @@ from .stats import create_arena_stats
 from .tasks import schedule_battle, schedule_battles_top
 
 
-logger = logging.getLogger(__name__)
-
-
-class Scheduler(sched.scheduler):
-    def enter_recurring(self, delay, priority, action, argument=(), kwargs={}):
-        action(*argument, **kwargs)
-        self.enter(delay, priority, self.enter_recurring, (delay, priority, action, argument, kwargs))
-
-    def run(self, *args, **kwargs):
-        logger.info('Starting scheduler')
-        return super().run(*args, **kwargs)
-
-    def clear(self):
-        logger.info('Clearing scheduler')
-        with self._lock:
-            self._queue.clear()
-
-
-scheduler = Scheduler()
-scheduler.enter_recurring(1, 0, schedule_battle)
-scheduler.enter_recurring(60 * 10, 0, schedule_battles_top)
-scheduler.enter_recurring(60, 0, update_rating)
-scheduler.enter_recurring(60 * 60, 0, create_arena_stats)
-scheduler.enter_recurring(60 * 10, 0, schedule_losing_battle_top)
+register_job(schedule_battle, timedelta(seconds=1))
+register_job(schedule_battles_top, timedelta(minutes=10))
+register_job(update_rating, timedelta(minutes=1))
+register_job(create_arena_stats, timedelta(hours=1))
+register_job(schedule_losing_battle_top, timedelta(minutes=10))

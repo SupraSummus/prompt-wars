@@ -63,7 +63,7 @@ def run(local_jobs=None, blocking=True):
         else:
             next_run = now
         queue.append((next_run, local_job))
-    queue.sort()
+    queue.sort(key=lambda x: x[0])
     del db_jobs
     del local_jobs
 
@@ -89,7 +89,7 @@ def run(local_jobs=None, blocking=True):
         db_job = run_job(local_job)
 
         queue.append((db_job.last_run + local_job.interval, local_job))
-        queue.sort()
+        queue.sort(key=lambda x: x[0])
 
 
 def get_or_create_db_jobs(local_jobs):
@@ -127,6 +127,6 @@ def run_job(local_job):
 
     logger.info("Running job %s", local_job.key)
     db_job.last_run = now
-    local_job.handler(now)
+    local_job.handler(now=now)
     db_job.save(update_fields=['last_run'])
     return db_job

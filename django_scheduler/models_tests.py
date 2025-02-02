@@ -26,7 +26,7 @@ def sample_handler(now):
 
 def test_register_job():
     """Test job registration and automatic key generation"""
-    assert not _local_jobs
+    _local_jobs.clear()
 
     register_job(sample_handler, timedelta(minutes=30))
     assert len(_local_jobs) == 1
@@ -50,7 +50,7 @@ def test_run_executes_job_immediately():
     run([local_job], blocking=False)
 
     assert mock_handler.call_count == 1
-    now = mock_handler.call_args[0][0]
+    now = mock_handler.call_args.kwargs["now"]
 
     db_job = Job.objects.get(key="test_job")
     assert db_job.last_run == now

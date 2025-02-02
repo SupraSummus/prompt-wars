@@ -69,7 +69,7 @@ def schedule_battle(now=None):
     warrior.create_battle(opponent, now=now)
 
 
-def schedule_battles_top():
+def schedule_battles_top(now=None):
     for arena in Arena.objects.all():
         schedule_battle_top_arena(arena.id)
 
