@@ -88,6 +88,25 @@ def test_warrior_details_do_few_sql_queries(client, arena, warrior_arena, django
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize('other_arena_listed', [True, False])
+def test_warrior_arena_detail_has_links_to_other_arenas(client, warrior_arena, other_arena_listed):
+    other_warrior_arena = WarriorArenaFactory(
+        warrior=warrior_arena.warrior,
+        arena__listed=other_arena_listed,
+    )
+    response = client.get(
+        reverse('warrior_detail', args=(warrior_arena.id,))
+    )
+    assert response.status_code == 200
+
+    assert (other_warrior_arena in response.context['other_warrior_arenas']) == other_arena_listed
+    assert warrior_arena not in response.context['other_warrior_arenas']
+
+    link_to_other = reverse('warrior_detail', args=(other_warrior_arena.id,))
+    assert (link_to_other in response.content.decode()) == other_arena_listed
+
+
+@pytest.mark.django_db
 def test_warrior_set_public_battle_results(user_client, warrior, warrior_arena, warrior_user_permission):
     assert warrior.public_battle_results is False
     assert warrior_user_permission.public_battle_results is False

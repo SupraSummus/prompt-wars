@@ -108,6 +108,19 @@
         </tbody>
       </table>
 
+      {% if other_warrior_arenas %}
+        <h2>On other arenas</h2>
+        <ul>
+          {% for other_warrior_arena in other_warrior_arenas %}
+            <li>
+              <a href="{% url 'warrior_detail' other_warrior_arena.id %}">
+                {{ other_warrior_arena.arena }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
       <h2>Details</h2>
       <dl>
         {% if warrior.author_name %}

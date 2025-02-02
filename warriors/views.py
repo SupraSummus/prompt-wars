@@ -113,6 +113,13 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
                 user=user,
             )
 
+        context['other_warrior_arenas'] = list(WarriorArena.objects.filter(
+            warrior=self.object.warrior,
+            arena__listed=True,
+        ).exclude(
+            id=self.object.id,
+        ).select_related('arena'))
+
         return context
 
 

@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 from django.utils import timezone
-from django_goals.models import schedule, worker_turn
+from django_goals.models import schedule, worker, worker_turn
 
 from .. import embeddings
 from ..exceptions import RateLimitError
@@ -62,7 +62,7 @@ def test_battle_from_warriors_e2e(monkeypatch, warrior_arena, other_warrior_aren
     assert battle.resolved_at_1_2 is None
     assert battle.resolved_at_2_1 is None
 
-    worker_turn(timezone.now())  # run async tasks
+    worker(once=True)  # run async tasks
 
     warrior_arena.refresh_from_db()
     other_warrior_arena.refresh_from_db()
