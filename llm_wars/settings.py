@@ -202,6 +202,10 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'INFO',
         },
+        'django_scheduler': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
         'warriors': {
             'handlers': ['console'],
             'level': 'INFO',

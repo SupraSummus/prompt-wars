@@ -48,6 +48,7 @@ def get_job_from_function(handler, interval, key=None):
 
 def run(local_jobs=None, blocking=True):
     if local_jobs is None:
+        global _local_jobs
         local_jobs = _local_jobs.copy()
         del _local_jobs  # prevent adding more jobs after we started
 
@@ -64,6 +65,9 @@ def run(local_jobs=None, blocking=True):
         queue.append((next_run, local_job))
     queue.sort()
     del db_jobs
+    del local_jobs
+
+    logger.info("Starting scheduler. Jobs: %s", [job.key for _, job in queue])
 
     # run jobs
     while True:
@@ -84,7 +88,7 @@ def run(local_jobs=None, blocking=True):
         next_run, local_job = queue.pop(0)
         db_job = run_job(local_job)
 
-        queue.append((next_run + local_job.interval, local_job))
+        queue.append((db_job.last_run + local_job.interval, local_job))
         queue.sort()
 
 
@@ -114,8 +118,14 @@ def run_job(local_job):
     if not db_job:
         db_job = get_or_create_db_jobs([local_job])[local_job.key]
 
-    logger.info("Running job %s", local_job.key)
     now = timezone.now()
+    if db_job.last_run:
+        next_run = db_job.last_run + local_job.interval
+        if next_run > now:
+            logger.info("Job %s is not due yet, skipping", local_job.key)
+            return db_job
+
+    logger.info("Running job %s", local_job.key)
     db_job.last_run = now
     local_job.handler(now)
     db_job.save(update_fields=['last_run'])
