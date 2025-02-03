@@ -74,7 +74,7 @@ def test_job_not_run_if_interval_not_passed():
 
 
 @pytest.mark.django_db
-def test_handler_error_rolls_back():
+def test_handler_error():
     """Test handler exceptions prevent last_run update"""
     mock_handler = Mock(side_effect=Exception("Boom!"))
     local_job = LocalJob(
@@ -84,11 +84,10 @@ def test_handler_error_rolls_back():
     )
     Job.objects.create(key="test_job")
 
-    with pytest.raises(Exception):
-        run_job(local_job)
+    run_job(local_job)
 
     db_job = Job.objects.get(key="test_job")
-    assert db_job.last_run is None
+    assert db_job.last_run is not None
 
 
 @pytest.mark.django_db

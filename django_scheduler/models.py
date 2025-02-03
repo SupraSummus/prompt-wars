@@ -126,7 +126,11 @@ def run_job(local_job):
             return db_job
 
     logger.info("Running job %s", local_job.key)
+    try:
+        with transaction.atomic():  # savepoint protects from transaction errors in handler
+            local_job.handler(now=now)
+    except Exception:
+        logger.exception("Error running job %s", local_job.key)
     db_job.last_run = now
-    local_job.handler(now=now)
     db_job.save(update_fields=['last_run'])
     return db_job
