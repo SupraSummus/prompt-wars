@@ -18,7 +18,7 @@ def call_gemini(prompt, break_at_length=MAX_WARRIOR_LENGTH):
     finish_reason = ''
     reported_model = ''
     with requests.post(
-        f'https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent',
+        f'https://generativelanguage.googleapis.com/v1alpha/models/{model}:streamGenerateContent',
         headers={
             'Content-Type': 'application/json',
         },
@@ -51,8 +51,9 @@ def call_gemini(prompt, break_at_length=MAX_WARRIOR_LENGTH):
                 chunks.append(chunk)
                 total_length += len(chunk['text'])
 
-            finish_reason = candidate.get('stopReason') or finish_reason
+            finish_reason = candidate.get('finishReason') or finish_reason
             reported_model = data.get('modelVersion') or reported_model
+            print(data)
 
             if total_length > break_at_length:
                 break
