@@ -9,6 +9,7 @@ from django_goals.models import AllDone, RetryMeLater, schedule
 from . import anthropic
 from .battles import LLM, MATCHMAKING_COOLDOWN, Battle, Game
 from .exceptions import RateLimitError
+from .google import resolve_battle_google
 from .lcs import lcs_len
 from .models import Arena, WarriorArena
 from .openai import openai_client, resolve_battle_openai
@@ -139,6 +140,7 @@ def resolve_battle(battle_id, direction):
     resolve_battle_function = {
         LLM.OPENAI_GPT: resolve_battle_openai,
         LLM.CLAUDE_3_HAIKU: anthropic.resolve_battle,
+        LLM.GOOGLE_GEMINI: resolve_battle_google,
     }[battle_view.llm]
 
     try:

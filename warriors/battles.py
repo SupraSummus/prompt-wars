@@ -70,6 +70,7 @@ class BattleQuerySet(models.QuerySet):
 class LLM(models.TextChoices):
     OPENAI_GPT = 'openai-gpt', _('OpenAI GPT')
     CLAUDE_3_HAIKU = 'claude-3-haiku', _('Claude 3 Haiku')
+    GOOGLE_GEMINI = 'google-gemini', _('Google Gemini')
 
 
 class Battle(models.Model):
