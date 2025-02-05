@@ -131,7 +131,7 @@ def normalize_playstyle_len(playstyle):
     assert len(playstyle) == M_ELO_K * 2
 
 
-def update_rating(n=10, now=None):
+def update_rating(n=1, now=None):
     from .models import WarriorArena
     errors = []
     for _ in range(n):
