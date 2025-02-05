@@ -45,15 +45,16 @@ def call_gemini(prompt, break_at_length=MAX_WARRIOR_LENGTH):
             if not line.startswith('data:'):
                 continue
             data = json.loads(line[len(b'data:'):])
-            candidate = data['candidates'][0]
 
-            for chunk in candidate['content']['parts']:
-                chunks.append(chunk)
-                total_length += len(chunk['text'])
+            if candidates := data.get('candidates'):
+                candidate = candidates[0]
 
-            finish_reason = candidate.get('finishReason') or finish_reason
+                for chunk in candidate['content'].get('parts', []):
+                    chunks.append(chunk)
+                    total_length += len(chunk['text'])
+
+                finish_reason = candidate.get('finishReason') or finish_reason
             reported_model = data.get('modelVersion') or reported_model
-            print(data)
 
             if total_length > break_at_length:
                 break
