@@ -15,8 +15,8 @@ def call_gemini(prompt, break_at_length=MAX_WARRIOR_LENGTH):
     model = "gemini-2.0-flash-thinking-exp"
     chunks = []
     total_length = 0
-    finish_reason = None
-    reported_model = None
+    finish_reason = ''
+    reported_model = ''
     with requests.post(
         f'https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent',
         headers={
