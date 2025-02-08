@@ -48,12 +48,11 @@ def call_gemini(prompt, break_at_length=MAX_WARRIOR_LENGTH):
 
             if candidates := data.get('candidates'):
                 candidate = candidates[0]
-
-                for chunk in candidate['content'].get('parts', []):
-                    chunks.append(chunk)
-                    total_length += len(chunk['text'])
-
+                text = get_text_from_candidate(candidate)
+                chunks.append(text)
+                total_length += len(text)
                 finish_reason = candidate.get('finishReason') or finish_reason
+
             reported_model = data.get('modelVersion') or reported_model
 
             if total_length > break_at_length:
@@ -61,3 +60,10 @@ def call_gemini(prompt, break_at_length=MAX_WARRIOR_LENGTH):
 
     total_text = ''.join(chunk['text'] for chunk in chunks)
     return total_text, finish_reason, reported_model
+
+
+def get_text_from_candidate(candidate):
+    parts = []
+    for chunk in candidate.get('content', {}).get('parts', []):
+        parts.append(chunk['text'])
+    return ''.join(parts)
