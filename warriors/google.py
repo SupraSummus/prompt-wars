@@ -52,13 +52,12 @@ def call_gemini(prompt, break_at_length=MAX_WARRIOR_LENGTH):
                 chunks.append(text)
                 total_length += len(text)
                 finish_reason = candidate.get('finishReason') or finish_reason
-
             reported_model = data.get('modelVersion') or reported_model
 
             if total_length > break_at_length:
                 break
 
-    total_text = ''.join(chunk['text'] for chunk in chunks)
+    total_text = ''.join(chunks)
     return total_text, finish_reason, reported_model
 
 
