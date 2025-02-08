@@ -10,6 +10,6 @@ from .tasks import schedule_battle, schedule_battles_top
 
 register_job(schedule_battle, timedelta(seconds=1))
 register_job(schedule_battles_top, timedelta(minutes=10))
-register_job(update_rating, timedelta(seconds=5))
+register_job(update_rating, timedelta(seconds=1))
 register_job(create_arena_stats, timedelta(hours=1))
 register_job(schedule_losing_battle_top, timedelta(minutes=10))
