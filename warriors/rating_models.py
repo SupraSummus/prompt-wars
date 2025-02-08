@@ -85,37 +85,41 @@ class RatingMixin(models.Model):
         new_rating, new_playstyle, self.rating_fit_loss = get_performance_rating(
             list(scores.values()),
             allowed_rating_range=max_allowed_rating,
+            rating_guess=self.rating,
+            playstyle_guess=self.rating_playstyle,
             k=M_ELO_K,
         )
         rating_error = new_rating - self.rating
 
         # update related warriors
-        if rating_error and len(scores) > 0:
+        if scores:
             error_per_opponent = rating_error / len(scores) / 2
-            ids_before = []
-            ids_after = []
-            for id_ in scores.keys():
-                assert id_ != self.id
-                if id_ < self.id:
-                    ids_before.append(id_)
-                else:
-                    ids_after.append(id_)
-            with transaction.atomic():
-                # we need to do updates in a speicific order to avoid deadlocks
-                WarriorArena.objects.filter(id__in=ids_before).update(
-                    rating=F('rating') - error_per_opponent,
-                    rating_error=F('rating_error') + error_per_opponent,
-                )
-                WarriorArena.objects.filter(id=self.id).update(
-                    rating=F('rating') + rating_error / 2,
-                    rating_playstyle=new_playstyle,
-                    rating_fit_loss=self.rating_fit_loss,
-                    rating_error=0.0,
-                )
-                WarriorArena.objects.filter(id__in=ids_after).update(
-                    rating=F('rating') - error_per_opponent,
-                    rating_error=F('rating_error') + error_per_opponent,
-                )
+        else:
+            error_per_opponent = 0
+        ids_before = []
+        ids_after = []
+        for id_ in scores.keys():
+            assert id_ != self.id
+            if id_ < self.id:
+                ids_before.append(id_)
+            else:
+                ids_after.append(id_)
+        with transaction.atomic():
+            # we need to do updates in a speicific order to avoid deadlocks
+            WarriorArena.objects.filter(id__in=ids_before).update(
+                rating=F('rating') - error_per_opponent,
+                rating_error=F('rating_error') + error_per_opponent,
+            )
+            WarriorArena.objects.filter(id=self.id).update(
+                rating=F('rating') + rating_error / 2,
+                rating_playstyle=new_playstyle,
+                rating_fit_loss=self.rating_fit_loss,
+                rating_error=0.0,
+            )
+            WarriorArena.objects.filter(id__in=ids_after).update(
+                rating=F('rating') - error_per_opponent,
+                rating_error=F('rating_error') + error_per_opponent,
+            )
 
         return rating_error
 
