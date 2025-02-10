@@ -5,6 +5,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.db import models, transaction
 from django.db.models import F
 from django.db.models.functions import Abs
+from django.utils import timezone
 
 from .rating import GameScore, get_performance_rating
 
@@ -12,6 +13,7 @@ from .rating import GameScore, get_performance_rating
 logger = logging.getLogger(__name__)
 M_ELO_K = 1
 MAX_ALLOWED_RATING_PER_GAME = 100
+MAX_OLD_BATTLES = 200
 
 
 class RatingMixin(models.Model):
@@ -50,14 +52,20 @@ class RatingMixin(models.Model):
 
         We assume all battles form a tournament.
         """
-        from .models import Battle, WarriorArena
+        from .battles import MATCHMAKING_COOLDOWN, Battle
+        from .models import WarriorArena
 
         # collect relevant battles
+        old_battle_treshold = timezone.now() - MATCHMAKING_COOLDOWN
         battles = {}  # opponent warrior id -> our BattleViewpoint
-        for b in Battle.objects.with_warrior_arena(self).resolved().order_by('scheduled_at'):
+        for b in Battle.objects.with_warrior_arena(self).resolved().order_by('-scheduled_at'):
             b = b.get_warrior_viewpoint(self)
+            if b.warrior_2_id in battles:
+                continue  # we already have a more recent battle with this opponent
             if b.score is None:
                 continue
+            if b.scheduled_at < old_battle_treshold and len(battles) >= MAX_OLD_BATTLES:
+                break  # all the remaining battles are old and we have enough to calculate rating
             battles[b.warrior_2_id] = b
 
         # collect scores
