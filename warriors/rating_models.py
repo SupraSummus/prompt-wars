@@ -13,7 +13,7 @@ from .rating import GameScore, get_performance_rating
 logger = logging.getLogger(__name__)
 M_ELO_K = 1
 MAX_ALLOWED_RATING_PER_GAME = 100
-MAX_OLD_BATTLES = 200
+MAX_OLD_BATTLES = 100
 
 
 class RatingMixin(models.Model):
