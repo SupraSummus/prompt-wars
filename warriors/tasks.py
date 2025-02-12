@@ -160,7 +160,8 @@ def resolve_battle(battle_id, direction):
         battle_view.save(update_fields=['attempts'])
         if attempts < 5:
             # try again in some time
-            delay = datetime.timedelta(minutes=5) * 2**attempts
+            exponent = attempts + random.random() - 0.5
+            delay = datetime.timedelta(minutes=5) * 2**exponent
             return RetryMeLater(
                 precondition_date=now + delay,
                 message=f'Attempt {battle_view.attempts} - transient LLM error',
