@@ -3,7 +3,7 @@ import logging
 import anthropic
 from django.conf import settings
 
-from .exceptions import RateLimitError
+from .exceptions import RateLimitError, TransientLLMError
 from .warriors import MAX_WARRIOR_LENGTH
 
 
@@ -32,9 +32,10 @@ def resolve_battle(prompt_a, prompt_b, system_prompt=''):
         )
     except anthropic.RateLimitError as e:
         raise RateLimitError() from e
-    except anthropic.APIStatusError:
-        logger.exception('Anthropic API call failed')
-        return '', 'error', ''
+    except anthropic.APIStatusError as e:
+        if e.response.status_code >= 500:
+            raise TransientLLMError() from e
+        raise
     else:
         text = ''.join(block.text for block in response.content)
         return text, response.stop_reason, response.model

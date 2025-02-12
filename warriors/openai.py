@@ -3,7 +3,7 @@ import logging
 import openai
 from django.conf import settings
 
-from .exceptions import RateLimitError
+from .exceptions import RateLimitError, TransientLLMError
 from .warriors import MAX_WARRIOR_LENGTH
 
 
@@ -35,9 +35,10 @@ def resolve_battle_openai(prompt_a, prompt_b, system_prompt=''):
         )
     except openai.RateLimitError as e:
         raise RateLimitError() from e
-    except openai.APIStatusError:
-        logger.exception('OpenAI API call failed')
-        return '', 'error', ''
+    except openai.APIStatusError as e:
+        if e.response.status_code >= 500:
+            raise TransientLLMError() from e
+        raise
     else:
         (resp_choice,) = response.choices
         result = resp_choice.message.content

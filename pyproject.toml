@@ -31,6 +31,7 @@ pylint-django = "*"
 flake8-pyproject = "*"
 factory-boy = "*"
 django-debug-toolbar = "*"
+responses = "*"
 
 [build-system]
 requires = ["poetry-core"]

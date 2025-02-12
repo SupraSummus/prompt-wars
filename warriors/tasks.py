@@ -8,7 +8,7 @@ from django_goals.models import AllDone, RetryMeLater, schedule
 
 from . import anthropic
 from .battles import LLM, MATCHMAKING_COOLDOWN, Battle, Game
-from .exceptions import RateLimitError
+from .exceptions import TransientLLMError
 from .google import resolve_battle_google
 from .lcs import lcs_len
 from .models import Arena, WarriorArena
@@ -152,21 +152,32 @@ def resolve_battle(battle_id, direction):
             battle_view.warrior_1.body,
             battle_view.warrior_2.body,
         )
-    except RateLimitError:
-        # try again in some time
-        return RetryMeLater(
-            precondition_date=now + datetime.timedelta(minutes=5),
-            message='LLM API rate limit',
-        )
-    else:
-        battle_view.text_unit = TextUnit.get_or_create_by_content(result[:MAX_WARRIOR_LENGTH], now=now)
-        battle_view.lcs_len_1 = lcs_len(battle_view.warrior_1.body, battle_view.result)
-        battle_view.lcs_len_2 = lcs_len(battle_view.warrior_2.body, battle_view.result)
-        battle_view.finish_reason = finish_reason
-        # but the API finish reason doesn't matter if we cut the response
-        if len(result) > MAX_WARRIOR_LENGTH:
-            battle_view.finish_reason = 'character_limit'
-        battle_view.llm_version = llm_version
+
+    except TransientLLMError:
+        logger.exception('Transient LLM error %s, %s', battle_id, direction)
+        attempts = battle_view.attempts
+        battle_view.attempts += 1
+        battle_view.save(update_fields=['attempts'])
+        if attempts < 5:
+            # try again in some time
+            delay = datetime.timedelta(minutes=5) * 2**attempts
+            return RetryMeLater(
+                precondition_date=now + delay,
+                message=f'Attempt {battle_view.attempts} - transient LLM error',
+            )
+        else:
+            result = ''
+            finish_reason = 'error'
+            llm_version = ''
+
+    battle_view.text_unit = TextUnit.get_or_create_by_content(result[:MAX_WARRIOR_LENGTH], now=now)
+    battle_view.lcs_len_1 = lcs_len(battle_view.warrior_1.body, battle_view.result)
+    battle_view.lcs_len_2 = lcs_len(battle_view.warrior_2.body, battle_view.result)
+    battle_view.finish_reason = finish_reason
+    # but the API finish reason doesn't matter if we cut the response
+    if len(result) > MAX_WARRIOR_LENGTH:
+        battle_view.finish_reason = 'character_limit'
+    battle_view.llm_version = llm_version
 
     battle_view.resolved_at = now
     battle_view.save(update_fields=[

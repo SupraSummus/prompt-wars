@@ -3,6 +3,7 @@ import json
 import requests
 from django.conf import settings
 
+from .exceptions import TransientLLMError
 from .warriors import MAX_WARRIOR_LENGTH
 
 
@@ -12,6 +13,17 @@ def resolve_battle_google(prompt_a, prompt_b, system_prompt=''):
 
 
 def call_gemini(prompt, break_at_length=MAX_WARRIOR_LENGTH):
+    try:
+        return _call_gemini(prompt, break_at_length)
+    except requests.HTTPError as e:
+        if e.response.status_code >= 500:
+            raise TransientLLMError() from e
+        raise
+    except requests.RequestException as e:
+        raise TransientLLMError() from e
+
+
+def _call_gemini(prompt, break_at_length=MAX_WARRIOR_LENGTH):
     model = "gemini-2.0-flash-thinking-exp"
     chunks = []
     total_length = 0

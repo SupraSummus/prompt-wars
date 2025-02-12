@@ -160,10 +160,11 @@ def test_resolve_battle(arena, battle, monkeypatch):
 
 
 @pytest.mark.django_db
-def test_resolve_battle_bad_request(battle, monkeypatch):
+@pytest.mark.parametrize('battle', [{'attempts_2_1': 5}], indirect=True)
+def test_resolve_battle_service_unavailable(battle, monkeypatch):
     create_mock = mock.Mock(side_effect=openai.APIStatusError(
-        'Bad request bro',
-        response=httpx.Response(400, request=httpx.Request('POST', 'https://openai.com')),
+        'not now',
+        response=httpx.Response(503, request=httpx.Request('POST', 'https://openai.com')),
         body=None,
     ))
     monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)

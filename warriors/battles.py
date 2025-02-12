@@ -127,6 +127,9 @@ class Battle(models.Model):
         null=True,
         blank=True,
     )
+    attempts_1_2 = models.PositiveSmallIntegerField(
+        default=0,
+    )
 
     text_unit_2_1 = models.ForeignKey(
         to=TextUnit,
@@ -152,6 +155,9 @@ class Battle(models.Model):
     resolved_at_2_1 = models.DateTimeField(
         null=True,
         blank=True,
+    )
+    attempts_2_1 = models.PositiveSmallIntegerField(
+        default=0,
     )
 
     # rating_transferred_at is not used anymore
@@ -325,6 +331,8 @@ class BattleViewpoint:
             'llm_version_2_1',
             'resolved_at_1_2',
             'resolved_at_2_1',
+            'attempts_1_2',
+            'attempts_2_1',
         ):
             return self.map_field_name_x_x(field_name)
         if field_name in (
@@ -416,6 +424,7 @@ class Game:
             'finish_reason',
             'llm_version',
             'resolved_at',
+            'attempts',
         ):
             return f'{field_name}_{self.direction}'
         elif field_name == 'lcs_len_1':
