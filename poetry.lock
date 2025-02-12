@@ -439,12 +439,12 @@ testing = ["coverage[toml] (>=5.0a4)", "pytest (>=4.6.11)", "setuptools (>=71.0.
 
 [[package]]
 name = "django-goals"
-version = "0.5.1"
+version = "0.6.1"
 description = ""
 optional = false
-python-versions = "^3.12"
+python-versions = "^3.13"
 files = [
-    {file = "9a7a3415a495231b5c0d9408b2f12ae5b8b150ea.zip", hash = "sha256:3db62047c9f0d1be7bb63f73376f23208bee4739b075b6af61b7f5d26a8ffd71"},
+    {file = "890db58d27ca668a1866c57c0b4c83ae8dff5581.zip", hash = "sha256:b766a256d0a38176d12502ab184f04c3b9f2dec101b1c5c8933af175740c633a"},
 ]
 
 [package.dependencies]
@@ -453,7 +453,7 @@ django-object-actions = ">=4.3"
 
 [package.source]
 type = "url"
-url = "https://github.com/EE/django-goals/archive/9a7a3415a495231b5c0d9408b2f12ae5b8b150ea.zip"
+url = "https://github.com/EE/django-goals/archive/890db58d27ca668a1866c57c0b4c83ae8dff5581.zip"
 
 [[package]]
 name = "django-object-actions"
@@ -1940,5 +1940,5 @@ propcache = ">=0.2.0"
 
 [metadata]
 lock-version = "2.0"
-python-versions = "3.13.*"
-content-hash = "ca10a48eb0754d2868ec914810e1a8f68befbbbc4b678e9427418800d7283a64"
+python-versions = "^3.13.1"
+content-hash = "c0f384b3dcdfbfa8bf3eaf5273cad7ec7604873bfffb36892f7260b4d86b11a5"

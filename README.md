@@ -18,7 +18,7 @@ An AI word-battling game/puzzle inspired by the classic concept of Core War. Pla
     ./manage.py migrate
     ./manage.py runserver
 
-See `run.sh` for full details how we run in production.
+See `Procfile` for full details how we run in production.
 
 ## Documentation
 
