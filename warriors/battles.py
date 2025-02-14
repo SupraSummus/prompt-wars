@@ -21,7 +21,7 @@ from .warriors import Warrior
 
 
 # once two warriors battled we want to wait for a while before they can be matched again
-MATCHMAKING_COOLDOWN = datetime.timedelta(days=122)  # 4 months
+MATCHMAKING_COOLDOWN = datetime.timedelta(days=183)  # 6 months
 
 
 class BattleQuerySet(models.QuerySet):
