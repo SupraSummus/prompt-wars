@@ -19,6 +19,7 @@ scipy = "*"
 django-goals = {url = "https://github.com/EE/django-goals/archive/890db58d27ca668a1866c57c0b4c83ae8dff5581.zip"}
 humanize = "*"
 voyageai = "*"
+google-genai = "*"
 
 
 [tool.poetry.group.dev.dependencies]

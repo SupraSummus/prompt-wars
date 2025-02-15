@@ -2,26 +2,7 @@ import pytest
 import responses
 
 from .exceptions import TransientLLMError
-from .google import call_gemini, get_text_from_candidate
-
-
-def test_get_text_from_candidate__no_content():
-    assert get_text_from_candidate({}) == ''
-
-
-def test_get_text_from_candidate__no_parts():
-    assert get_text_from_candidate({'content': {}}) == ''
-
-
-def test_get_text_from_candidate():
-    assert get_text_from_candidate({
-        'content': {
-            'parts': [
-                {'text': 'a'},
-                {'text': 'b'},
-            ],
-        },
-    }) == 'ab'
+from .google import call_gemini
 
 
 @responses.activate
