@@ -1,3 +1,5 @@
+import logging
+
 import requests
 from django.conf import settings
 from google import genai
@@ -8,6 +10,7 @@ from .exceptions import TransientLLMError
 from .warriors import MAX_WARRIOR_LENGTH
 
 
+logger = logging.getLogger(__name__)
 client = genai.Client(
     api_key=settings.GOOGLE_AI_API_KEY,
     http_options={'api_version': 'v1alpha'},
@@ -33,7 +36,13 @@ def call_gemini(prompt):
         finish_reason = response.candidates[0].finish_reason
         if finish_reason is None:  # exceeded token limit we treat as battle-not-valid
             return response.text, 'error', response.model_version
-        return response.text, finish_reason.value, response.model_version
+        text = response.text
+        if (
+            text is not None and
+            len(text) > MAX_WARRIOR_LENGTH * 10
+        ):
+            logger.warning('Long battle result: %s tokens', len(text))
+        return text, finish_reason.value, response.model_version
     except ServerError as e:
         raise TransientLLMError() from e
     except requests.RequestException as e:
