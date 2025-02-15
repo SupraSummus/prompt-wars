@@ -4,7 +4,7 @@ import requests
 from django.conf import settings
 from google import genai
 from google.genai.errors import ServerError
-from google.genai.types import GenerateContentConfig
+from google.genai.types import FinishReason, GenerateContentConfig
 
 from .exceptions import TransientLLMError
 from .warriors import MAX_WARRIOR_LENGTH
@@ -33,10 +33,18 @@ def call_gemini(prompt):
                 max_output_tokens=MAX_WARRIOR_LENGTH * 100,
             ),
         )
-        finish_reason = response.candidates[0].finish_reason
-        if finish_reason is None:  # exceeded token limit we treat as battle-not-valid
-            return response.text, 'error', response.model_version
+        candidates = response.candidates
+        if not candidates:
+            return '', 'error', response.model_version
+        finish_reason = candidates[0].finish_reason
         text = response.text
+        if (
+            # battle is not valid if we exceed token limit and MAX_WARRIOR_LENGTH is not reached
+            # model propably used all the tokens for reasoning
+            finish_reason in (None, FinishReason.MAX_TOKENS) and
+            len(text) < MAX_WARRIOR_LENGTH
+        ):
+            return response.text, 'error', response.model_version
         if (
             text is not None and
             len(text) > MAX_WARRIOR_LENGTH * 10

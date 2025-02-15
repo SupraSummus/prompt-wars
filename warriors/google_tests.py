@@ -20,17 +20,49 @@ def test_google_503():
 
 
 @responses.activate
-def test_google_token_limit():
+def test_google_token_limit_reasoning():
+    """This happens when the model never reaches end of reasoning."""
     responses.add(
         responses.POST,
         gemini_endpoint,
         json={
-            'candidates': [
-                {},
-            ],
             'modelVersion': 'v1',
+            'usageMetadata': {'promptTokenCount': 1, 'totalTokenCount': 1},
         },
     )
-    _, finish_reason, llm_version = call_gemini('prompt')
+    text, finish_reason, llm_version = call_gemini('prompt')
+    assert text == ''
     assert finish_reason == 'error'
     assert llm_version == 'v1'
+
+
+@responses.activate
+@pytest.mark.parametrize(
+    ('generated_text_len', 'expected_finish_reason'),
+    [
+        (100, 'error'),
+        (1000, 'MAX_TOKENS'),
+        (10000, 'MAX_TOKENS'),
+    ],
+)
+def test_google_token_limit_response(generated_text_len, expected_finish_reason):
+    """This happens when the model starts generating response (after CoT) but reaches token limit."""
+    responses.add(
+        responses.POST,
+        gemini_endpoint,
+        json={
+            'candidates': [{
+                'content': {'parts': [
+                    {'text': 'a' * generated_text_len},
+                ], 'role': 'model'},
+                'finishReason': 'MAX_TOKENS',
+                'index': 0,
+            }],
+            'usageMetadata': {'promptTokenCount': 6, 'candidatesTokenCount': 45, 'totalTokenCount': 51},
+            'modelVersion': 'gemini-2.0-flash-thinking-exp-01-21',
+        },
+    )
+    text, finish_reason, llm_version = call_gemini('prompt')
+    assert text == 'a' * generated_text_len
+    assert finish_reason == expected_finish_reason
+    assert llm_version == 'gemini-2.0-flash-thinking-exp-01-21'
