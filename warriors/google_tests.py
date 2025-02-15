@@ -88,3 +88,20 @@ def test_google_no_finish_reason():
     )
     with pytest.raises(TransientLLMError):
         call_gemini('prompt')
+
+
+@responses.activate
+def test_google_no_text():
+    responses.add(
+        responses.POST,
+        gemini_endpoint,
+        json={
+            'candidates': [{'finishReason': 'RECITATION', 'index': 0}],
+            'modelVersion': 'gemini-2.0-flash-thinking-exp-01-21',
+            'usageMetadata': {'promptTokenCount': 10, 'totalTokenCount': 10},
+        },
+    )
+    text, finish_reason, llm_version = call_gemini('prompt')
+    assert text == ''
+    assert finish_reason == 'RECITATION'
+    assert llm_version == 'gemini-2.0-flash-thinking-exp-01-21'

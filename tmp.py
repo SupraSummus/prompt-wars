@@ -8,7 +8,9 @@ from warriors.tasks import resolve_battle_1_2, resolve_battle_2_1
 qs = Battle.objects.filter(
     arena_id='e61f750b-e909-4993-b4a1-d59ea383140c',
     finish_reason_1_2='',
+    resolved_at_1_2__isnull=False,
 )
+print('empty finish_reason_1_2', qs.count())
 for battle in qs[:5]:
     with transaction.atomic():
         print('1_2', battle.id)
@@ -21,7 +23,9 @@ for battle in qs[:5]:
 qs = Battle.objects.filter(
     arena_id='e61f750b-e909-4993-b4a1-d59ea383140c',
     finish_reason_2_1='',
+    resolved_at_2_1__isnull=False,
 )
+print('empty finish_reason_2_1', qs.count())
 for battle in qs[:5]:
     with transaction.atomic():
         print('2_1', battle.id)
