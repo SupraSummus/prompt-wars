@@ -48,7 +48,7 @@ def call_gemini(prompt):
         ):
             return response.text, 'error', response.model_version
         if len(text) > MAX_WARRIOR_LENGTH * 10:
-            logger.warning('Long battle result: %s tokens', len(text))
+            logger.warning('Long battle result: %s chars', len(text))
         return text, finish_reason.value, response.model_version
     except ServerError as e:
         raise TransientLLMError() from e
