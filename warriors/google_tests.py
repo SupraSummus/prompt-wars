@@ -66,3 +66,25 @@ def test_google_token_limit_response(generated_text_len, expected_finish_reason)
     assert text == 'a' * generated_text_len
     assert finish_reason == expected_finish_reason
     assert llm_version == 'gemini-2.0-flash-thinking-exp-01-21'
+
+
+@responses.activate
+def test_google_no_finish_reason():
+    """According to docs mising finish reason means the model "has not stopped generating the tokens".
+    Lets treat that as transient error."""
+    responses.add(
+        responses.POST,
+        gemini_endpoint,
+        json={
+            'candidates': [{
+                'content': {'parts': [
+                    {'text': 'a' * 100},
+                ], 'role': 'model'},
+                'index': 0,
+            }],
+            'usageMetadata': {'promptTokenCount': 6, 'candidatesTokenCount': 45, 'totalTokenCount': 51},
+            'modelVersion': 'gemini-2.0-flash-thinking-exp-01-21',
+        },
+    )
+    with pytest.raises(TransientLLMError):
+        call_gemini('prompt')

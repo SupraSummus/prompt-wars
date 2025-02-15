@@ -37,6 +37,8 @@ def call_gemini(prompt):
         if not candidates:
             return '', 'error', response.model_version
         finish_reason = candidates[0].finish_reason
+        if finish_reason is None:
+            raise TransientLLMError('Mode has not stoped generating toknes, whatever that means')
         text = response.text
         if (
             # battle is not valid if we exceed token limit and MAX_WARRIOR_LENGTH is not reached
