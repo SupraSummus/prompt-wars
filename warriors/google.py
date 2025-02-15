@@ -30,7 +30,7 @@ def call_gemini(prompt):
             config=GenerateContentConfig(
                 temperature=0,
                 # arbitrary value to prevent looping in chain of thought
-                max_output_tokens=MAX_WARRIOR_LENGTH * 100,
+                max_output_tokens=MAX_WARRIOR_LENGTH * 20,
             ),
         )
         candidates = response.candidates
