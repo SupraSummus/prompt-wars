@@ -43,14 +43,11 @@ def call_gemini(prompt):
         if (
             # battle is not valid if we exceed token limit and MAX_WARRIOR_LENGTH is not reached
             # model propably used all the tokens for reasoning
-            finish_reason in (None, FinishReason.MAX_TOKENS) and
+            finish_reason == FinishReason.MAX_TOKENS and
             len(text) < MAX_WARRIOR_LENGTH
         ):
             return response.text, 'error', response.model_version
-        if (
-            text is not None and
-            len(text) > MAX_WARRIOR_LENGTH * 10
-        ):
+        if len(text) > MAX_WARRIOR_LENGTH * 10:
             logger.warning('Long battle result: %s tokens', len(text))
         return text, finish_reason.value, response.model_version
     except ServerError as e:
