@@ -93,8 +93,6 @@ class RatingMixin(models.Model):
         new_rating, new_playstyle, self.rating_fit_loss = get_performance_rating(
             list(scores.values()),
             allowed_rating_range=max_allowed_rating,
-            rating_guess=self.rating,
-            playstyle_guess=self.rating_playstyle,
             k=M_ELO_K,
         )
         rating_error = new_rating - self.rating
