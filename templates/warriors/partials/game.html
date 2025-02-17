@@ -83,13 +83,13 @@
       </thead>
       <tr>
         <td>Warrior 1</td>
-        <td>{{ game.warrior_1_similarity|percentage }}</td>
-        <td>{{ game.warrior_1_similarity_relative|percentage }}</td>
+        <td>{{ game.embedding_scoring.warrior_1_preserved_ratio|percentage }}</td>
+        <td>{{ game.embedding_scoring.score|percentage }}</td>
       </tr>
       <tr>
         <td>Warrior 2</td>
-        <td>{{ game.warrior_2_similarity|percentage }}</td>
-        <td>{{ game.warrior_2_similarity_relative|percentage }}</td>
+        <td>{{ game.embedding_scoring.warrior_2_preserved_ratio|percentage }}</td>
+        <td>{{ game.embedding_scoring.score_rev|percentage }}</td>
       </tr>
     </table>
   </details>

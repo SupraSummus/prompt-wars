@@ -73,6 +73,11 @@ class LLM(models.TextChoices):
     GOOGLE_GEMINI = 'google-gemini', _('Google Gemini')
 
 
+class ScoreAlgorithm(models.TextChoices):
+    LCS = 'lcs', _('Longest Common Subsequence')
+    EMBEDDINGS = 'embeddings', _('Embeddings')
+
+
 class Battle(models.Model):
     id = models.UUIDField(
         primary_key=True,
@@ -220,12 +225,12 @@ class Battle(models.Model):
     def get_absolute_url(self):
         return reverse('battle_detail', args=[str(self.id)])
 
-    def get_warrior_viewpoint(self, warrior_arena):
+    def get_warrior_viewpoint(self, warrior_arena, score_algorithm=ScoreAlgorithm.LCS):
         """Return Battle viewpoint such that warrior_arena_1 == warrior_arena"""
         if warrior_arena.warrior_id == self.warrior_1_id:
-            return BattleViewpoint(self, '1')
+            return BattleViewpoint(self, '1', score_algorithm=score_algorithm)
         elif warrior_arena.warrior_id == self.warrior_2_id:
-            return BattleViewpoint(self, '2')
+            return BattleViewpoint(self, '2', score_algorithm=score_algorithm)
         else:
             raise ValueError('warrior not in battle')
 
@@ -238,6 +243,7 @@ class BattleViewpoint:
     """
     battle: Battle
     viewpoint: str
+    score_algorithm: str = ScoreAlgorithm.LCS
 
     @property
     def score(self):
@@ -278,11 +284,11 @@ class BattleViewpoint:
 
     @cached_property
     def game_1_2(self):
-        return Game(self, '1_2')
+        return Game(self, '1_2', score_algorithm=self.score_algorithm)
 
     @cached_property
     def game_2_1(self):
-        return Game(self, '2_1')
+        return Game(self, '2_1', score_algorithm=self.score_algorithm)
 
     @property
     def public_battle_results(self):
@@ -382,7 +388,7 @@ class BattleViewpoint:
 
 
 class Game:
-    def __init__(self, battle, direction):
+    def __init__(self, battle, direction, score_algorithm=ScoreAlgorithm.LCS):
         '''
         :param battle: Battle
         :param direction: str '1_2' or '2_1'
@@ -391,6 +397,7 @@ class Game:
         self.battle = battle
         self.direction = direction
         self.direction_from, self.direction_to = direction.split('_')
+        self.score_algorithm = score_algorithm
 
     def __getattr__(self, field_name):
         mapped_name = self.map_field_name(field_name)
@@ -456,17 +463,27 @@ class Game:
 
     @property
     def warrior_1_preserved_ratio(self):
-        return self.lcs_len_1 / max(
-            len(self.warrior_1.body),
-            len(self.result),
-        )
+        if self.score_algorithm == ScoreAlgorithm.LCS:
+            return self.lcs_len_1 / max(
+                len(self.warrior_1.body),
+                len(self.result),
+            )
+        elif self.score_algorithm == ScoreAlgorithm.EMBEDDINGS:
+            return _warrior_similarity(self.text_unit, self.warrior_1)
+        else:
+            raise ValueError('Unknown scoring method')
 
     @property
     def warrior_2_preserved_ratio(self):
-        return self.lcs_len_2 / max(
-            len(self.warrior_2.body),
-            len(self.result),
-        )
+        if self.score_algorithm == ScoreAlgorithm.LCS:
+            return self.lcs_len_2 / max(
+                len(self.warrior_2.body),
+                len(self.result),
+            )
+        elif self.score_algorithm == ScoreAlgorithm.EMBEDDINGS:
+            return _warrior_similarity(self.text_unit, self.warrior_2)
+        else:
+            raise ValueError('Unknown scoring method')
 
     @property
     def score(self):
@@ -478,6 +495,8 @@ class Game:
             return None
         s1 = self.warrior_1_preserved_ratio
         s2 = self.warrior_2_preserved_ratio
+        if s1 is None or s2 is None:
+            return None
         if s1 + s2 == 0:
             return 0.5
         return s1 / (s1 + s2)
@@ -497,21 +516,9 @@ class Game:
     def result_marked_for_2(self):
         return lcs_mark(self.result, self.warrior_2.body)
 
-    @cached_property
-    def warrior_1_similarity(self):
-        return _warrior_similarity(self.text_unit, self.warrior_1)
-
-    @cached_property
-    def warrior_2_similarity(self):
-        return _warrior_similarity(self.text_unit, self.warrior_2)
-
     @property
-    def warrior_1_similarity_relative(self):
-        return _softmax(self.warrior_1_similarity, [self.warrior_1_similarity, self.warrior_2_similarity])
-
-    @property
-    def warrior_2_similarity_relative(self):
-        return _softmax(self.warrior_2_similarity, [self.warrior_1_similarity, self.warrior_2_similarity])
+    def embedding_scoring(self):
+        return Game(self.battle, self.direction, score_algorithm='embeddings')
 
 
 def lcs_mark(result, warrior_body):
@@ -540,10 +547,4 @@ def _warrior_similarity(text_unit, warrior):
         return None
     result_embedding = numpy.array(text_unit.voyage_3_embedding)
     warrior_embedding = numpy.array(warrior.voyage_3_embedding)
-    return numpy.dot(result_embedding, warrior_embedding)
-
-
-def _softmax(value, values):
-    if any(v is None for v in values):
-        return None
-    return numpy.exp(value) / sum(numpy.exp(v) for v in values)
+    return numpy.dot(result_embedding, warrior_embedding) / 2 + 0.5

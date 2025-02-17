@@ -8,7 +8,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
-from .battles import LLM, Battle
+from .battles import LLM, Battle, ScoreAlgorithm
 from .rating_models import RatingMixin
 from .stats import ArenaStats
 from .text_unit import TextUnit
@@ -43,6 +43,11 @@ class Arena(models.Model):
     llm = models.CharField(
         max_length=20,
         choices=LLM.choices,
+    )
+    score_algorithm = models.CharField(
+        max_length=20,
+        choices=ScoreAlgorithm.choices,
+        default=ScoreAlgorithm.LCS,
     )
     description = models.TextField(
         blank=True,
