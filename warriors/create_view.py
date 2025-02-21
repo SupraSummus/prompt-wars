@@ -57,8 +57,14 @@ class WarriorCreateForm(forms.ModelForm):
         body = normalize_newlines(body)
         if len(body) > MAX_WARRIOR_LENGTH:
             raise forms.ValidationError(
-                _('The spell is too long. The maximum length is %(max_length)d characters.') % {
+                _(
+                    'The spell is too long. '
+                    'The maximum length is %(max_length)d characters. '
+                    'Your spell has %(length)d characters. '
+                ).strip(),
+                params={
                     'max_length': MAX_WARRIOR_LENGTH,
+                    'length': len(body),
                 },
                 code='max_length',
             )

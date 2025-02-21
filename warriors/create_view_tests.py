@@ -144,6 +144,19 @@ def test_create_crlf_length(client, mocked_recaptcha, default_arena, length, exp
 
 
 @pytest.mark.django_db
+def test_create_length_reported(client, mocked_recaptcha, default_arena):
+    response = client.post(
+        reverse('warrior_create'),
+        data={
+            'body': 'a' * (MAX_WARRIOR_LENGTH + 123),
+            'g-recaptcha-response': 'PASSED',
+        },
+    )
+    assert response.status_code == 200
+    assert str(MAX_WARRIOR_LENGTH + 123) in response.context['form'].errors['body'][0]
+
+
+@pytest.mark.django_db
 def test_create_authenticated(user, user_client, mocked_recaptcha, default_arena):
     response = user_client.post(
         reverse('warrior_create'),
