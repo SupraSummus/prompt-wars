@@ -1,4 +1,5 @@
 import pytest
+from django.core.exceptions import NON_FIELD_ERRORS
 from django.urls import reverse
 from django_goals.models import Goal
 
@@ -65,6 +66,23 @@ def test_create_warrior_arena(client, mocked_recaptcha, arena):
     assert response.status_code == 302
     warrior = WarriorArena.objects.get()
     assert warrior.arena == arena
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('arena', [{
+    'enabled': False,
+}], indirect=True)
+def test_create_warrior_arena_disabled(client, mocked_recaptcha, arena):
+    response = client.post(
+        reverse('arena_warrior_create', args=(arena.id,)),
+        data={
+            'body': 'Test Warrior',
+            'g-recaptcha-response': 'PASSED',
+        },
+    )
+    assert response.status_code == 200
+    assert response.context['form'].has_error(NON_FIELD_ERRORS, code='arena_disabled')
+    assert not arena.warriors.exists()
 
 
 @pytest.mark.django_db

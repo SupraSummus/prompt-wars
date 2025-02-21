@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 
 
 def schedule_losing_battle_top(now=None):
-    for arena in Arena.objects.all():
+    for arena in Arena.objects.filter(
+        enabled=True,
+    ):
         battle = schedule_losing_battle_arena(arena)
         logger.info('Scheduled battle %s', battle)
 

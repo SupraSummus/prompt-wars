@@ -44,6 +44,14 @@ class WarriorCreateForm(forms.ModelForm):
         self.session = session
         self.request = request
 
+    def clean(self):
+        if not self.arena.enabled:
+            raise forms.ValidationError(
+                _('Creating spells in this arena is disabled.'),
+                code='arena_disabled',
+            )
+        return super().clean()
+
     def clean_body(self):
         body = self.cleaned_data['body']
         body = normalize_newlines(body)

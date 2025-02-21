@@ -71,7 +71,9 @@ def schedule_battle(now=None):
 
 
 def schedule_battles_top(now=None):
-    for arena in Arena.objects.all():
+    for arena in Arena.objects.filter(
+        enabled=True,
+    ):
         schedule_battle_top_arena(arena.id)
 
 
