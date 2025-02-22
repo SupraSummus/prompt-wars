@@ -48,7 +48,31 @@
     <script>
       const playstyleCtx = document.getElementById('playstyleChart').getContext('2d');
       const playstyleData = JSON.parse(document.getElementById('playstyle_data').textContent);
-      
+
+      // Calculate bounds and scale
+      const bounds = playstyleData.reduce((acc, point) => ({
+          minX: Math.min(acc.minX, point.x),
+          maxX: Math.max(acc.maxX, point.x),
+          minY: Math.min(acc.minY, point.y),
+          maxY: Math.max(acc.maxY, point.y),
+      }), {
+          minX: Infinity,
+          maxX: -Infinity,
+          minY: Infinity,
+          maxY: -Infinity,
+      });
+
+      // Calculate the pixels per unit needed for each axis
+      const xRange = bounds.maxX - bounds.minX;
+      const yRange = bounds.maxY - bounds.minY;
+      const maxRange = Math.max(xRange, yRange);
+      const midX = (bounds.minX + bounds.maxX) / 2;
+      const midY = (bounds.minY + bounds.maxY) / 2;
+      bounds.minX = midX - maxRange / 2;
+      bounds.maxX = midX + maxRange / 2;
+      bounds.minY = midY - maxRange / 2;
+      bounds.maxY = midY + maxRange / 2;
+
       const playstyleChart = new Chart(playstyleCtx, {
         type: 'scatter',
         data: {
@@ -78,15 +102,19 @@
             x: {
               title: {
                 display: true,
-                text: 'Playstyle 1'
-              }
+                text: 'Playstyle 1',
+              },
+              suggestedMin: bounds.minX,
+              suggestedMax: bounds.maxX,
             },
             y: {
               title: {
                 display: true,
-                text: 'Playstyle 2'
-              }
-            }
+                text: 'Playstyle 2',
+              },
+              suggestedMin: bounds.minY,
+              suggestedMax: bounds.maxY,
+            },
           }
         }
       });
