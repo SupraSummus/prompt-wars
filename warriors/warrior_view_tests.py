@@ -45,7 +45,8 @@ def test_warrior_detail_moderation_states(client, warrior):
 
 
 @pytest.mark.django_db
-def test_link_to_warrior_arena(client, warrior, warrior_arena):
+@pytest.mark.parametrize('arena', [{'listed': True}], indirect=True)
+def test_link_to_warrior_arena(client, warrior, warrior_arena, arena):
     """Warrior detail page shows link to warrior-arena"""
     response = client.get(
         reverse('warrior:get', args=(warrior.id,))

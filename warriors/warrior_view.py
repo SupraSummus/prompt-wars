@@ -116,6 +116,7 @@ def get(request, warrior_id):
 
     # Get arenas where this warrior exists
     warrior_arenas = WarriorArena.objects.filter(
+        arena__listed=True,
         warrior=warrior,
     ).select_related('arena')
 
