@@ -42,3 +42,13 @@ def test_warrior_detail_moderation_states(client, warrior):
 
     assert (warrior.name in content) == show_content
     assert (warrior.author_name in content) == show_content
+
+
+@pytest.mark.django_db
+def test_link_to_warrior_arena(client, warrior, warrior_arena):
+    """Warrior detail page shows link to warrior-arena"""
+    response = client.get(
+        reverse('warrior:get', args=(warrior.id,))
+    )
+    assert response.status_code == 200
+    assert warrior_arena in response.context['warrior_arenas']

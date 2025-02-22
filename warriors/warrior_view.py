@@ -37,8 +37,8 @@ template = parse_template('''\
         <ul>
             {% for warrior_arena in warrior_arenas %}
                 <li>
-                    <a href="{% url 'warrior_detail' other_warrior_arena.id %}">
-                        {{ other_warrior_arena.arena.name }}
+                    <a href="{% url 'warrior_detail' warrior_arena.id %}">
+                        {{ warrior_arena.arena.name }}
                     </a>
                 </li>
             {% endfor %}
