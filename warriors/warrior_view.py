@@ -39,6 +39,7 @@ template = parse_template('''\
                 <tr>
                     <th>Arena</th>
                     <th>Rating</th>
+                    <th>Games played</th>
                 </tr>
             </thead>
             <tbody>
@@ -49,7 +50,8 @@ template = parse_template('''\
                                 {{ warrior_arena.arena.name }}
                             </a>
                         </td>
-                        <td>{{ warrior_arena.rating|default:"-" }}</td>
+                        <td>{{ warrior_arena.rating|floatformat:0 }}</td>
+                        <td>{{ warrior_arena.games_played }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
