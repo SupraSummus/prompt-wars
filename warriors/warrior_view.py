@@ -1,3 +1,4 @@
+from django.http import HttpResponseNotFound
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 
@@ -108,7 +109,10 @@ def get(request, warrior_id):
     try:
         warrior = Warrior.objects.get(id=warrior_id)
     except Warrior.DoesNotExist:
-        return redirect('warrior_detail', warrior_id, permanent=True)
+        if WarriorArena.objects.filter(id=warrior_id).exists():
+            return redirect('warrior_detail', warrior_id, permanent=True)
+        else:
+            return HttpResponseNotFound()
 
     # Get arenas where this warrior exists
     warrior_arenas = WarriorArena.objects.filter(
