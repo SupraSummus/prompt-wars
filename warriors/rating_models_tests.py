@@ -11,7 +11,7 @@ from .tests.factories import (
 
 
 @pytest.mark.django_db
-def test_update_rating_takes_newer_battles(battle):
+def test_update_rating_takes_newer_battles(battle, warrior_arena, other_warrior_arena, arena):
     then = timezone.now() - datetime.timedelta(days=10)
     # warrior_2 won the first battle
     battle.scheduled_at = then
@@ -38,8 +38,8 @@ def test_update_rating_takes_newer_battles(battle):
         lcs_len_2_1_1=6,
         lcs_len_2_1_2=0,
     )
-    warrior_arena_1 = WarriorArena.objects.get(warrior=battle.warrior_1, arena=battle.arena)
-    warrior_arena_2 = WarriorArena.objects.get(warrior=battle.warrior_2, arena=battle.arena)
+    warrior_arena_1 = WarriorArena.objects.get(warrior=battle.warrior_1, arena=arena)
+    warrior_arena_2 = WarriorArena.objects.get(warrior=battle.warrior_2, arena=arena)
 
     warrior_arena_1.update_rating()
 
@@ -140,3 +140,10 @@ def test_update_rating(warrior_arena, other_warrior_arena, battle):
     assert warrior_arena.rating_error == pytest.approx(0, abs=0.02)
     assert other_warrior_arena.rating_error == pytest.approx(0.0, abs=0.02)
     assert warrior_arena.rating + other_warrior_arena.rating == pytest.approx(0.0, abs=0.02)
+
+
+@pytest.mark.django_db
+def test_update_rating_creates_missing_warrior_arena(arena, warrior_arena, other_warrior, resolved_battle):
+    assert not WarriorArena.objects.filter(warrior=other_warrior, arena=arena).exists()
+    warrior_arena.update_rating()
+    assert WarriorArena.objects.filter(warrior=other_warrior, arena=arena).exists()

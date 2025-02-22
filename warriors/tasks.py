@@ -12,7 +12,7 @@ from .llms import anthropic
 from .llms.exceptions import TransientLLMError
 from .llms.google import resolve_battle_google
 from .llms.openai import openai_client, resolve_battle_openai
-from .models import Arena, WarriorArena
+from .models import Arena, WarriorArena, get_or_create_warrior_arenas
 from .text_unit import TextUnit
 from .warriors import MAX_WARRIOR_LENGTH, Warrior, ensure_name_generated
 
@@ -198,6 +198,10 @@ def resolve_battle(battle_id, direction):
 
 def transfer_rating(goal, battle_id):
     battle = Battle.objects.get(id=battle_id)
-    WarriorArena.objects.get(arena_id=battle.arena_id, warrior_id=battle.warrior_1_id).update_rating()
-    WarriorArena.objects.get(arena_id=battle.arena_id, warrior_id=battle.warrior_2_id).update_rating()
+    for arena in Arena.objects.filter(llm=battle.llm):
+        for warrior_arena in get_or_create_warrior_arenas(
+            arena,
+            [battle.warrior_1_id, battle.warrior_2_id],
+        ).values():
+            warrior_arena.update_rating()
     return AllDone()

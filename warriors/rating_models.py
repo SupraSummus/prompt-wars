@@ -53,7 +53,7 @@ class RatingMixin(models.Model):
         We assume all battles form a tournament.
         """
         from .battles import MATCHMAKING_COOLDOWN, Battle
-        from .models import WarriorArena
+        from .models import WarriorArena, get_or_create_warrior_arenas
 
         # collect relevant battles
         old_battle_treshold = timezone.now() - MATCHMAKING_COOLDOWN
@@ -70,13 +70,7 @@ class RatingMixin(models.Model):
 
         # collect scores
         scores = {}  # opponent warrior_arena id -> GameScore(score, opponent_rating, opponent_playstyle)
-        warrior_arenas = {
-            w.warrior_id: w
-            for w in WarriorArena.objects.filter(
-                arena_id=self.arena_id,
-                warrior_id__in=battles.keys(),
-            )
-        }
+        warrior_arenas = get_or_create_warrior_arenas(self.arena, battles.keys())
         for b in battles.values():
             opponent = warrior_arenas[b.warrior_2_id]
             normalize_playstyle_len(opponent.rating_playstyle)

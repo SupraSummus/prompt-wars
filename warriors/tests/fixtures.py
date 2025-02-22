@@ -1,4 +1,5 @@
 import pytest
+from django.utils import timezone
 
 from .factories import (
     ArenaFactory, BattleFactory, WarriorArenaFactory, WarriorFactory,
@@ -66,14 +67,34 @@ def other_warrior_arena(request, other_warrior, arena):
 def battle(
     request, arena,
     warrior, other_warrior,
-    warrior_arena, other_warrior_arena,
 ):
     if warrior.id > other_warrior.id:
         warrior, other_warrior = other_warrior, warrior
     return BattleFactory(
-        arena=arena,
         llm=arena.llm,
         warrior_1=warrior,
         warrior_2=other_warrior,
+        **getattr(request, 'param', {}),
+    )
+
+
+@pytest.fixture
+def resolved_battle(
+    request, arena,
+    warrior, other_warrior,
+):
+    if warrior.id > other_warrior.id:
+        warrior, other_warrior = other_warrior, warrior
+    now = timezone.now()
+    return BattleFactory(
+        llm=arena.llm,
+        warrior_1=warrior,
+        warrior_2=other_warrior,
+        resolved_at_1_2=now,
+        lcs_len_1_2_1=10,
+        lcs_len_1_2_2=1,
+        resolved_at_2_1=now,
+        lcs_len_2_1_1=10,
+        lcs_len_2_1_2=1,
         **getattr(request, 'param', {}),
     )

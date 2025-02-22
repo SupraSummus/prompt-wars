@@ -12,7 +12,9 @@ from django.views.generic.list import ListView
 
 from .battles import Battle, BattleViewpoint
 from .forms import ChallengeWarriorForm
-from .models import Arena, WarriorArena, WarriorUserPermission
+from .models import (
+    Arena, WarriorArena, WarriorUserPermission, get_or_create_warrior_arenas,
+)
 from .stats import ArenaStats
 from .warriors import Warrior
 
@@ -136,13 +138,7 @@ def prefetch_warriors(battles):
 
 def prefetch_warrior_arenas(arena, battles):
     warrior_ids = {battle.warrior_1_id for battle in battles} | {battle.warrior_2_id for battle in battles}
-    warrior_arenas = {
-        warrior_arena.warrior_id: warrior_arena
-        for warrior_arena in WarriorArena.objects.filter(
-            warrior_id__in=warrior_ids,
-            arena=arena,
-        )
-    }
+    warrior_arenas = get_or_create_warrior_arenas(arena, warrior_ids)
     for battle in battles:
         battle.warrior_arena_1 = warrior_arenas[battle.warrior_1_id]
         battle.warrior_arena_2 = warrior_arenas[battle.warrior_2_id]
@@ -238,19 +234,9 @@ class BattleDetailView(DetailView):
         self.object.game_2_1.show_secrets_2 = show_secrets_1
         self.object.game_2_1.show_battle_results = show_battle_results
 
-        battle = self.object.battle
-        battle.warrior_arena_1 = WarriorArena.objects.get(
-            warrior=battle.warrior_1,
-            arena=battle.arena,
-        )
-        battle.warrior_arena_2 = WarriorArena.objects.get(
-            warrior=battle.warrior_2,
-            arena=battle.arena,
-        )
-
         # find prev/next battles
         battles_qs = Battle.objects.for_user(self.request.user).filter(
-            arena_id=self.object.arena_id,
+            arena__llm=self.object.llm,
         )
         context['next_battle'] = battles_qs.filter(
             scheduled_at__gt=self.object.scheduled_at,
@@ -258,8 +244,6 @@ class BattleDetailView(DetailView):
         context['previous_battle'] = battles_qs.filter(
             scheduled_at__lt=self.object.scheduled_at,
         ).order_by('-scheduled_at').only('id', 'scheduled_at').first()
-
-        context['arena'] = self.object.arena
 
         return context
 
@@ -326,7 +310,7 @@ class RecentBattlesView(ArenaViewMixin, ListView):
 
     def get_queryset(self):
         qs = Battle.objects.filter(
-            arena=self.arena,
+            llm=self.arena.llm,
         )
         if self.request.user.is_authenticated:
             qs = qs.for_user(self.request.user)

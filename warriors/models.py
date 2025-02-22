@@ -236,6 +236,36 @@ class WarriorArena(RatingMixin, models.Model):
         ) * time_unit
 
 
+def get_or_create_warrior_arenas(arena, warrior_ids):
+    """Get WarriorArena objects for given warrior_ids in given arena.
+    Returns dict warrior_id -> WarriorArena.
+    """
+    warrior_ids = set(warrior_ids)
+    warrior_arenas = {
+        w.warrior_id: w
+        for w in WarriorArena.objects.filter(
+            arena=arena,
+            warrior_id__in=warrior_ids,
+        )
+    }
+    missing_warrior_arenas = warrior_ids - set(warrior_arenas.keys())
+    WarriorArena.objects.bulk_create([
+        WarriorArena(
+            arena=arena,
+            warrior_id=warrior_id,
+        )
+        for warrior_id in missing_warrior_arenas
+    ])
+    warrior_arenas.update({
+        w.warrior_id: w
+        for w in WarriorArena.objects.filter(
+            arena=arena,
+            warrior_id__in=missing_warrior_arenas,
+        )
+    })
+    return warrior_arenas
+
+
 class WarriorUserPermission(models.Model):
     id = models.UUIDField(
         primary_key=True,

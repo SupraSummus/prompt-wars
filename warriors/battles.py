@@ -87,6 +87,7 @@ class Battle(models.Model):
     arena = models.ForeignKey(
         to='Arena',
         on_delete=models.CASCADE,
+        null=True,
     )
     llm = models.CharField(
         max_length=20,

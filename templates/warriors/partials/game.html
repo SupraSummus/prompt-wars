@@ -6,7 +6,7 @@
 
     <dt>First warrior</dt>
     <dd>
-      <a href="{% url 'warrior_detail' game.warrior_arena_1.id %}">{{ game.warrior_arena_1 }}</a>
+      <a href="{% url 'warrior:get' game.warrior_1.id %}">{{ game.warrior_1 }}</a>
       {% if game.resolved_at %}
         {% include 'warriors/partials/score.html' with score=game.score %}
       {% endif %}
@@ -14,7 +14,7 @@
 
     <dt>Second warrior</dt>
     <dd>
-      <a href="{% url 'warrior_detail' game.warrior_arena_2.id %}">{{ game.warrior_arena_2 }}</a>
+      <a href="{% url 'warrior:get' game.warrior_2.id %}">{{ game.warrior_2 }}</a>
       {% if game.resolved_at %}
         {% include 'warriors/partials/score.html' with score=game.score_rev %}
       {% endif %}
