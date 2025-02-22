@@ -1,4 +1,4 @@
-from django.shortcuts import get_object_or_404
+from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 
 from djsfc import Router, parse_template
@@ -101,10 +101,12 @@ not_moderated_template = parse_template('''\
 ''', router=router)
 
 
-@router.route('GET', '<uuid:warrior_id>')
+@router.route('GET', '<uuid:warrior_id>/')
 def get(request, warrior_id):
-    # Get the warrior
-    warrior = get_object_or_404(Warrior, id=warrior_id)
+    try:
+        warrior = Warrior.objects.get(id=warrior_id)
+    except Warrior.DoesNotExist:
+        return redirect('warrior_detail', warrior_id, permanent=True)
 
     # Get arenas where this warrior exists
     warrior_arenas = WarriorArena.objects.filter(

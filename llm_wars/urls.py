@@ -50,7 +50,7 @@ router = Router(__name__)
 router.route_all('labirynth/', labirynth_router, name='labirynth')
 router.route_all('stories/', stories_router, name='stories')
 router.route_all('my-warriors/', my_warriors_view.router, name='my_warriors')
-router.route_all('_warrior/', warrior_view.router, name='warrior')
+router.route_all('warrior/', warrior_view.router, name='warrior')
 
 urlpatterns = (
     path('', TemplateView.as_view(template_name="home.html"), name='home'),
@@ -69,7 +69,7 @@ urlpatterns = (
     path('arena/<uuid:arena_id>/upcoming-battles/', warriors.views.UpcomingBattlesView.as_view(), name='arena_upcoming_battles'),
     path('arena/<uuid:arena_id>/recent-battles/', warriors.views.RecentBattlesView.as_view(), name='arena_recent_battles'),
 
-    path('warrior/<uuid:pk>/', WarriorDetailView.as_view(), name='warrior_detail'),
+    path('warrior-arena/<uuid:pk>/', WarriorDetailView.as_view(), name='warrior_detail'),
     path(
         'warrior/<uuid:pk>/set-public-battles/',
         warrior_set_public_battle_results,

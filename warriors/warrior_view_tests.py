@@ -52,3 +52,13 @@ def test_link_to_warrior_arena(client, warrior, warrior_arena):
     )
     assert response.status_code == 200
     assert warrior_arena in response.context['warrior_arenas']
+
+
+@pytest.mark.django_db
+def test_redirect_to_warrior_arena(client, warrior, warrior_arena):
+    """Warrior detail page redirects to warrior-arena if not found"""
+    response = client.get(
+        reverse('warrior:get', args=(warrior_arena.id,)),
+    )
+    assert response.status_code == 301
+    assert response.url == reverse('warrior_detail', args=(warrior_arena.id,))
