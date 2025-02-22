@@ -13,11 +13,19 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='arena',
             name='llm',
-            field=models.CharField(choices=[('openai-gpt', 'OpenAI GPT'), ('claude-3-haiku', 'Claude 3 Haiku'), ('google-gemini', 'Google Gemini')], max_length=20),
+            field=models.CharField(choices=[
+                ('openai-gpt', 'OpenAI GPT'),
+                ('claude-3-haiku', 'Anthropic Claude'),
+                ('google-gemini', 'Google Gemini'),
+            ], max_length=20),
         ),
         migrations.AlterField(
             model_name='battle',
             name='llm',
-            field=models.CharField(choices=[('openai-gpt', 'OpenAI GPT'), ('claude-3-haiku', 'Claude 3 Haiku'), ('google-gemini', 'Google Gemini')], max_length=20),
+            field=models.CharField(choices=[
+                ('openai-gpt', 'OpenAI GPT'),
+                ('claude-3-haiku', 'Anthropic Claude'),
+                ('google-gemini', 'Google Gemini'),
+            ], max_length=20),
         ),
     ]
