@@ -62,8 +62,10 @@ def schedule_battle(now=None):
     ).first()
     if warrior is None:
         return
-    opponent = warrior.find_opponent()
-    if opponent is None:
+    if (
+        not warrior.arena.enabled or
+        (opponent := warrior.find_opponent()) is None
+    ):
         warrior.next_battle_schedule = now + warrior.get_next_battle_delay() + datetime.timedelta(minutes=1)
         warrior.save(update_fields=['next_battle_schedule'])
         return
