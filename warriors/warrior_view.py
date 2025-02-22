@@ -25,24 +25,35 @@ template = parse_template('''\
     {% endif %}
   </h1>
 
-  {% if show_secrets %}
-    <section>
-      <h2>Spell Source</h2>
-      <pre><code>{{ warrior.warrior.body }}</code></pre>
-    </section>
-  {% endif %}
+    {% if show_secrets %}
+        <details>
+            <summary role="button" class="outline">Body</summary>
+            {% include 'exact_text.html' with text=warrior.body %}
+        </details>
+    {% endif %}
 
     <section>
         <h2>Arenas</h2>
-        <ul>
-            {% for warrior_arena in warrior_arenas %}
-                <li>
-                    <a href="{% url 'warrior_detail' warrior_arena.id %}">
-                        {{ warrior_arena.arena.name }}
-                    </a>
-                </li>
-            {% endfor %}
-        </ul>
+        <table>
+            <thead>
+                <tr>
+                    <th>Arena</th>
+                    <th>Rating</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for warrior_arena in warrior_arenas %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'warrior_detail' warrior_arena.id %}">
+                                {{ warrior_arena.arena.name }}
+                            </a>
+                        </td>
+                        <td>{{ warrior_arena.rating|default:"-" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </section>
 
   {% if warrior_user_permission %}
