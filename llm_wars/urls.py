@@ -25,7 +25,7 @@ from djsfc import Router
 from labirynth.map_view import router as labirynth_router
 from stories.models import router as stories_router
 from users.views import SignupView
-from warriors import my_warriors_view
+from warriors import my_warriors_view, warrior_view
 from warriors.create_view import WarriorCreateView
 from warriors.views import (
     ArenaDetailView, BattleDetailView, ChallengeWarriorView, WarriorDetailView,
@@ -50,6 +50,7 @@ router = Router(__name__)
 router.route_all('labirynth/', labirynth_router, name='labirynth')
 router.route_all('stories/', stories_router, name='stories')
 router.route_all('my-warriors/', my_warriors_view.router, name='my_warriors')
+router.route_all('_warrior/', warrior_view.router, name='warrior')
 
 urlpatterns = (
     path('', TemplateView.as_view(template_name="home.html"), name='home'),
