@@ -4,7 +4,7 @@ import openai
 from django.utils import timezone
 from django_goals.models import AllDone, RetryMeLater
 
-from warriors.openai import call_llm
+from warriors.llms.openai import call_llm
 
 from .models import Room, RoomVersion
 

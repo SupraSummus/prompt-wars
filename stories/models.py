@@ -10,7 +10,7 @@ from django.utils import timezone
 from django_goals.models import AllDone, Goal, RetryMeLater, schedule
 
 from djsfc import Router, UnionTemplate, get_template_block, parse_template
-from warriors.anthropic import client as anthropic_client
+from warriors.llms.anthropic import client as anthropic_client
 
 
 class Chunk(models.Model):

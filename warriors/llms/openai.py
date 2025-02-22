@@ -3,8 +3,8 @@ import logging
 import openai
 from django.conf import settings
 
+from ..warriors import MAX_WARRIOR_LENGTH
 from .exceptions import RateLimitError, TransientLLMError
-from .warriors import MAX_WARRIOR_LENGTH
 
 
 logger = logging.getLogger(__name__)

@@ -6,7 +6,7 @@ from django.utils import timezone
 from django_goals.models import schedule, worker, worker_turn
 
 from .. import embeddings
-from ..exceptions import RateLimitError
+from ..llms.exceptions import RateLimitError
 from ..models import Battle, WarriorArena
 from ..tasks import openai_client, resolve_battle_1_2
 

@@ -6,13 +6,13 @@ from django.db import transaction
 from django.utils import timezone
 from django_goals.models import AllDone, RetryMeLater, schedule
 
-from . import anthropic
 from .battles import LLM, MATCHMAKING_COOLDOWN, Battle, Game
-from .exceptions import TransientLLMError
-from .google import resolve_battle_google
 from .lcs import lcs_len
+from .llms import anthropic
+from .llms.exceptions import TransientLLMError
+from .llms.google import resolve_battle_google
+from .llms.openai import openai_client, resolve_battle_openai
 from .models import Arena, WarriorArena
-from .openai import openai_client, resolve_battle_openai
 from .text_unit import TextUnit
 from .warriors import MAX_WARRIOR_LENGTH, Warrior, ensure_name_generated
 

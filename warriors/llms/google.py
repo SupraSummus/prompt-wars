@@ -6,8 +6,8 @@ from google import genai
 from google.genai.errors import ServerError
 from google.genai.types import FinishReason, GenerateContentConfig
 
+from ..warriors import MAX_WARRIOR_LENGTH
 from .exceptions import TransientLLMError
-from .warriors import MAX_WARRIOR_LENGTH
 
 
 logger = logging.getLogger(__name__)

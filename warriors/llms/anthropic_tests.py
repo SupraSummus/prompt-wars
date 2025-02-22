@@ -27,7 +27,7 @@ def anthropic_messages_create_mock(monkeypatch):
             output_tokens=234,
         ),
     )
-    monkeypatch.setattr('warriors.anthropic.client.messages.create', create_mock)
+    monkeypatch.setattr('warriors.llms.anthropic.client.messages.create', create_mock)
 
 
 @pytest.mark.django_db
