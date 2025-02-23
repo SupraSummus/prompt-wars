@@ -45,6 +45,9 @@ class RatingMixin(models.Model):
     rating_error = models.FloatField(
         default=0.0,
     )
+    rating_updated_at = models.DateTimeField(
+        default=timezone.now,
+    )
 
     def update_rating(self):
         """
@@ -55,8 +58,10 @@ class RatingMixin(models.Model):
         from .battles import MATCHMAKING_COOLDOWN, Battle
         from .models import WarriorArena, get_or_create_warrior_arenas
 
+        now = timezone.now()
+
         # collect relevant battles
-        old_battle_treshold = timezone.now() - MATCHMAKING_COOLDOWN
+        old_battle_treshold = now - MATCHMAKING_COOLDOWN
         battles = {}  # opponent warrior id -> our BattleViewpoint
         for b in Battle.objects.with_warrior_arena(self).resolved().order_by('-scheduled_at'):
             b = b.get_warrior_viewpoint(self)
@@ -116,6 +121,7 @@ class RatingMixin(models.Model):
                 rating_fit_loss=self.rating_fit_loss,
                 rating_error=0.0,
                 games_played=len(scores),
+                rating_updated_at=now,
             )
             WarriorArena.objects.filter(id__in=ids_after).update(
                 rating=F('rating') - error_per_opponent,
