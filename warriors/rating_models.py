@@ -115,6 +115,7 @@ class RatingMixin(models.Model):
                 rating_playstyle=new_playstyle,
                 rating_fit_loss=self.rating_fit_loss,
                 rating_error=0.0,
+                games_played=len(scores),
             )
             WarriorArena.objects.filter(id__in=ids_after).update(
                 rating=F('rating') - error_per_opponent,
