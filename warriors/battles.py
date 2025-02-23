@@ -314,6 +314,7 @@ class BattleViewpoint:
             'arena',
             'arena_id',
             'llm',
+            'get_llm_display',
             'scheduled_at',
             'rating_transferred_at',
         ):
