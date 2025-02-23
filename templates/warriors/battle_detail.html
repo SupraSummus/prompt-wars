@@ -8,7 +8,7 @@
       <hgroup>
         <h1>{{ meta_title }}</h1>
         <p>
-          LLM: {{ battle.llm }}<br>
+          LLM: {{ battle.get_llm_display }}<br>
           scheduled at {% include 'time.html' with time=battle.scheduled_at %}
         </p>
       </hgroup>
