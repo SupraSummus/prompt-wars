@@ -162,7 +162,7 @@ def resolve_battle(battle_id, direction):
         attempts = battle_view.attempts
         battle_view.attempts += 1
         battle_view.save(update_fields=['attempts'])
-        if attempts < 5:
+        if attempts < 6:
             # try again in some time
             exponent = attempts + random.random() - 0.5
             delay = datetime.timedelta(minutes=5) * 2**exponent
