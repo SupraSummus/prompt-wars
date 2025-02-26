@@ -160,7 +160,7 @@ def test_resolve_battle(arena, battle, monkeypatch):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('battle', [{'attempts_2_1': 5}], indirect=True)
+@pytest.mark.parametrize('battle', [{'attempts_2_1': 10}], indirect=True)
 def test_resolve_battle_service_unavailable(battle, monkeypatch):
     create_mock = mock.Mock(side_effect=openai.APIStatusError(
         'not now',
