@@ -43,8 +43,10 @@ def get_performance_rating(
     # Try multiple starting positions
     starting_positions = []
 
-    # Always include zero as a starting position
-    starting_positions.append((0.0, np.zeros(2 * k)))
+    # Add random starting position
+    random_rating = np.random.uniform(-allowed_rating_range, allowed_rating_range)
+    random_playstyle = np.random.uniform(-allowed_playstyle_range, allowed_playstyle_range, 2 * k)
+    starting_positions.append((random_rating, random_playstyle))
 
     # Include user-provided initial guess if available
     if rating_guess is not None or playstyle_guess is not None:
@@ -59,9 +61,7 @@ def get_performance_rating(
         clipped_rating = np.clip(rating_guess, -allowed_rating_range, allowed_rating_range)
         clipped_playstyle = np.clip(playstyle_guess, -allowed_playstyle_range, allowed_playstyle_range)
 
-        # Only add if different from zero starting position
-        if clipped_rating != 0.0 or not np.allclose(clipped_playstyle, np.zeros(2 * k)):
-            starting_positions.append((clipped_rating, clipped_playstyle))
+        starting_positions.append((clipped_rating, clipped_playstyle))
 
     # Set up bounds for optimization
     lower_bounds = np.array([-allowed_rating_range] + [-allowed_playstyle_range] * (2 * k))

@@ -1,5 +1,4 @@
 import logging
-import random
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models, transaction
@@ -73,12 +72,14 @@ class RatingMixin(models.Model):
                 break  # all the remaining battles are old and we have enough to calculate rating
             battles[b.warrior_2_id] = b
 
+        k = min(M_ELO_K, len(battles) // 2)
+
         # collect scores
         scores = {}  # opponent warrior_arena id -> GameScore(score, opponent_rating, opponent_playstyle)
         warrior_arenas = get_or_create_warrior_arenas(self.arena, battles.keys())
         for b in battles.values():
             opponent = warrior_arenas[b.warrior_2_id]
-            normalize_playstyle_len(opponent.rating_playstyle)
+            normalize_playstyle_len(opponent.rating_playstyle, k)
             scores[opponent.id] = GameScore(
                 score=b.score,
                 opponent_rating=opponent.rating,
@@ -88,13 +89,13 @@ class RatingMixin(models.Model):
         # find rating fitting our scores
         # we limit rating range for warriors with few games played
         max_allowed_rating = MAX_ALLOWED_RATING_PER_GAME * len(scores)
-        normalize_playstyle_len(self.rating_playstyle)
+        normalize_playstyle_len(self.rating_playstyle, k)
         new_rating, new_playstyle, self.rating_fit_loss = get_performance_rating(
             list(scores.values()),
             rating_guess=self.rating,
             playstyle_guess=self.rating_playstyle,
             allowed_rating_range=max_allowed_rating,
-            k=M_ELO_K,
+            k=k,
         )
         rating_error = new_rating - self.rating
 
@@ -133,15 +134,15 @@ class RatingMixin(models.Model):
         return rating_error
 
 
-def normalize_playstyle_len(playstyle):
+def normalize_playstyle_len(playstyle, k=M_ELO_K):
     # Make sure playstyle vector is of fixed length.
     # This is used to automatically migrate data from different versions of M_ELO_K.
     # Also by default playstyle is initialized as empty array, so this functions as a default value.
-    while len(playstyle) < M_ELO_K * 2:
-        playstyle.append(random.random())
-    while len(playstyle) > M_ELO_K * 2:
+    while len(playstyle) < k * 2:
+        playstyle.append(0)
+    while len(playstyle) > k * 2:
         playstyle.pop()
-    assert len(playstyle) == M_ELO_K * 2
+    assert len(playstyle) == k * 2
 
 
 def update_rating(n=1, now=None):
