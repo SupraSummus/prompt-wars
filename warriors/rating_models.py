@@ -91,6 +91,8 @@ class RatingMixin(models.Model):
         normalize_playstyle_len(self.rating_playstyle)
         new_rating, new_playstyle, self.rating_fit_loss = get_performance_rating(
             list(scores.values()),
+            rating_guess=self.rating,
+            playstyle_guess=self.rating_playstyle,
             allowed_rating_range=max_allowed_rating,
             k=M_ELO_K,
         )

@@ -30,43 +30,64 @@ def get_performance_rating(
     k: int = default_k,
 ) -> tuple[float, list[float], float]:
     """
-    Calculate performance rating from a set of games.
+    Calculate performance rating from a set of games using multiple starting positions.
 
     Returns:
         tuple: (rating, playstyle, loss)
     """
-    if rating_guess is None:
-        rating_guess = 0.0
-    if playstyle_guess is None:
-        playstyle_guess = np.zeros(2 * k)
-    else:
-        playstyle_guess = np.array(playstyle_guess)
-
     if allowed_rating_range == 0:
         return 0, [0] * (2 * k), 0
 
     allowed_playstyle_range = allowed_rating_range ** 0.5
 
-    # Clip the initial guesses to the allowed ranges
-    rating_guess = np.clip(rating_guess, -allowed_rating_range, allowed_rating_range)
-    playstyle_guess = np.clip(playstyle_guess, -allowed_playstyle_range, allowed_playstyle_range)
+    # Try multiple starting positions
+    starting_positions = []
+
+    # Always include zero as a starting position
+    starting_positions.append((0.0, np.zeros(2 * k)))
+
+    # Include user-provided initial guess if available
+    if rating_guess is not None or playstyle_guess is not None:
+        if rating_guess is None:
+            rating_guess = 0.0
+        if playstyle_guess is None:
+            playstyle_guess = np.zeros(2 * k)
+        else:
+            playstyle_guess = np.array(playstyle_guess)
+
+        # Clip the initial guess to the allowed ranges
+        clipped_rating = np.clip(rating_guess, -allowed_rating_range, allowed_rating_range)
+        clipped_playstyle = np.clip(playstyle_guess, -allowed_playstyle_range, allowed_playstyle_range)
+
+        # Only add if different from zero starting position
+        if clipped_rating != 0.0 or not np.allclose(clipped_playstyle, np.zeros(2 * k)):
+            starting_positions.append((clipped_rating, clipped_playstyle))
 
     # Set up bounds for optimization
     lower_bounds = np.array([-allowed_rating_range] + [-allowed_playstyle_range] * (2 * k))
     upper_bounds = np.array([allowed_rating_range] + [allowed_playstyle_range] * (2 * k))
     bounds = Bounds(lb=lower_bounds, ub=upper_bounds)
 
-    # Optimize
-    result = minimize(
-        lambda x: _loss(x[0], x[1:], scores, k),
-        np.concatenate([[rating_guess], playstyle_guess]),
-        bounds=bounds,
-        method='L-BFGS-B',
-        jac=lambda x: _gradient(x[0], x[1:], scores, k),
-        options={'gtol': 1e-6},
-    )
+    best_result = None
+    best_loss = float('inf')
 
-    return result.x[0], result.x[1:].tolist(), result.fun
+    # Run optimization from each starting position
+    for start_rating, start_playstyle in starting_positions:
+        result = minimize(
+            lambda x: _loss(x[0], x[1:], scores, k),
+            np.concatenate([[start_rating], start_playstyle]),
+            bounds=bounds,
+            method='L-BFGS-B',
+            jac=lambda x: _gradient(x[0], x[1:], scores, k),
+            options={'gtol': 1e-6},
+        )
+
+        if result.fun < best_loss:
+            best_result = result
+            best_loss = result.fun
+
+    # Return the best result
+    return best_result.x[0], best_result.x[1:].tolist(), best_result.fun
 
 
 def _loss(
