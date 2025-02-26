@@ -12,33 +12,53 @@ from scipy.special import xlogy  # pylint: disable=no-name-in-module
 default_k = 0
 
 
-def get_expected_game_score(
-    own_rating: float,
-    own_playstyle: list[float],
-    opponent_rating: float,
-    opponent_playstyle: list[float],
-    k: int = default_k,
-) -> float:
-    """
-    Calculate expected score for a game between two players.
-    0 means we lose, 1 means we win.
-    """
-    own_playstyle = numpy.array(own_playstyle)
-    assert own_playstyle.shape == (2 * k,)
-    opponent_playstyle = numpy.array(opponent_playstyle)
-    assert opponent_playstyle.shape == (2 * k,)
-
-    playstyle_correction_matrix = compute_omega_matrix(k)
-    playstyle_factor = own_playstyle @ playstyle_correction_matrix @ opponent_playstyle.T
-    rating_delta = opponent_rating - own_rating - playstyle_factor
-    return 1 / (1 + 10**(rating_delta / 400))
-
-
 @dataclass(frozen=True)
 class GameScore:
     score: float
     opponent_rating: float
     opponent_playstyle: list[float]
+
+
+def get_performance_rating(
+    scores: list[GameScore],
+    rating_guess: float = None,  # initial guess
+    playstyle_guess: list[float] = None,  # initial guess
+    allowed_rating_range: float = 4000,
+    k: int = default_k,
+) -> tuple[float, list[float], float]:
+    """
+    Calculate performance rating from a set of games.
+    """
+    if rating_guess is None:
+        rating_guess = 0.0
+    if playstyle_guess is None:
+        playstyle_guess = [0.0] * (2 * k)
+    if allowed_rating_range == 0:
+        return 0, [0] * (2 * k), 0
+    allowed_playstyle_range = allowed_rating_range ** 0.5
+
+    # clip the initial guess to the allowed range
+    rating_guess = max(-allowed_rating_range, min(allowed_rating_range, rating_guess))
+    playstyle_guess = [
+        max(-allowed_playstyle_range, min(allowed_playstyle_range, x))
+        for x in playstyle_guess
+    ]
+
+    result = minimize(
+        lambda x: _loss(x[0], x[1:], scores, k),
+        [rating_guess] + playstyle_guess,
+        bounds=Bounds(
+            lb=[-allowed_rating_range] + [-allowed_playstyle_range] * (2 * k),
+            ub=[allowed_rating_range] + [allowed_playstyle_range] * (2 * k),
+        ),
+        method='L-BFGS-B',
+        jac=lambda x: _gradient(x[0], x[1:], scores, k),
+        options={
+            'gtol': 1e-6,  # Gradient tolerance for convergence
+        },
+    )
+    loss = result.fun
+    return result.x[0], list(result.x[1:]), loss
 
 
 def _loss(
@@ -128,51 +148,31 @@ def get_expected_scores(
     return np.array(expected_scores)
 
 
+def get_expected_game_score(
+    own_rating: float,
+    own_playstyle: list[float],
+    opponent_rating: float,
+    opponent_playstyle: list[float],
+    k: int = default_k,
+) -> float:
+    """
+    Calculate expected score for a game between two players.
+    0 means we lose, 1 means we win.
+    """
+    own_playstyle = numpy.array(own_playstyle)
+    assert own_playstyle.shape == (2 * k,)
+    opponent_playstyle = numpy.array(opponent_playstyle)
+    assert opponent_playstyle.shape == (2 * k,)
+
+    playstyle_correction_matrix = compute_omega_matrix(k)
+    playstyle_factor = own_playstyle @ playstyle_correction_matrix @ opponent_playstyle.T
+    rating_delta = opponent_rating - own_rating - playstyle_factor
+    return 1 / (1 + 10**(rating_delta / 400))
+
+
 def binary_cross_entropy(real, predicted):
     assert len(real) == len(predicted)
     return -sum(xlogy(real, predicted) + xlogy(1 - real, 1 - predicted)) / len(real)
-
-
-def get_performance_rating(
-    scores: list[GameScore],
-    rating_guess: float = None,  # initial guess
-    playstyle_guess: list[float] = None,  # initial guess
-    allowed_rating_range: float = 4000,
-    k: int = default_k,
-) -> tuple[float, list[float], float]:
-    """
-    Calculate performance rating from a set of games.
-    """
-    if rating_guess is None:
-        rating_guess = 0.0
-    if playstyle_guess is None:
-        playstyle_guess = [0.0] * (2 * k)
-    if allowed_rating_range == 0:
-        return 0, [0] * (2 * k), 0
-    allowed_playstyle_range = allowed_rating_range ** 0.5
-
-    # clip the initial guess to the allowed range
-    rating_guess = max(-allowed_rating_range, min(allowed_rating_range, rating_guess))
-    playstyle_guess = [
-        max(-allowed_playstyle_range, min(allowed_playstyle_range, x))
-        for x in playstyle_guess
-    ]
-
-    result = minimize(
-        lambda x: _loss(x[0], x[1:], scores, k),
-        [rating_guess] + playstyle_guess,
-        bounds=Bounds(
-            lb=[-allowed_rating_range] + [-allowed_playstyle_range] * (2 * k),
-            ub=[allowed_rating_range] + [allowed_playstyle_range] * (2 * k),
-        ),
-        method='L-BFGS-B',
-        jac=lambda x: _gradient(x[0], x[1:], scores, k),
-        options={
-            'gtol': 1e-6,  # Gradient tolerance for convergence
-        },
-    )
-    loss = result.fun
-    return result.x[0], list(result.x[1:]), loss
 
 
 @lru_cache
