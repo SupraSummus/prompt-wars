@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from functools import lru_cache
 
-import numpy
 import numpy as np
 from scipy.optimize import Bounds, minimize
 from scipy.special import xlogy  # pylint: disable=no-name-in-module
@@ -11,9 +10,13 @@ from scipy.special import xlogy  # pylint: disable=no-name-in-module
 # For k=0 this is standard Elo rating
 default_k = 0
 
+# Pre-compute constant
+LOG10_OVER_400 = np.log(10) / 400
+
 
 @dataclass(frozen=True)
 class GameScore:
+    """Represents the outcome of a game and the opponent's parameters."""
     score: float
     opponent_rating: float
     opponent_playstyle: list[float]
@@ -28,42 +31,47 @@ def get_performance_rating(
 ) -> tuple[float, list[float], float]:
     """
     Calculate performance rating from a set of games.
+
+    Returns:
+        tuple: (rating, playstyle, loss)
     """
     if rating_guess is None:
         rating_guess = 0.0
     if playstyle_guess is None:
-        playstyle_guess = [0.0] * (2 * k)
+        playstyle_guess = np.zeros(2 * k)
+    else:
+        playstyle_guess = np.array(playstyle_guess)
+
     if allowed_rating_range == 0:
         return 0, [0] * (2 * k), 0
+
     allowed_playstyle_range = allowed_rating_range ** 0.5
 
-    # clip the initial guess to the allowed range
-    rating_guess = max(-allowed_rating_range, min(allowed_rating_range, rating_guess))
-    playstyle_guess = [
-        max(-allowed_playstyle_range, min(allowed_playstyle_range, x))
-        for x in playstyle_guess
-    ]
+    # Clip the initial guesses to the allowed ranges
+    rating_guess = np.clip(rating_guess, -allowed_rating_range, allowed_rating_range)
+    playstyle_guess = np.clip(playstyle_guess, -allowed_playstyle_range, allowed_playstyle_range)
 
+    # Set up bounds for optimization
+    lower_bounds = np.array([-allowed_rating_range] + [-allowed_playstyle_range] * (2 * k))
+    upper_bounds = np.array([allowed_rating_range] + [allowed_playstyle_range] * (2 * k))
+    bounds = Bounds(lb=lower_bounds, ub=upper_bounds)
+
+    # Optimize
     result = minimize(
         lambda x: _loss(x[0], x[1:], scores, k),
-        [rating_guess] + playstyle_guess,
-        bounds=Bounds(
-            lb=[-allowed_rating_range] + [-allowed_playstyle_range] * (2 * k),
-            ub=[allowed_rating_range] + [allowed_playstyle_range] * (2 * k),
-        ),
+        np.concatenate([[rating_guess], playstyle_guess]),
+        bounds=bounds,
         method='L-BFGS-B',
         jac=lambda x: _gradient(x[0], x[1:], scores, k),
-        options={
-            'gtol': 1e-6,  # Gradient tolerance for convergence
-        },
+        options={'gtol': 1e-6},
     )
-    loss = result.fun
-    return result.x[0], list(result.x[1:]), loss
+
+    return result.x[0], result.x[1:].tolist(), result.fun
 
 
 def _loss(
     own_rating: float,
-    own_playstyle: list[float],
+    own_playstyle: np.ndarray,
     scores: list[GameScore],
     k: int = default_k,
 ) -> float:
@@ -77,7 +85,7 @@ def _loss(
 
 def _gradient(
     rating: float,
-    playstyle: list[float],
+    playstyle: np.ndarray,
     scores: list[GameScore],
     k: int = default_k,
 ) -> np.ndarray:
@@ -85,121 +93,105 @@ def _gradient(
     Calculate the gradient of the loss function with respect to rating and playstyle parameters.
     Returns a numpy array with the gradient for [rating, playstyle[0], playstyle[1], ...]
     """
-    # Convert inputs to numpy arrays
-    playstyle = np.array(playstyle)
+    if not isinstance(playstyle, np.ndarray):
+        playstyle = np.array(playstyle)
+
     real_scores = np.array([score.score for score in scores])
     n = len(scores)
 
     # Get predicted scores
     predicted_scores = get_expected_scores(rating, playstyle, scores, k)
 
-    # Initialize gradient vector
-    grad = np.zeros(1 + len(playstyle))
+    # Calculate error terms
+    errors = predicted_scores - real_scores
 
-    # Get the omega matrix for playstyle interactions
+    # Common scaling factor
+    common_factors = errors * LOG10_OVER_400 / n
+
+    # Rating gradient is the sum of common factors
+    rating_grad = np.sum(common_factors)
+
+    # Get omega matrix for playstyle interactions
     omega_matrix = compute_omega_matrix(k)
 
-    # Constant factor in the sigmoid derivative
-    log10_over_400 = np.log(10) / 400
+    # Calculate playstyle gradients
+    playstyle_grad = np.zeros_like(playstyle)
 
-    for i, score in enumerate(scores):
-        y_pred = predicted_scores[i]
-        y_real = real_scores[i]
+    for i, (common_factor, score) in enumerate(zip(common_factors, scores)):
         opponent_playstyle = np.array(score.opponent_playstyle)
-
-        # This is the error term: (y_pred - y_real)
-        error_term = y_pred - y_real
-
-        # This is a common factor in our gradient: (y_pred - y_real) * log(10)/400 / n
-        common_factor = error_term * log10_over_400 / n
-
-        # Rating gradient: dL/dr = (y_pred - y_real) * log(10)/400 / n
-        # Note: No negative sign here because:
-        # - Increasing rating increases expected score
-        # - If expected score > real score, we want to decrease rating
-        grad[0] += common_factor
-
-        # Playstyle gradient
+        # Calculate how each playstyle parameter interacts with opponent's playstyle
         for j in range(len(playstyle)):
-            # Calculate how this playstyle parameter interacts with opponent's playstyle
-            # This is the row j of Ω multiplied by opponent playstyle vector
             playstyle_effect = np.sum(omega_matrix[j] * opponent_playstyle)
+            playstyle_grad[j] += common_factor * playstyle_effect
 
-            # dL/dp_j = (y_pred - y_real) * log(10)/400 / n * playstyle_effect
-            grad[j + 1] += common_factor * playstyle_effect
-
-    return grad
+    return np.concatenate([[rating_grad], playstyle_grad])
 
 
 def get_expected_scores(
     own_rating: float,
-    own_playstyle: list[float],
+    own_playstyle: np.ndarray,
     scores: list[GameScore],
     k: int = default_k,
-) -> float:
-    expected_scores = []
-    for score in scores:
-        expected_score = get_expected_game_score(
-            own_rating, own_playstyle,
-            score.opponent_rating, score.opponent_playstyle,
-            k,
-        )
-        expected_scores.append(expected_score)
-    return np.array(expected_scores)
+) -> np.ndarray:
+    """Calculate expected scores for multiple games."""
+    if not isinstance(own_playstyle, np.ndarray):
+        own_playstyle = np.array(own_playstyle)
+
+    playstyle_correction_matrix = compute_omega_matrix(k)
+
+    expected_scores = np.zeros(len(scores))
+    for i, score in enumerate(scores):
+        opponent_playstyle = np.array(score.opponent_playstyle)
+        playstyle_factor = own_playstyle @ playstyle_correction_matrix @ opponent_playstyle
+        rating_delta = score.opponent_rating - own_rating - playstyle_factor
+        expected_scores[i] = 1 / (1 + 10**(rating_delta / 400))
+
+    return expected_scores
 
 
 def get_expected_game_score(
     own_rating: float,
-    own_playstyle: list[float],
+    own_playstyle: np.ndarray,
     opponent_rating: float,
-    opponent_playstyle: list[float],
+    opponent_playstyle: np.ndarray,
     k: int = default_k,
 ) -> float:
     """
     Calculate expected score for a game between two players.
     0 means we lose, 1 means we win.
     """
-    own_playstyle = numpy.array(own_playstyle)
-    assert own_playstyle.shape == (2 * k,)
-    opponent_playstyle = numpy.array(opponent_playstyle)
-    assert opponent_playstyle.shape == (2 * k,)
+    if not isinstance(own_playstyle, np.ndarray):
+        own_playstyle = np.array(own_playstyle)
+    if not isinstance(opponent_playstyle, np.ndarray):
+        opponent_playstyle = np.array(opponent_playstyle)
 
     playstyle_correction_matrix = compute_omega_matrix(k)
-    playstyle_factor = own_playstyle @ playstyle_correction_matrix @ opponent_playstyle.T
+    playstyle_factor = own_playstyle @ playstyle_correction_matrix @ opponent_playstyle
     rating_delta = opponent_rating - own_rating - playstyle_factor
     return 1 / (1 + 10**(rating_delta / 400))
 
 
-def binary_cross_entropy(real, predicted):
-    assert len(real) == len(predicted)
-    return -sum(xlogy(real, predicted) + xlogy(1 - real, 1 - predicted)) / len(real)
+def binary_cross_entropy(real: np.ndarray, predicted: np.ndarray) -> float:
+    """Calculate binary cross-entropy loss."""
+    return -np.mean(xlogy(real, predicted) + xlogy(1 - real, 1 - predicted))
 
 
 @lru_cache
-def compute_omega_matrix(k):
-    # Initialize the Omega matrix with zeros
+def compute_omega_matrix(k: int) -> np.ndarray:
+    """
+    Compute the omega matrix for playstyle interactions.
+    This matrix defines how playstyle parameters interact between players.
+    """
     omega = np.zeros((2 * k, 2 * k))
 
-    # Iterate over the range of k
+    # For each playstyle dimension
     for i in range(1, k + 1):
         # Compute the indices for standard basis vectors
-        idx_1 = 2 * i - 1
-        idx_2 = 2 * i
+        idx_1 = 2 * i - 2  # adjust to 0-based indexing directly
+        idx_2 = 2 * i - 1
 
-        # Create the standard basis vectors
-        e_1 = np.zeros(2 * k)
-        e_2 = np.zeros(2 * k)
-        e_1[idx_1 - 1] = 1
-        e_2[idx_2 - 1] = 1
-
-        # Compute the outer products
-        outer_prod_1 = np.outer(e_1, e_2)
-        outer_prod_2 = np.outer(e_2, e_1)
-
-        # Compute the difference of outer products
-        diff_matrix = outer_prod_1 - outer_prod_2
-
-        # Add the difference matrix to Omega
-        omega += diff_matrix
+        # Set the matrix elements directly
+        omega[idx_1, idx_2] = 1
+        omega[idx_2, idx_1] = -1
 
     return omega
