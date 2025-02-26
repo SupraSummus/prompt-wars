@@ -48,8 +48,18 @@ def get_performance_rating(
     starting_positions = []
 
     # Add random starting position
-    random_rating = np.random.uniform(-allowed_rating_range, allowed_rating_range)
-    random_playstyle = np.random.uniform(-allowed_playstyle_range, allowed_playstyle_range, 2 * k)
+    random_rating = np.random.uniform(
+        min(score.opponent_rating for score in scores),
+        max(score.opponent_rating for score in scores),
+    )
+    if k:
+        random_playstyle = np.random.uniform(
+            min(min(score.opponent_playstyle) for score in scores),
+            max(max(score.opponent_playstyle) for score in scores),
+            2 * k,
+        )
+    else:
+        random_playstyle = []
     starting_positions.append((random_rating, random_playstyle))
 
     # Include user-provided initial guess if available
