@@ -1,8 +1,11 @@
+import random
+
 import numpy as np
 import pytest
+from scipy.optimize import check_grad
 
 from ..rating import (
-    GameScore, compute_omega_matrix, get_expected_game_score,
+    GameScore, _gradient, _loss, compute_omega_matrix, get_expected_game_score,
     get_performance_rating,
 )
 
@@ -20,7 +23,7 @@ def scores():
 
 def test_get_performance_rating(scores):
     rating, _, _ = get_performance_rating(scores)
-    assert rating == pytest.approx(2550.5, abs=0.1)
+    assert rating == pytest.approx(2550.5, abs=0.01)
 
 
 def test_get_performance_rating_empty_range(scores):
@@ -75,3 +78,28 @@ def test_rock_paper_scissors_scheme():
     assert get_expected_game_score(*params[0], *params[1], k=1) == pytest.approx(0, abs=0.01)
     assert get_expected_game_score(*params[1], *params[2], k=1) == pytest.approx(0, abs=0.01)
     assert get_expected_game_score(*params[2], *params[0], k=1) == pytest.approx(0, abs=0.01)
+
+
+def test_gradient():
+    """Verify gradient calculation using scipy's check_grad"""
+    k = 1
+    # Create a small test case
+    test_scores = [
+        GameScore(0.75, 1200, [random.uniform(-10, 10) for _ in range(2 * k)]),
+        GameScore(0.25, 800, [random.uniform(-10, 10) for _ in range(2 * k)])
+    ]
+
+    # Create test point
+    test_point = [1000] + [random.uniform(-5, 5) for _ in range(2 * k)]
+
+    # Function that returns just the loss
+    def f(x):
+        return _loss(x[0], x[1:], test_scores, k)
+
+    # Function that returns just the gradient
+    def g(x):
+        return _gradient(x[0], x[1:], test_scores, k)
+
+    # Check gradient
+    error = check_grad(f, g, test_point)
+    assert error < 1e-4

@@ -55,6 +55,62 @@ def _loss(
     return binary_cross_entropy(real_scores, predicted_scores)
 
 
+def _gradient(
+    rating: float,
+    playstyle: list[float],
+    scores: list[GameScore],
+    k: int = default_k,
+) -> np.ndarray:
+    """
+    Calculate the gradient of the loss function with respect to rating and playstyle parameters.
+    Returns a numpy array with the gradient for [rating, playstyle[0], playstyle[1], ...]
+    """
+    # Convert inputs to numpy arrays
+    playstyle = np.array(playstyle)
+    real_scores = np.array([score.score for score in scores])
+    n = len(scores)
+
+    # Get predicted scores
+    predicted_scores = get_expected_scores(rating, playstyle, scores, k)
+
+    # Initialize gradient vector
+    grad = np.zeros(1 + len(playstyle))
+
+    # Get the omega matrix for playstyle interactions
+    omega_matrix = compute_omega_matrix(k)
+
+    # Constant factor in the sigmoid derivative
+    log10_over_400 = np.log(10) / 400
+
+    for i, score in enumerate(scores):
+        y_pred = predicted_scores[i]
+        y_real = real_scores[i]
+        opponent_playstyle = np.array(score.opponent_playstyle)
+
+        # This is the error term: (y_pred - y_real)
+        error_term = y_pred - y_real
+
+        # This is a common factor in our gradient: (y_pred - y_real) * log(10)/400 / n
+        common_factor = error_term * log10_over_400 / n
+
+        # Rating gradient: dL/dr = (y_pred - y_real) * log(10)/400 / n
+        # Note: No negative sign here because:
+        # - Increasing rating increases expected score
+        # - If expected score > real score, we want to decrease rating
+        grad[0] += common_factor
+
+        # Playstyle gradient
+        for j in range(len(playstyle)):
+            # Calculate how this playstyle parameter interacts with opponent's playstyle
+            # This is the row j of Ω multiplied by opponent playstyle vector
+            playstyle_effect = np.sum(omega_matrix[j] * opponent_playstyle)
+
+            # dL/dp_j = (y_pred - y_real) * log(10)/400 / n * playstyle_effect
+            grad[j + 1] += common_factor * playstyle_effect
+
+    return grad
+
+
 def get_expected_scores(
     own_rating: float,
     own_playstyle: list[float],
@@ -109,6 +165,11 @@ def get_performance_rating(
             lb=[-allowed_rating_range] + [-allowed_playstyle_range] * (2 * k),
             ub=[allowed_rating_range] + [allowed_playstyle_range] * (2 * k),
         ),
+        method='L-BFGS-B',
+        jac=lambda x: _gradient(x[0], x[1:], scores, k),
+        options={
+            'gtol': 1e-6,  # Gradient tolerance for convergence
+        },
     )
     loss = result.fun
     return result.x[0], list(result.x[1:]), loss
