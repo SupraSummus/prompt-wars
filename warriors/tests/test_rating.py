@@ -58,7 +58,6 @@ def test_rock_paper_scissors_scheme():
 
     # compute parameters
     for _ in range(100):
-        new_params = []
         for i in range(3):
             prev_i = (i - 1) % 3
             next_i = (i + 1) % 3
@@ -71,8 +70,7 @@ def test_rock_paper_scissors_scheme():
                 playstyle_guess=params[i][1],
                 k=1,
             )
-            new_params.append((rating, playstyle))
-        params = new_params
+            params[i] = (rating, playstyle)
 
     # check predictions
     assert get_expected_game_score(*params[0], *params[1], k=1) == pytest.approx(0, abs=0.01)

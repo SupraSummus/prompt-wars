@@ -107,6 +107,6 @@ def test_battle_score():
     assert battle_viewpoint.score == 0
 
     # to compute performance we must assign warrior_arens (not in the db)
-    battle.warrior_arena_1 = WarriorArenaFactory(warrior=battle.warrior_1)
-    battle.warrior_arena_2 = WarriorArenaFactory(warrior=battle.warrior_2)
+    battle.warrior_arena_1 = WarriorArenaFactory(warrior=battle.warrior_1, rating_playstyle=[0, 0])
+    battle.warrior_arena_2 = WarriorArenaFactory(warrior=battle.warrior_2, rating_playstyle=[0, 0])
     assert battle_viewpoint.performance == pytest.approx(-0.5, abs=0.01)  # it could have been closer to 1 if there was a discrepancy in the ratings

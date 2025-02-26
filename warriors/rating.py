@@ -13,6 +13,10 @@ default_k = 0
 # Pre-compute constant
 LOG10_OVER_400 = np.log(10) / 400
 
+# L2 regularization strength: at ||playstyle|| = 100, loss = 0.01
+# So λ * 100² = 0.01 => λ = 1e-6
+PLAYSTYLE_L2_LAMBDA = 1e-6
+
 
 @dataclass(frozen=True)
 class GameScore:
@@ -98,10 +102,18 @@ def _loss(
 ) -> float:
     """
     Calculate the loss function for score predictions using params vs real scores.
+    Includes L2 regularization for playstyle parameters.
     """
     real_scores = np.array([score.score for score in scores])
     predicted_scores = get_expected_scores(own_rating, own_playstyle, scores, k)
-    return binary_cross_entropy(real_scores, predicted_scores)
+
+    # Calculate cross-entropy loss
+    ce_loss = binary_cross_entropy(real_scores, predicted_scores)
+
+    # Add L2 regularization for playstyle parameters
+    l2_reg = PLAYSTYLE_L2_LAMBDA * np.sum(own_playstyle**2)
+
+    return ce_loss + l2_reg
 
 
 def _gradient(
@@ -113,6 +125,7 @@ def _gradient(
     """
     Calculate the gradient of the loss function with respect to rating and playstyle parameters.
     Returns a numpy array with the gradient for [rating, playstyle[0], playstyle[1], ...]
+    Includes gradient from L2 regularization for playstyle.
     """
     if not isinstance(playstyle, np.ndarray):
         playstyle = np.array(playstyle)
@@ -144,6 +157,9 @@ def _gradient(
         for j in range(len(playstyle)):
             playstyle_effect = np.sum(omega_matrix[j] * opponent_playstyle)
             playstyle_grad[j] += common_factor * playstyle_effect
+
+    # Add gradient from L2 regularization for playstyle parameters
+    playstyle_grad += 2 * PLAYSTYLE_L2_LAMBDA * playstyle
 
     return np.concatenate([[rating_grad], playstyle_grad])
 

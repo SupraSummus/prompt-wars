@@ -1,4 +1,5 @@
 import logging
+import random
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models, transaction
@@ -139,7 +140,10 @@ def normalize_playstyle_len(playstyle, k=M_ELO_K):
     # This is used to automatically migrate data from different versions of M_ELO_K.
     # Also by default playstyle is initialized as empty array, so this functions as a default value.
     while len(playstyle) < k * 2:
-        playstyle.append(0)
+        playstyle.append(random.uniform(
+            -MAX_ALLOWED_RATING_PER_GAME ** 0.5,
+            MAX_ALLOWED_RATING_PER_GAME ** 0.5,
+        ))
     while len(playstyle) > k * 2:
         playstyle.pop()
     assert len(playstyle) == k * 2
