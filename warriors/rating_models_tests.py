@@ -7,6 +7,7 @@ from .models import WarriorArena
 from .rating_models import update_rating
 from .tests.factories import (
     ArenaFactory, BattleFactory, WarriorArenaFactory, WarriorFactory,
+    batch_create_battles,
 )
 
 
@@ -147,3 +148,13 @@ def test_update_rating_creates_missing_warrior_arena(arena, warrior_arena, other
     assert not WarriorArena.objects.filter(warrior=other_warrior, arena=arena).exists()
     warrior_arena.update_rating()
     assert WarriorArena.objects.filter(warrior=other_warrior, arena=arena).exists()
+
+
+@pytest.mark.django_db
+def test_update_rating_does_little_db_hits(arena, warrior_arena, django_assert_max_num_queries):
+    n = 100
+    batch_create_battles(arena, warrior_arena, n)
+    with django_assert_max_num_queries(n // 2):
+        warrior_arena.update_rating()
+    warrior_arena.refresh_from_db()
+    assert warrior_arena.games_played == n

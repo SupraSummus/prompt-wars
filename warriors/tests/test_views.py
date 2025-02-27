@@ -6,7 +6,7 @@ from users.tests.factories import UserFactory
 
 from ..models import Battle
 from ..text_unit import TextUnit
-from .factories import BattleFactory, TextUnitFactory, WarriorArenaFactory
+from .factories import WarriorArenaFactory, batch_create_battles
 
 
 @pytest.mark.django_db
@@ -66,25 +66,12 @@ def test_warrior_details_authorized_session(client, warrior, warrior_arena, sess
 @pytest.mark.django_db
 def test_warrior_details_do_few_sql_queries(client, arena, warrior_arena, django_assert_max_num_queries):
     n = 100
-    for _ in range(n):
-        other_warrior_arena = WarriorArenaFactory(arena=arena)
-        battle_warrior_1 = warrior_arena.warrior
-        battle_warrior_2 = other_warrior_arena.warrior
-        if battle_warrior_1.id > battle_warrior_2.id:
-            battle_warrior_1, battle_warrior_2 = battle_warrior_2, battle_warrior_1
-        BattleFactory(
-            arena=arena,
-            warrior_1=battle_warrior_1,
-            warrior_2=battle_warrior_2,
-            resolved_at_1_2=timezone.now(),
-            text_unit_1_2=TextUnitFactory(),
-            resolved_at_2_1=timezone.now(),
-            text_unit_2_1=TextUnitFactory(),
-        )
+    batch_create_battles(arena, warrior_arena, n)
     with django_assert_max_num_queries(n // 2):
-        client.get(
+        response = client.get(
             reverse('warrior_detail', args=(warrior_arena.id,))
         )
+    assert len(response.context['battles']) == n
 
 
 @pytest.mark.django_db

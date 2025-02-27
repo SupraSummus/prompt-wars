@@ -1,6 +1,7 @@
 import hashlib
 
 import factory
+from django.utils import timezone
 
 from users.tests.factories import UserFactory
 
@@ -51,6 +52,26 @@ class BattleFactory(factory.django.DjangoModelFactory):
     arena = factory.SubFactory(ArenaFactory)
     warrior_1 = factory.SubFactory(WarriorFactory)
     warrior_2 = factory.SubFactory(WarriorFactory)
+
+
+def batch_create_battles(arena, warrior_arena, n):
+    """Create n battles between warrior_arena and new opponents in the same arena."""
+    for _ in range(n):
+        other_warrior_arena = WarriorArenaFactory(arena=arena)
+        battle_warrior_1 = warrior_arena.warrior
+        battle_warrior_2 = other_warrior_arena.warrior
+        if battle_warrior_1.id > battle_warrior_2.id:
+            battle_warrior_1, battle_warrior_2 = battle_warrior_2, battle_warrior_1
+        BattleFactory(
+            arena=arena,
+            llm=arena.llm,
+            warrior_1=battle_warrior_1,
+            warrior_2=battle_warrior_2,
+            resolved_at_1_2=timezone.now(),
+            text_unit_1_2=TextUnitFactory(),
+            resolved_at_2_1=timezone.now(),
+            text_unit_2_1=TextUnitFactory(),
+        )
 
 
 class TextUnitFactory(factory.django.DjangoModelFactory):

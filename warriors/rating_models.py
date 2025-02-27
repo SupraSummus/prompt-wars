@@ -63,7 +63,14 @@ class RatingMixin(models.Model):
         # collect relevant battles
         old_battle_treshold = now - MATCHMAKING_COOLDOWN
         battles = {}  # opponent warrior id -> our BattleViewpoint
-        for b in Battle.objects.with_warrior_arena(self).resolved().order_by('-scheduled_at'):
+        for b in Battle.objects.with_warrior_arena(self).resolved().order_by(
+            '-scheduled_at',
+        ).prefetch_related(
+            'warrior_1',
+            'warrior_2',
+            'text_unit_1_2',
+            'text_unit_2_1',
+        ):
             b = b.get_warrior_viewpoint(self)
             if b.warrior_2_id in battles:
                 continue  # we already have a more recent battle with this opponent
