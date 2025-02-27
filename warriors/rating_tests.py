@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from scipy.optimize import check_grad
 
-from ..rating import (
+from .rating import (
     GameScore, _gradient, _loss, compute_omega_matrix, get_expected_game_score,
     get_performance_rating,
 )
