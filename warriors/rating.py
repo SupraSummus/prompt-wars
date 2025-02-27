@@ -13,9 +13,8 @@ default_k = 0
 # Pre-compute constant
 LOG10_OVER_400 = np.log(10) / 400
 
-# L2 regularization strength: at ||playstyle|| = 100, loss = 0.01
-# So λ * 100² = 0.01 => λ = 1e-6
-PLAYSTYLE_L2_LAMBDA = 1e-6
+# L2 regularization strength: at ||playstyle|| = 100, loss = X
+PLAYSTYLE_L2_LAMBDA = 0.02 / 100**2
 
 
 @dataclass(frozen=True)
