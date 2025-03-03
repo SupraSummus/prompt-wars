@@ -4,7 +4,7 @@ from django.utils import timezone
 
 from users.tests.factories import UserFactory
 
-from ..models import Battle
+from ..battles import Battle
 from ..text_unit import TextUnit
 from .factories import WarriorArenaFactory, batch_create_battles
 

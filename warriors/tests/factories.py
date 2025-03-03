@@ -5,7 +5,8 @@ from django.utils import timezone
 
 from users.tests.factories import UserFactory
 
-from ..models import LLM, Arena, Battle, WarriorArena, WarriorUserPermission
+from ..battles import Battle
+from ..models import LLM, Arena, WarriorArena, WarriorUserPermission
 from ..text_unit import TextUnit
 from ..warriors import Warrior
 

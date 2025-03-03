@@ -1,10 +1,10 @@
 import pytest
 
+from .battles import Battle
 from .challenge_matchmaking import (
     get_strongest_opponents, schedule_losing_battle,
     schedule_losing_battle_top,
 )
-from .models import Battle
 from .tests.factories import WarriorArenaFactory
 
 

@@ -1,4 +1,3 @@
-import datetime
 from unittest import mock
 
 import httpx
@@ -7,13 +6,11 @@ import pytest
 from django.utils import timezone
 from django_goals.models import RetryMeLater
 
-from ..models import Battle, WarriorArena
 from ..tasks import (
-    do_moderation, openai_client, resolve_battle, schedule_battle,
-    schedule_battle_top_arena, schedule_battles, transfer_rating,
+    do_moderation, openai_client, resolve_battle, schedule_battle_top_arena,
+    transfer_rating,
 )
 from ..warriors import MAX_WARRIOR_LENGTH
-from .factories import WarriorArenaFactory
 
 
 @pytest.mark.django_db
@@ -38,72 +35,6 @@ def test_do_moderation(warrior, monkeypatch, moderation_flagged):
     assert warrior.moderation_date is not None
     assert warrior.moderation_passed is (not moderation_flagged)
     assert warrior.moderation_model == 'moderation-asdf'
-
-
-@pytest.mark.django_db
-def test_schedule_battles_empty():
-    assert not WarriorArena.objects.exists()
-    schedule_battles()
-
-
-@pytest.mark.django_db
-def test_schedule_battles_no_match(warrior_arena):
-    schedule_battles()
-    assert not Battle.objects.exists()
-
-
-@pytest.mark.django_db
-def test_schedule_battles(arena):
-    warriors = set(WarriorArenaFactory.create_batch(
-        3,
-        arena=arena,
-        next_battle_schedule=timezone.now(),
-    ))
-    schedule_battles()
-    participants = set()
-    for b in Battle.objects.all():
-        participants.add(b.warrior_1)
-        participants.add(b.warrior_2)
-    assert participants == {w.warrior for w in warriors}
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize('warrior_arena', [{
-    'next_battle_schedule': datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
-}], indirect=True)
-@pytest.mark.parametrize('other_warrior_arena', [{
-    'next_battle_schedule': datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
-}], indirect=True)
-def test_schedule_battle(arena, warrior_arena, other_warrior_arena):
-    now = datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
-    assert warrior_arena.next_battle_schedule is not None
-    assert other_warrior_arena.next_battle_schedule is not None
-
-    schedule_battle(now=now)
-
-    battle = Battle.objects.get()
-    assert battle.arena == arena
-    assert battle.llm
-    assert battle.llm == arena.llm
-
-    warrior_arena.refresh_from_db()
-    # it advances the next_battle_schedule
-    assert warrior_arena.next_battle_schedule > now
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize('warrior_arena', [{
-    'next_battle_schedule': datetime.datetime(2022, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
-}], indirect=True)
-def test_schedule_battle_no_warriors(warrior_arena):
-    now = datetime.datetime(2022, 1, 2, 0, 0, 0, tzinfo=datetime.timezone.utc)
-    schedule_battle(now)
-
-    assert not Battle.objects.exists()
-
-    # next_battle_schedule is moved to the future
-    warrior_arena.refresh_from_db()
-    assert warrior_arena.next_battle_schedule > now
 
 
 @pytest.mark.django_db

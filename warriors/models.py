@@ -1,5 +1,3 @@
-import datetime
-import random
 import uuid
 
 from django.conf import settings
@@ -8,7 +6,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
-from .battles import LLM, Battle
+from .battles import LLM
 from .rating_models import RatingMixin
 from .score import GameScore, ScoreAlgorithm
 from .stats import ArenaStats
@@ -20,9 +18,6 @@ __all__ = [
     'ArenaStats', 'Warrior', 'TextUnit',
     'GameScore',
 ]
-
-
-MATCHMAKING_MAX_RATING_DIFF = 100  # rating diff of 100 means expected score is 64%
 
 
 class Arena(models.Model):
@@ -169,75 +164,6 @@ class WarriorArena(RatingMixin, models.Model):
 
     def get_absolute_url(self):
         return reverse('warrior_detail', args=[str(self.id)])
-
-    def create_battle(self, opponent, now=None):
-        if now is None:
-            now = timezone.now()
-
-        battle = Battle.create_from_warriors(self, opponent)
-
-        self.games_played = Battle.objects.with_warrior_arena(self).count()
-        self.next_battle_schedule = now + self.get_next_battle_delay()
-        self.save(update_fields=[
-            'games_played',
-            'next_battle_schedule',
-        ])
-
-        opponent.games_played = Battle.objects.with_warrior_arena(opponent).count()
-        opponent.save(update_fields=['games_played'])
-
-        # Generate voyage 3 embeddings in case not already generated.
-        # Normally we generate them when warrior is created.
-        # This is for old warriors created before we introduced embeddings.
-        # Possibly this can be removed in the future.
-        self.warrior.schedule_voyage_3_embedding()
-        opponent.warrior.schedule_voyage_3_embedding()
-
-        return battle
-
-    def find_opponent(self, **kwargs):
-        return self.find_opponents(**kwargs).order_by('?').select_for_update(
-            no_key=True,
-            skip_locked=True,
-        ).first()
-
-    def find_opponents(
-        self,
-        max_rating_diff=MATCHMAKING_MAX_RATING_DIFF,
-    ):
-        battle_worthy_qs = WarriorArena.objects.battleworthy()
-        top_rating = self.rating + max_rating_diff
-        bottom_rating = self.rating - max_rating_diff
-
-        historic_battles = Battle.objects.with_warrior_arena(self).recent()
-
-        return battle_worthy_qs.filter(
-            arena_id=self.arena_id,
-            rating__lt=top_rating,
-            rating__gt=bottom_rating,
-        ).exclude(
-            id=self.id,
-        ).exclude(
-            warrior_id__in=historic_battles.values('warrior_1'),
-        ).exclude(
-            warrior_id__in=historic_battles.values('warrior_2'),
-        )
-
-    def get_next_battle_delay(self):
-        """
-        Get delay to the game N+1, where N is the number of games with this warrior.
-        Games are exponentially less and less frequent.
-        """
-        K = 2
-        time_unit = datetime.timedelta(minutes=1)
-        exponent = self.games_played - random.random()
-        if exponent > 25:
-            # avoid overflow
-            exponent = 25
-        return max(
-            K ** exponent - 1,
-            0,
-        ) * time_unit
 
 
 def get_or_create_warrior_arenas(arena, warrior_ids):

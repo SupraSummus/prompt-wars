@@ -5,6 +5,8 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from .battles import Battle
+
 
 class ArenaStats(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -40,7 +42,6 @@ def create_arena_stats(now=None):
 
 
 def create_arena_stats_for_arena(arena, now):
-    from .models import Battle
     if ArenaStats.objects.filter(arena=arena, date__date=now.date()).exists():
         return
     warriors_qs = arena.warriors.battleworthy()

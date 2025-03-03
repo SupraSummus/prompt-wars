@@ -3,9 +3,10 @@ from datetime import timedelta
 from django_scheduler.models import register_job
 
 from .challenge_matchmaking import schedule_losing_battle_top
+from .random_matchmaking import schedule_battle
 from .rating_models import update_rating
 from .stats import create_arena_stats
-from .tasks import schedule_battle, schedule_battles_top
+from .tasks import schedule_battles_top
 
 
 register_job(schedule_battle, timedelta(seconds=1))

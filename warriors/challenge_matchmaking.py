@@ -7,7 +7,9 @@ import logging
 import numpy
 from django.db.models import F
 
-from .models import Arena, Battle, WarriorArena
+from .battles import Battle
+from .models import Arena, WarriorArena
+from .random_matchmaking import create_battle
 from .rating import compute_omega_matrix
 from .rating_models import normalize_playstyle_len
 
@@ -49,7 +51,7 @@ def schedule_losing_battle(warrior_arena):
         ).recent().exists()
         if has_recent_battle:
             continue
-        return warrior_arena.create_battle(opponent)
+        return create_battle(warrior_arena, opponent)
 
 
 def get_strongest_opponents(warrior_arena):

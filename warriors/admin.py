@@ -1,6 +1,7 @@
 from django.contrib import admin
 
-from .models import Arena, Battle, WarriorArena
+from .battles import Battle
+from .models import Arena, WarriorArena
 from .text_unit import TextUnit
 from .warriors import Warrior
 

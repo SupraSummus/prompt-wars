@@ -13,6 +13,7 @@ from .llms.exceptions import TransientLLMError
 from .llms.google import resolve_battle_google
 from .llms.openai import openai_client, resolve_battle_openai
 from .models import Arena, WarriorArena, get_or_create_warrior_arenas
+from .random_matchmaking import create_battle
 from .score import ScoreAlgorithm, get_or_create_game_score
 from .text_unit import TextUnit
 from .warriors import MAX_WARRIOR_LENGTH, Warrior, ensure_name_generated
@@ -44,33 +45,6 @@ def do_moderation(goal, warrior_id):
     schedule(ensure_name_generated, args=[str(warrior_id)])
     warrior.schedule_voyage_3_embedding()
     return AllDone()
-
-
-def schedule_battles(n=10, now=None):
-    for _ in range(n):
-        schedule_battle(now=now)
-
-
-@transaction.atomic
-def schedule_battle(now=None):
-    if now is None:
-        now = timezone.now()
-    warrior = WarriorArena.objects.battleworthy().filter(
-        next_battle_schedule__lte=now,
-    ).order_by('next_battle_schedule').select_for_update(
-        no_key=True,
-        skip_locked=True,
-    ).first()
-    if warrior is None:
-        return
-    if (
-        not warrior.arena.enabled or
-        (opponent := warrior.find_opponent()) is None
-    ):
-        warrior.next_battle_schedule = now + warrior.get_next_battle_delay() + datetime.timedelta(minutes=1)
-        warrior.save(update_fields=['next_battle_schedule'])
-        return
-    warrior.create_battle(opponent, now=now)
 
 
 def schedule_battles_top(now=None):
@@ -119,7 +93,7 @@ def schedule_battle_top_arena(arena_id):
             ).order_by('rating').first()
 
             if opponent is not None:
-                return warrior.create_battle(opponent)
+                return create_battle(warrior, opponent)
 
 
 def resolve_battle_1_2(goal, battle_id):
