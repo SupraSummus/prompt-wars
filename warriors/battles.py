@@ -3,7 +3,6 @@ import uuid
 from dataclasses import dataclass
 from functools import cached_property
 
-import numpy
 from django.contrib.postgres.functions import TransactionNow
 from django.db import models
 from django.db.models import Q
@@ -16,6 +15,7 @@ from django_goals.models import schedule
 from .lcs import lcs_ranges
 from .rating import get_expected_game_score
 from .rating_models import M_ELO_K, normalize_playstyle_len
+from .score import ScoreAlgorithm, _warrior_similarity
 from .text_unit import TextUnit
 from .warriors import Warrior
 
@@ -71,11 +71,6 @@ class LLM(models.TextChoices):
     OPENAI_GPT = 'openai-gpt', _('OpenAI GPT')
     CLAUDE_3_HAIKU = 'claude-3-haiku', _('Anthropic Claude')
     GOOGLE_GEMINI = 'google-gemini', _('Google Gemini')
-
-
-class ScoreAlgorithm(models.TextChoices):
-    LCS = 'lcs', _('Longest Common Subsequence')
-    EMBEDDINGS = 'embeddings', _('Embeddings')
 
 
 class Battle(models.Model):
@@ -538,15 +533,3 @@ def lcs_mark(result, warrior_body):
         ))
     parts.append(escape(result[i:]))
     return mark_safe(''.join(parts))
-
-
-def _warrior_similarity(text_unit, warrior):
-    if (
-        not text_unit or
-        not text_unit.voyage_3_embedding or
-        not warrior.voyage_3_embedding
-    ):
-        return None
-    result_embedding = numpy.array(text_unit.voyage_3_embedding)
-    warrior_embedding = numpy.array(warrior.voyage_3_embedding)
-    return numpy.dot(result_embedding, warrior_embedding) / 2 + 0.5

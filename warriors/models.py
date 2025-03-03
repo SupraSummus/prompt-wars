@@ -8,14 +8,18 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
-from .battles import LLM, Battle, ScoreAlgorithm
+from .battles import LLM, Battle
 from .rating_models import RatingMixin
+from .score import GameScore, ScoreAlgorithm
 from .stats import ArenaStats
 from .text_unit import TextUnit
 from .warriors import Warrior
 
 
-__all__ = ['ArenaStats', 'Warrior', 'TextUnit']
+__all__ = [
+    'ArenaStats', 'Warrior', 'TextUnit',
+    'GameScore',
+]
 
 
 MATCHMAKING_MAX_RATING_DIFF = 100  # rating diff of 100 means expected score is 64%

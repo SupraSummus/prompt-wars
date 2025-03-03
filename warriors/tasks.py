@@ -13,6 +13,7 @@ from .llms.exceptions import TransientLLMError
 from .llms.google import resolve_battle_google
 from .llms.openai import openai_client, resolve_battle_openai
 from .models import Arena, WarriorArena, get_or_create_warrior_arenas
+from .score import ScoreAlgorithm, get_or_create_game_score
 from .text_unit import TextUnit
 from .warriors import MAX_WARRIOR_LENGTH, Warrior, ensure_name_generated
 
@@ -137,10 +138,27 @@ def resolve_battle(battle_id, direction):
     ).get()
     battle_view = Game(battle, direction)
 
-    if battle_view.resolved_at is not None:
-        logger.error('Battle already resolved %s, %s', battle_id, direction)
-        return AllDone()
+    if battle_view.resolved_at is None:
+        r = _run_llm(battle_view, now)
+        if isinstance(r, RetryMeLater):
+            return r
+        else:
+            assert r is None
+            assert battle_view.resolved_at is not None
+            return RetryMeLater(message='Ran LLM')
 
+    score_lcs = get_or_create_game_score(battle, direction, ScoreAlgorithm.LCS)
+    score_embedings = get_or_create_game_score(battle, direction, ScoreAlgorithm.EMBEDDINGS)
+    if not score_lcs.is_completed or not score_embedings.is_completed:
+        return RetryMeLater(
+            message='Need to wait for scores to be calculated',
+            precondition_goals=[score_lcs.processed_goal, score_embedings.processed_goal],
+        )
+
+    return AllDone()
+
+
+def _run_llm(battle_view, now):
     resolve_battle_function = {
         LLM.OPENAI_GPT: resolve_battle_openai,
         LLM.CLAUDE_3_HAIKU: anthropic.resolve_battle,
@@ -158,7 +176,7 @@ def resolve_battle(battle_id, direction):
         )
 
     except TransientLLMError:
-        logger.exception('Transient LLM error %s, %s', battle_id, direction)
+        logger.exception('Transient LLM error %s, %s', battle_view.battle.id, battle_view.direction)
         attempts = battle_view.attempts
         battle_view.attempts += 1
         battle_view.save(update_fields=['attempts'])
@@ -193,7 +211,6 @@ def resolve_battle(battle_id, direction):
         'llm_version',
         'resolved_at',
     ])
-    return AllDone()
 
 
 def transfer_rating(goal, battle_id):
