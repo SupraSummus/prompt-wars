@@ -7,8 +7,8 @@ An AI word-battling game/puzzle inspired by the classic concept of Core War. Pla
 * Backend: Python (Poetry env management, Django framework)
 * Database: PostgreSQL ❤️
 * Error Monitoring: Sentry
-* Deployment: Heroku
-* LLM Integrations: OpenAI, Anthropic
+* Deployment: Scalingo
+* LLM Integrations: OpenAI, Anthropic, Google Gemini
 
 ## Getting Started (Development)
 
