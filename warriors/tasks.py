@@ -123,10 +123,14 @@ def resolve_battle(battle_id, direction):
 
     score_lcs = get_or_create_game_score(battle, direction, ScoreAlgorithm.LCS)
     score_embedings = get_or_create_game_score(battle, direction, ScoreAlgorithm.EMBEDDINGS)
-    if not score_lcs.is_completed or not score_embedings.is_completed:
+    missing_scores = [
+        score for score in [score_lcs, score_embedings]
+        if not score.is_completed
+    ]
+    if missing_scores:
         return RetryMeLater(
             message='Need to wait for scores to be calculated',
-            precondition_goals=[score_lcs.processed_goal, score_embedings.processed_goal],
+            precondition_goals=[s.processed_goal for s in missing_scores],
         )
 
     return AllDone()
