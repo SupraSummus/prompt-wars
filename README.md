@@ -22,4 +22,5 @@ See `Procfile` for full details how we run in production.
 
 ## Documentation
 
-Detailed documentation about various aspects of the project can be found in the `docs` directory.
+- [CONCEPT.md](CONCEPT.md)
+- [philosophical stuff](docs/parallels.md)

@@ -114,9 +114,3 @@ Different LLMs require different approaches:
 The project remains open-source, available on GitHub: [GitHub - SupraSummus/prompt-wars](https://github.com/SupraSummus/prompt-wars)
 
 Developers are encouraged to open issues or submit pull requests, especially for the new features being considered.
-
-## Additional Documentation
-
-For more detailed information on specific aspects of the project, please refer to the following documents:
-
-- [SEO Strategies](docs/SEO.md): Our approach to improving search engine visibility and site discoverability.
