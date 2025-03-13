@@ -1,5 +1,5 @@
-from warriors.battles import Battle
-from warriors.score import GameScore, ScoreAlgorithm
+from warriors.battles import Battle, Game
+from warriors.score import GameScore, ScoreAlgorithm, _lcs_similarity
 
 
 def validate_scores(direction, sample_size=100):
@@ -29,17 +29,9 @@ def validate_scores(direction, sample_size=100):
     for gs in game_scores:
         checked += 1
         battle = gs.battle
-
-        # Get the appropriate battle values based on direction
-        if direction == '1_2':
-            battle_value_1 = battle.lcs_len_1_2_1
-            battle_value_2 = battle.lcs_len_1_2_2
-        else:  # direction == '2_1'
-            battle_value_1 = battle.lcs_len_2_1_2
-            battle_value_2 = battle.lcs_len_2_1_1
-
-        battle_value_1 = float(battle_value_1)
-        battle_value_2 = float(battle_value_2)
+        game = Game(battle, direction)
+        battle_value_1 = _lcs_similarity(game.warrior_1.body, game.result)
+        battle_value_2 = _lcs_similarity(game.warrior_2.body, game.result)
 
         # Check if the values match
         if (

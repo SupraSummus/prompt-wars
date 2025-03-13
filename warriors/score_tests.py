@@ -1,3 +1,5 @@
+from hashlib import sha256
+
 import numpy as np
 import pytest
 from django_goals.models import worker
@@ -6,7 +8,7 @@ from .score import ScoreAlgorithm, get_or_create_game_score
 from .tests.factories import TextUnitFactory
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db
 @pytest.mark.parametrize('direction', ['1_2', '2_1'])
 def test_gamescore_embeddings_integration(battle, direction):
     """
@@ -58,3 +60,47 @@ def test_gamescore_embeddings_integration(battle, direction):
     # Since expected_sim_1 > expected_sim_2, warrior_1 should win
     assert game_score.score == 1.0
     assert game_score.score_rev == 0.0
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('direction', ['1_2', '2_1'])
+def test_gamescore_lcs(battle, direction):
+    """
+    Test the LCS algorithm for GameScore calculation.
+    """
+    # Set up text unit and warriors
+    setattr(battle, f'text_unit_{direction}', TextUnitFactory(
+        content='abc',
+    ))
+    battle.save(update_fields=[f'text_unit_{direction}'])
+    warrior_1 = 'a'
+    warrior_2 = 'abxx'
+    battle.warrior_1.body = warrior_1 if direction == '1_2' else warrior_2
+    battle.warrior_1.body_sha_256 = sha256(battle.warrior_1.body.encode()).digest()
+    battle.warrior_1.save(update_fields=['body', 'body_sha_256'])
+    battle.warrior_2.body = warrior_2 if direction == '1_2' else warrior_1
+    battle.warrior_2.body_sha_256 = sha256(battle.warrior_2.body.encode()).digest()
+    battle.warrior_2.save(update_fields=['body', 'body_sha_256'])
+
+    # Create a game score with LCS algorithm
+    game_score = get_or_create_game_score(
+        battle=battle,
+        direction=direction,
+        algorithm=ScoreAlgorithm.LCS,
+    )
+
+    # Verify initial state - before processing
+    assert game_score.is_processing
+    assert game_score.warrior_1_similarity is None
+    assert game_score.warrior_2_similarity is None
+    assert game_score.score is None
+
+    worker(once=True)
+
+    # Verify final state - after processing
+    game_score.refresh_from_db()
+    assert game_score.is_completed
+
+    # Verify the similarities were set correctly
+    assert game_score.warrior_1_similarity == 1 / 3
+    assert game_score.warrior_2_similarity == 2 / 4

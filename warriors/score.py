@@ -109,7 +109,10 @@ def get_or_create_game_score(battle, direction, algorithm):
 
 def ensure_score(goal):
     game_score = GameScore.objects.get(processed_goal=goal)
+    return _ensure_score(game_score)
 
+
+def _ensure_score(game_score):
     from .battles import Game
     game = Game(game_score.battle, game_score.direction)
 
@@ -128,10 +131,16 @@ def ensure_score(goal):
 def ensure_lcs_score(game_score, game):
     _set_similarity(
         game_score,
-        lcs_len(game.warrior_1.body, game.result),
-        lcs_len(game.warrior_2.body, game.result),
+        _lcs_similarity(game.warrior_1.body, game.result),
+        _lcs_similarity(game.warrior_2.body, game.result),
     )
     return AllDone()
+
+
+def _lcs_similarity(warrior, result):
+    if result is None:
+        return None
+    return lcs_len(warrior, result) / max(len(warrior), len(result))
 
 
 def ensure_embeddings_score(game_score, game):
