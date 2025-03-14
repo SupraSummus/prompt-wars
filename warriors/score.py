@@ -112,27 +112,28 @@ def ensure_score(goal):
     return _ensure_score(game_score)
 
 
-def _ensure_score(game_score):
+def _ensure_score(game_score, save=True):
     from .battles import Game
     game = Game(game_score.battle, game_score.direction)
 
     if game.finish_reason == 'error':
-        _set_similarity(game_score, None, None)
+        _set_similarity(game_score, None, None, save=save)
         return AllDone()
 
     if game_score.algorithm == ScoreAlgorithm.LCS:
-        return ensure_lcs_score(game_score, game)
+        return ensure_lcs_score(game_score, game, save=save)
     elif game_score.algorithm == ScoreAlgorithm.EMBEDDINGS:
-        return ensure_embeddings_score(game_score, game)
+        return ensure_embeddings_score(game_score, game, save=save)
     else:
         raise ValueError(f'Unknown algorithm: {game_score.algorithm}')
 
 
-def ensure_lcs_score(game_score, game):
+def ensure_lcs_score(game_score, game, save=True):
     _set_similarity(
         game_score,
         _lcs_similarity(game.warrior_1.body, game.result),
         _lcs_similarity(game.warrior_2.body, game.result),
+        save=save,
     )
     return AllDone()
 
@@ -143,7 +144,7 @@ def _lcs_similarity(warrior, result):
     return lcs_len(warrior, result) / max(len(warrior), len(result))
 
 
-def ensure_embeddings_score(game_score, game):
+def ensure_embeddings_score(game_score, game, save=True):
     if not is_goal_completed(game.text_unit.voyage_3_embedding_goal):
         return RetryMeLater(
             message='Need to wait for result text embedding',
@@ -166,6 +167,7 @@ def ensure_embeddings_score(game_score, game):
         game_score,
         _warrior_similarity(game.text_unit, game.warrior_1),
         _warrior_similarity(game.text_unit, game.warrior_2),
+        save=save,
     )
     return AllDone()
 
@@ -182,10 +184,11 @@ def _warrior_similarity(text_unit, warrior):
     return numpy.dot(result_embedding, warrior_embedding)
 
 
-def _set_similarity(game_score, warrior_1_similarity, warrior_2_similarity):
+def _set_similarity(game_score, warrior_1_similarity, warrior_2_similarity, save=True):
     game_score.warrior_1_similarity = warrior_1_similarity
     game_score.warrior_2_similarity = warrior_2_similarity
-    game_score.save(update_fields=[
-        'warrior_1_similarity',
-        'warrior_2_similarity',
-    ])
+    if save:
+        game_score.save(update_fields=[
+            'warrior_1_similarity',
+            'warrior_2_similarity',
+        ])

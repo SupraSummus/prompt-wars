@@ -1,5 +1,9 @@
+from uuid import UUID
+
 from warriors.battles import Battle, Game
-from warriors.score import GameScore, ScoreAlgorithm, _lcs_similarity
+from warriors.score import (
+    GameScore, ScoreAlgorithm, _ensure_score, _lcs_similarity,
+)
 
 
 def validate_scores(direction, sample_size=100):
@@ -73,6 +77,30 @@ def validate_scores(direction, sample_size=100):
         f"GameScores for direction {direction}: {total_game_scores} ({coverage_percent:.1f}% coverage)"
     )
     print(f"Missing GameScores: {missing} ({missing_percent:.1f}%)")
+
+
+offset = UUID(int=0)
+while True:
+    print(offset)
+    scores = list(
+        GameScore.objects.filter(
+            id__gte=offset,
+            algorithm=ScoreAlgorithm.LCS,
+        ).select_related(
+            'battle',
+            'battle__warrior_1',
+            'battle__warrior_2',
+            'battle__text_unit_1_2',
+            'battle__text_unit_2_1',
+        ).order_by('id')[:100]
+    )
+    for gs in scores:
+        _ensure_score(gs, save=False)
+        offset = gs.id
+    GameScore.objects.bulk_update(scores, ['warrior_1_similarity', 'warrior_2_similarity'])
+    if not scores:
+        break
+    offset = UUID(int=offset.int + 1)
 
 
 for direction in ('1_2', '2_1'):
