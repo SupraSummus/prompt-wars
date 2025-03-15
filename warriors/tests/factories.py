@@ -51,7 +51,6 @@ class BattleFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Battle
 
-    arena = factory.SubFactory(ArenaFactory)
     warrior_1 = factory.SubFactory(WarriorFactory)
     warrior_2 = factory.SubFactory(WarriorFactory)
 

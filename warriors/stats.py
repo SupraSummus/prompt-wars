@@ -46,7 +46,9 @@ def create_arena_stats_for_arena(arena, now):
         return
     warriors_qs = arena.warriors.battleworthy()
     warrior_count = warriors_qs.count()
-    battle_count = Battle.objects.filter(arena=arena).count()
+    battle_count = Battle.objects.filter(
+        llm=arena.llm,
+    ).count()
     rating_quantiles = warriors_qs.aggregate(
         percentiles=PercentileDisc('rating', rating_quantile_labels())
     )['percentiles'] or []
