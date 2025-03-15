@@ -1,4 +1,5 @@
 import uuid
+from dataclasses import dataclass
 
 import numpy
 from django.db import models
@@ -57,38 +58,6 @@ class GameScore(GoalRelatedMixin, models.Model):
         indexes = [
             models.Index(fields=['battle', 'direction', 'algorithm']),
         ]
-
-    @property
-    def score(self):
-        """
-        Score of warrior 1.
-        Score of warrior 2 is `1 - score`.
-        """
-        if self.warrior_1_similarity is None or self.warrior_2_similarity is None:
-            return None
-
-        if self.algorithm == ScoreAlgorithm.LCS:
-            if self.warrior_1_similarity + self.warrior_2_similarity == 0:
-                return 0.5
-            return self.warrior_1_similarity / (self.warrior_1_similarity + self.warrior_2_similarity)
-
-        if self.algorithm == ScoreAlgorithm.EMBEDDINGS:
-            if self.warrior_1_similarity > self.warrior_2_similarity:
-                return 1.0
-            elif self.warrior_1_similarity < self.warrior_2_similarity:
-                return 0.0
-            else:
-                return 0.5
-
-    @property
-    def score_rev(self):
-        """
-        Score of warrior 2.
-        """
-        s = self.score
-        if s is None:
-            return None
-        return 1.0 - s
 
 
 def get_or_create_game_score(battle, direction, algorithm):
@@ -192,3 +161,56 @@ def _set_similarity(game_score, warrior_1_similarity, warrior_2_similarity, save
             'warrior_1_similarity',
             'warrior_2_similarity',
         ])
+
+
+@dataclass(frozen=True)
+class GameScoreViewpoint:
+    game_score: GameScore
+    viewpoint: str  # 1 is normal, 2 is reversed
+
+    def __getattr__(self, key):
+        if key in (
+            'direction',
+            'algorithm',
+        ):
+            return getattr(self.game_score, key)
+
+        w1, w2 = ('1', '2') if self.viewpoint == '1' else ('2', '1')
+        if key == 'warrior_1_similarity':
+            return getattr(self.game_score, f'warrior_{w1}_similarity')
+        if key == 'warrior_2_similarity':
+            return getattr(self.game_score, f'warrior_{w2}_similarity')
+
+        return super().__getattribute__(key)
+
+    @property
+    def score(self):
+        """
+        Score of warrior 1.
+        Score of warrior 2 is `1 - score`.
+        """
+        if self.warrior_1_similarity is None or self.warrior_2_similarity is None:
+            return None
+
+        if self.algorithm == ScoreAlgorithm.LCS:
+            if self.warrior_1_similarity + self.warrior_2_similarity == 0:
+                return 0.5
+            return self.warrior_1_similarity / (self.warrior_1_similarity + self.warrior_2_similarity)
+
+        if self.algorithm == ScoreAlgorithm.EMBEDDINGS:
+            if self.warrior_1_similarity > self.warrior_2_similarity:
+                return 1.0
+            elif self.warrior_1_similarity < self.warrior_2_similarity:
+                return 0.0
+            else:
+                return 0.5
+
+    @property
+    def score_rev(self):
+        """
+        Score of warrior 2.
+        """
+        s = self.score
+        if s is None:
+            return None
+        return 1.0 - s

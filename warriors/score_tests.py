@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from django_goals.models import worker
 
-from .score import ScoreAlgorithm, get_or_create_game_score
+from .score import GameScoreViewpoint, ScoreAlgorithm, get_or_create_game_score
 from .tests.factories import TextUnitFactory
 
 
@@ -43,7 +43,6 @@ def test_gamescore_embeddings_integration(battle, direction):
     assert game_score.is_processing
     assert game_score.warrior_1_similarity is None
     assert game_score.warrior_2_similarity is None
-    assert game_score.score is None
 
     worker(once=True)
 
@@ -58,8 +57,9 @@ def test_gamescore_embeddings_integration(battle, direction):
     assert abs(game_score.warrior_2_similarity - expected_sim_2) < 1e-10
 
     # Since expected_sim_1 > expected_sim_2, warrior_1 should win
-    assert game_score.score == 1.0
-    assert game_score.score_rev == 0.0
+    game_score_viewpoint = GameScoreViewpoint(game_score=game_score, viewpoint='1')
+    assert game_score_viewpoint.score == 1.0
+    assert game_score_viewpoint.score_rev == 0.0
 
 
 @pytest.mark.django_db
@@ -93,7 +93,6 @@ def test_gamescore_lcs(battle, direction):
     assert game_score.is_processing
     assert game_score.warrior_1_similarity is None
     assert game_score.warrior_2_similarity is None
-    assert game_score.score is None
 
     worker(once=True)
 

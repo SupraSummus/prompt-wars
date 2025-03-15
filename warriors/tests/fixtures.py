@@ -1,9 +1,10 @@
 import pytest
 from django.utils import timezone
 
+from ..score import ScoreAlgorithm
 from .factories import (
-    ArenaFactory, BattleFactory, WarriorArenaFactory, WarriorFactory,
-    WarriorUserPermissionFactory,
+    ArenaFactory, BattleFactory, GameScoreFactory, WarriorArenaFactory,
+    WarriorFactory, WarriorUserPermissionFactory,
 )
 
 
@@ -86,15 +87,31 @@ def resolved_battle(
     if warrior.id > other_warrior.id:
         warrior, other_warrior = other_warrior, warrior
     now = timezone.now()
-    return BattleFactory(
+    battle = BattleFactory(
         llm=arena.llm,
         warrior_1=warrior,
         warrior_2=other_warrior,
         resolved_at_1_2=now,
-        lcs_len_1_2_1=10,
-        lcs_len_1_2_2=1,
         resolved_at_2_1=now,
-        lcs_len_2_1_1=10,
-        lcs_len_2_1_2=1,
         **getattr(request, 'param', {}),
+    )
+    create_scores(battle, 1, 0.1, 1, 0.1)
+    return battle
+
+
+def create_scores(battle, score_1_2_1, score_1_2_2, score_2_1_1, score_2_1_2):
+    GameScoreFactory(
+        battle=battle,
+        direction='1_2',
+        algorithm=ScoreAlgorithm.LCS,
+        warrior_1_similarity=score_1_2_1,
+        warrior_2_similarity=score_1_2_2,
+    )
+    GameScoreFactory(
+        battle=battle,
+        direction='2_1',
+        algorithm=ScoreAlgorithm.LCS,
+        # in the game order "battle-level warrior 2" is the first one
+        warrior_1_similarity=score_2_1_2,
+        warrior_2_similarity=score_2_1_1,
     )

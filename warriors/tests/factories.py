@@ -7,6 +7,7 @@ from users.tests.factories import UserFactory
 
 from ..battles import Battle
 from ..models import LLM, Arena, WarriorArena, WarriorUserPermission
+from ..score import GameScore
 from ..text_unit import TextUnit
 from ..warriors import Warrior
 
@@ -57,13 +58,14 @@ class BattleFactory(factory.django.DjangoModelFactory):
 
 def batch_create_battles(arena, warrior_arena, n):
     """Create n battles between warrior_arena and new opponents in the same arena."""
+    battles = []
     for _ in range(n):
         other_warrior_arena = WarriorArenaFactory(arena=arena)
         battle_warrior_1 = warrior_arena.warrior
         battle_warrior_2 = other_warrior_arena.warrior
         if battle_warrior_1.id > battle_warrior_2.id:
             battle_warrior_1, battle_warrior_2 = battle_warrior_2, battle_warrior_1
-        BattleFactory(
+        battle = BattleFactory(
             arena=arena,
             llm=arena.llm,
             warrior_1=battle_warrior_1,
@@ -73,6 +75,8 @@ def batch_create_battles(arena, warrior_arena, n):
             resolved_at_2_1=timezone.now(),
             text_unit_2_1=TextUnitFactory(),
         )
+        battles.append(battle)
+    return battles
 
 
 class TextUnitFactory(factory.django.DjangoModelFactory):
@@ -83,3 +87,8 @@ class TextUnitFactory(factory.django.DjangoModelFactory):
     sha_256 = factory.LazyAttribute(
         lambda o: hashlib.sha256(o.content.encode('utf-8')).digest()
     )
+
+
+class GameScoreFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = GameScore

@@ -15,7 +15,7 @@ from django_goals.models import schedule
 from .lcs import lcs_ranges
 from .rating import get_expected_game_score
 from .rating_models import M_ELO_K, normalize_playstyle_len
-from .score import ScoreAlgorithm, _warrior_similarity
+from .score import GameScoreViewpoint, ScoreAlgorithm
 from .text_unit import TextUnit
 from .warriors import Warrior
 
@@ -230,6 +230,10 @@ class Battle(models.Model):
         else:
             raise ValueError('warrior not in battle')
 
+    @cached_property
+    def game_scores_list(self):
+        return tuple(self.game_scores.all())
+
 
 @dataclass(frozen=True)
 class BattleViewpoint:
@@ -374,6 +378,13 @@ class BattleViewpoint:
             k = {'1': '2', '2': '1'}[k]
             return f'{base}_{m}_{n}_{k}'
 
+    @cached_property
+    def game_scores_list(self):
+        return tuple(
+            GameScoreViewpoint(gs, self.viewpoint)
+            for gs in self.battle.game_scores_list
+        )
+
     # game_1_id and game_2_id are used for anchor links
     @property
     def game_1_id(self):
@@ -460,27 +471,17 @@ class Game:
 
     @property
     def warrior_1_preserved_ratio(self):
-        if self.score_algorithm == ScoreAlgorithm.LCS:
-            return self.lcs_len_1 / max(
-                len(self.warrior_1.body),
-                len(self.result),
-            )
-        elif self.score_algorithm == ScoreAlgorithm.EMBEDDINGS:
-            return _warrior_similarity(self.text_unit, self.warrior_1)
-        else:
-            raise ValueError('Unknown scoring method')
+        score_object = self.score_object
+        if score_object is None:
+            return None
+        return score_object.warrior_1_similarity
 
     @property
     def warrior_2_preserved_ratio(self):
-        if self.score_algorithm == ScoreAlgorithm.LCS:
-            return self.lcs_len_2 / max(
-                len(self.warrior_2.body),
-                len(self.result),
-            )
-        elif self.score_algorithm == ScoreAlgorithm.EMBEDDINGS:
-            return _warrior_similarity(self.text_unit, self.warrior_2)
-        else:
-            raise ValueError('Unknown scoring method')
+        score_object = self.score_object
+        if score_object is None:
+            return None
+        return score_object.warrior_2_similarity
 
     @property
     def score(self):
@@ -488,22 +489,27 @@ class Game:
         Score of warrior 1
         Score of warrior 2 is `1 - score`
         '''
-        if self.finish_reason == 'error':
+        score_object = self.score_object
+        if score_object is None:
             return None
-        s1 = self.warrior_1_preserved_ratio
-        s2 = self.warrior_2_preserved_ratio
-        if s1 is None or s2 is None:
-            return None
-        if s1 + s2 == 0:
-            return 0.5
-        return s1 / (s1 + s2)
+        return score_object.score
 
     @property
     def score_rev(self):
-        score = self.score
-        if score is None:
+        score_object = self.score_object
+        if score_object is None:
             return None
-        return 1.0 - score
+        return score_object.score_rev
+
+    @property
+    def score_object(self):
+        for game_score in self.battle.game_scores_list:
+            if (
+                game_score.direction == self.direction and
+                game_score.algorithm == self.score_algorithm
+            ):
+                return game_score
+        return None
 
     @cached_property
     def result_marked_for_1(self):

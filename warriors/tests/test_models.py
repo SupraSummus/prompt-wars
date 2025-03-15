@@ -5,6 +5,7 @@ import pytest
 from ..battles import BattleViewpoint
 from ..text_unit import TextUnit
 from .factories import BattleFactory, WarriorArenaFactory
+from .fixtures import create_scores
 
 
 @pytest.mark.django_db
@@ -21,6 +22,7 @@ def test_battle_score():
         lcs_len_2_1_1=0,
         lcs_len_2_1_2=6,
     )
+    create_scores(battle, 0, 1, 0, 1)
     battle_viewpoint = BattleViewpoint(battle, '1')
 
     # lets consider a single game there - the one where propmt is warrior_1 || warrior_2
