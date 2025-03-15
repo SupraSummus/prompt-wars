@@ -1,5 +1,5 @@
-from warriors.battles import Battle, Game
-from warriors.score import GameScore, ScoreAlgorithm, _lcs_similarity
+from warriors.battles import LLM, Battle, Game
+from warriors.score import GameScore, ScoreAlgorithm, _warrior_similarity
 
 
 def validate_scores(direction, sample_size=100):
@@ -15,7 +15,8 @@ def validate_scores(direction, sample_size=100):
     # Sample random GameScores for the specified direction
     random_ids = GameScore.objects.filter(
         direction=direction,
-        algorithm=ScoreAlgorithm.LCS,
+        algorithm=ScoreAlgorithm.EMBEDDINGS,
+        battle__llm=LLM.GOOGLE_GEMINI,
     ).values_list('id', flat=True).order_by('?')[:sample_size]
     game_scores = GameScore.objects.filter(
         id__in=random_ids,
@@ -39,9 +40,9 @@ def validate_scores(direction, sample_size=100):
     for gs in game_scores:
         checked += 1
         battle = gs.battle
-        game = Game(battle, direction)
-        battle_value_1 = _lcs_similarity(game.warrior_1.body, game.result)
-        battle_value_2 = _lcs_similarity(game.warrior_2.body, game.result)
+        game = Game(battle, direction, score_algorithm=ScoreAlgorithm.EMBEDDINGS)
+        battle_value_1 = _warrior_similarity(game.text_unit, game.warrior_1)
+        battle_value_2 = _warrior_similarity(game.text_unit, game.warrior_2)
 
         # Check if the values match
         if (
@@ -59,9 +60,13 @@ def validate_scores(direction, sample_size=100):
             )
 
     # Get coverage data
-    total_battles = Battle.objects.count()
+    total_battles = Battle.objects.filter(
+        llm=LLM.GOOGLE_GEMINI,
+    ).count()
     total_game_scores = GameScore.objects.filter(
-        direction=direction, algorithm=ScoreAlgorithm.LCS
+        direction=direction,
+        algorithm=ScoreAlgorithm.EMBEDDINGS,
+        battle__llm=LLM.GOOGLE_GEMINI,
     ).count()
     missing = total_battles - total_game_scores
 
