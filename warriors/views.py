@@ -84,41 +84,42 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        warrior_arena = self.object
         battles_qs = Battle.objects.with_warrior_arena(
-            self.object,
+            warrior_arena,
         )[:100].prefetch_related(
             'game_scores',
         )
         battles = list(battles_qs)
         prefetch_warriors(battles)
-        prefetch_warrior_arenas(self.object.arena, battles)
+        prefetch_warrior_arenas(warrior_arena.arena, battles)
         context['battles'] = [
-            battle.get_warrior_viewpoint(self.object)
+            battle.get_warrior_viewpoint(warrior_arena, score_algorithm=warrior_arena.arena.score_algorithm)
             for battle in battles
         ]
 
-        show_secrets = is_request_authorized(self.object.warrior, self.request)
+        show_secrets = is_request_authorized(warrior_arena.warrior, self.request)
         context['show_secrets'] = show_secrets
         context['warrior_user_permissions'] = None
         if self.request.user.is_authenticated:
             context['warrior_user_permission'] = WarriorUserPermission.objects.filter(
-                warrior=self.object.warrior,
+                warrior=warrior_arena.warrior,
                 user=self.request.user,
             ).first()
 
         # save the authorization for user if it's not already saved
         user = self.request.user
-        if show_secrets and not self.object.warrior.is_user_authorized(user) and user.is_authenticated:
+        if show_secrets and not warrior_arena.warrior.is_user_authorized(user) and user.is_authenticated:
             WarriorUserPermission.objects.get_or_create(
-                warrior=self.object.warrior,
+                warrior=warrior_arena.warrior,
                 user=user,
             )
 
         context['other_warrior_arenas'] = list(WarriorArena.objects.filter(
-            warrior=self.object.warrior,
+            warrior=warrior_arena.warrior,
             arena__listed=True,
         ).exclude(
-            id=self.object.id,
+            id=warrior_arena.id,
         ).select_related('arena'))
 
         return context

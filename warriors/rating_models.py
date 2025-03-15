@@ -68,7 +68,7 @@ class RatingMixin(models.Model):
         ).prefetch_related(
             'game_scores',
         ):
-            b = b.get_warrior_viewpoint(self)
+            b = b.get_warrior_viewpoint(self, score_algorithm=self.arena.score_algorithm)
             if b.warrior_2_id in battles:
                 continue  # we already have a more recent battle with this opponent
             if b.score is None:
