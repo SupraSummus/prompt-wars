@@ -43,6 +43,7 @@ def test_gamescore_embeddings_integration(battle, direction):
     assert game_score.is_processing
     assert game_score.warrior_1_similarity is None
     assert game_score.warrior_2_similarity is None
+    assert game_score.warriors_similarity is None
 
     worker(once=True)
 
@@ -55,6 +56,10 @@ def test_gamescore_embeddings_integration(battle, direction):
     expected_sim_2 = np.dot(np.array(result_embedding), np.array(warrior_2_embedding))
     assert abs(game_score.warrior_1_similarity - expected_sim_1) < 1e-10
     assert abs(game_score.warrior_2_similarity - expected_sim_2) < 1e-10
+    assert game_score.warriors_similarity == pytest.approx(
+        np.dot(np.array(warrior_1_embedding), np.array(warrior_2_embedding)),
+        rel=1e-10,
+    )
 
     # Since expected_sim_1 > expected_sim_2, warrior_1 should win
     game_score_viewpoint = GameScoreViewpoint(game_score=game_score, viewpoint='1')
@@ -93,6 +98,7 @@ def test_gamescore_lcs(battle, direction):
     assert game_score.is_processing
     assert game_score.warrior_1_similarity is None
     assert game_score.warrior_2_similarity is None
+    assert game_score.warriors_similarity is None
 
     worker(once=True)
 
@@ -103,3 +109,4 @@ def test_gamescore_lcs(battle, direction):
     # Verify the similarities were set correctly
     assert game_score.warrior_1_similarity == 1 / 3
     assert game_score.warrior_2_similarity == 2 / 4
+    assert game_score.warriors_similarity == 1 / 4

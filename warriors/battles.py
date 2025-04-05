@@ -502,6 +502,13 @@ class Game:
         return score_object.score_rev
 
     @property
+    def cooperation_score(self):
+        score_object = self.score_object
+        if score_object is None:
+            return None
+        return score_object.cooperation_score
+
+    @property
     def score_object(self):
         for game_score in self.battle.game_scores_list:
             if (

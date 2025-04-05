@@ -50,6 +50,11 @@ class GameScore(GoalRelatedMixin, models.Model):
         blank=True,
         help_text=_('Similarity score between result and warrior 2, in game order.'),
     )
+    warriors_similarity = models.FloatField(
+        null=True,
+        blank=True,
+        help_text=_('Similarity score between warriors'),
+    )
 
     class Meta:
         unique_together = [
@@ -58,6 +63,10 @@ class GameScore(GoalRelatedMixin, models.Model):
         indexes = [
             models.Index(fields=['battle', 'direction', 'algorithm']),
         ]
+
+    @property
+    def cooperation_score(self):
+        return None
 
 
 def get_or_create_game_score(battle, direction, algorithm):
@@ -102,6 +111,10 @@ def ensure_lcs_score(game_score, game, save=True):
         game_score,
         _lcs_similarity(game.warrior_1.body, game.result),
         _lcs_similarity(game.warrior_2.body, game.result),
+        warriors_similarity=_lcs_similarity(
+            game.warrior_1.body,
+            game.warrior_2.body,
+        ),
         save=save,
     )
     return AllDone()
@@ -136,6 +149,7 @@ def ensure_embeddings_score(game_score, game, save=True):
         game_score,
         _warrior_similarity(game.text_unit, game.warrior_1),
         _warrior_similarity(game.text_unit, game.warrior_2),
+        warriors_similarity=_warrior_similarity(game.warrior_1, game.warrior_2),
         save=save,
     )
     return AllDone()
@@ -153,13 +167,20 @@ def _warrior_similarity(text_unit, warrior):
     return numpy.dot(result_embedding, warrior_embedding)
 
 
-def _set_similarity(game_score, warrior_1_similarity, warrior_2_similarity, save=True):
+def _set_similarity(
+    game_score,
+    warrior_1_similarity, warrior_2_similarity,
+    warriors_similarity,
+    save=True,
+):
     game_score.warrior_1_similarity = warrior_1_similarity
     game_score.warrior_2_similarity = warrior_2_similarity
+    game_score.warriors_similarity = warriors_similarity
     if save:
         game_score.save(update_fields=[
             'warrior_1_similarity',
             'warrior_2_similarity',
+            'warriors_similarity',
         ])
 
 
