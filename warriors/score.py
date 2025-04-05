@@ -95,7 +95,7 @@ def _ensure_score(game_score, save=True):
     game = Game(game_score.battle, game_score.direction)
 
     if game.finish_reason == 'error':
-        _set_similarity(game_score, None, None, save=save)
+        _set_similarity(game_score, None, None, None, save=save)
         return AllDone()
 
     if game_score.algorithm == ScoreAlgorithm.LCS:

@@ -1,5 +1,5 @@
 import pytest
-import responses
+import respx
 
 from .exceptions import TransientLLMError
 from .google import call_gemini
@@ -8,27 +8,22 @@ from .google import call_gemini
 gemini_endpoint = 'https://generativelanguage.googleapis.com/v1alpha/models/gemini-2.0-flash-thinking-exp:generateContent'
 
 
-@responses.activate
+@respx.mock
 def test_google_503():
-    responses.add(
-        responses.POST,
-        gemini_endpoint,
-        status=503,
-    )
+    respx.post(gemini_endpoint).respond(503)
     with pytest.raises(TransientLLMError):
         call_gemini('prompt')
 
 
-@responses.activate
+@respx.mock
 def test_google_token_limit_reasoning():
     """This happens when the model never reaches end of reasoning."""
-    responses.add(
-        responses.POST,
-        gemini_endpoint,
+    respx.post(gemini_endpoint).respond(
+        200,
         json={
             'modelVersion': 'v1',
             'usageMetadata': {'promptTokenCount': 1, 'totalTokenCount': 1},
-        },
+        }
     )
     text, finish_reason, llm_version = call_gemini('prompt')
     assert text == ''
@@ -36,7 +31,7 @@ def test_google_token_limit_reasoning():
     assert llm_version == 'v1'
 
 
-@responses.activate
+@respx.mock
 @pytest.mark.parametrize(
     ('generated_text_len', 'expected_finish_reason'),
     [
@@ -47,9 +42,8 @@ def test_google_token_limit_reasoning():
 )
 def test_google_token_limit_response(generated_text_len, expected_finish_reason):
     """This happens when the model starts generating response (after CoT) but reaches token limit."""
-    responses.add(
-        responses.POST,
-        gemini_endpoint,
+    respx.post(gemini_endpoint).respond(
+        200,
         json={
             'candidates': [{
                 'content': {'parts': [
@@ -60,7 +54,7 @@ def test_google_token_limit_response(generated_text_len, expected_finish_reason)
             }],
             'usageMetadata': {'promptTokenCount': 6, 'candidatesTokenCount': 45, 'totalTokenCount': 51},
             'modelVersion': 'gemini-2.0-flash-thinking-exp-01-21',
-        },
+        }
     )
     text, finish_reason, llm_version = call_gemini('prompt')
     assert text == 'a' * generated_text_len
@@ -68,13 +62,12 @@ def test_google_token_limit_response(generated_text_len, expected_finish_reason)
     assert llm_version == 'gemini-2.0-flash-thinking-exp-01-21'
 
 
-@responses.activate
+@respx.mock
 def test_google_no_finish_reason():
     """According to docs mising finish reason means the model "has not stopped generating the tokens".
     Lets treat that as transient error."""
-    responses.add(
-        responses.POST,
-        gemini_endpoint,
+    respx.post(gemini_endpoint).respond(
+        200,
         json={
             'candidates': [{
                 'content': {'parts': [
@@ -84,22 +77,21 @@ def test_google_no_finish_reason():
             }],
             'usageMetadata': {'promptTokenCount': 6, 'candidatesTokenCount': 45, 'totalTokenCount': 51},
             'modelVersion': 'gemini-2.0-flash-thinking-exp-01-21',
-        },
+        }
     )
     with pytest.raises(TransientLLMError):
         call_gemini('prompt')
 
 
-@responses.activate
+@respx.mock
 def test_google_no_text():
-    responses.add(
-        responses.POST,
-        gemini_endpoint,
+    respx.post(gemini_endpoint).respond(
+        200,
         json={
             'candidates': [{'finishReason': 'RECITATION', 'index': 0}],
             'modelVersion': 'gemini-2.0-flash-thinking-exp-01-21',
             'usageMetadata': {'promptTokenCount': 10, 'totalTokenCount': 10},
-        },
+        }
     )
     text, finish_reason, llm_version = call_gemini('prompt')
     assert text == ''

@@ -16,7 +16,7 @@ whitenoise = "*"
 anthropic = "*"
 numpy = "*"
 scipy = "*"
-django-goals = {url = "https://github.com/EE/django-goals/archive/890db58d27ca668a1866c57c0b4c83ae8dff5581.zip"}
+django-goals = "*"
 humanize = "*"
 voyageai = "*"
 google-genai = "*"
@@ -32,7 +32,7 @@ pylint-django = "*"
 flake8-pyproject = "*"
 factory-boy = "*"
 django-debug-toolbar = "*"
-responses = "*"
+respx = "*"
 
 [build-system]
 requires = ["poetry-core"]
