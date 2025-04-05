@@ -235,3 +235,7 @@ class GameScoreViewpoint:
         if s is None:
             return None
         return 1.0 - s
+
+    @property
+    def cooperation_score(self):
+        return None
