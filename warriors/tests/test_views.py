@@ -6,7 +6,9 @@ from users.tests.factories import UserFactory
 
 from ..battles import Battle
 from ..text_unit import TextUnit
-from .factories import WarriorArenaFactory, batch_create_battles
+from .factories import (
+    GameScoreFactory, WarriorArenaFactory, batch_create_battles,
+)
 
 
 @pytest.mark.django_db
@@ -157,6 +159,22 @@ def test_challenge_warrior_bad_data(user_client, warrior_arena):
 
 @pytest.mark.django_db
 def test_battle_details(client, battle):
+    response = client.get(
+        reverse('battle_detail', args=(battle.id,))
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_battle_details_with_score(client, battle):
+    GameScoreFactory(
+        battle=battle,
+        direction='1_2',
+        algorithm='lcs',
+        warrior_1_similarity=0.5,
+        warrior_2_similarity=0.5,
+        warriors_similarity=0.5,
+    )
     response = client.get(
         reverse('battle_detail', args=(battle.id,))
     )
