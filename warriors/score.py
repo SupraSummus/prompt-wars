@@ -1,7 +1,6 @@
 import uuid
 from dataclasses import dataclass
 
-import numpy
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django_goals.models import AllDone, RetryMeLater, schedule
@@ -162,9 +161,10 @@ def _warrior_similarity(text_unit, warrior):
         not warrior.voyage_3_embedding
     ):
         return None
-    result_embedding = numpy.array(text_unit.voyage_3_embedding)
-    warrior_embedding = numpy.array(warrior.voyage_3_embedding)
-    return numpy.dot(result_embedding, warrior_embedding)
+    a = text_unit.voyage_3_embedding
+    b = warrior.voyage_3_embedding
+    assert len(a) == len(b)
+    return sum(aa * bb for aa, bb in zip(a, b))
 
 
 def _set_similarity(
