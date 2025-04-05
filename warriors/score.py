@@ -63,10 +63,6 @@ class GameScore(GoalRelatedMixin, models.Model):
             models.Index(fields=['battle', 'direction', 'algorithm']),
         ]
 
-    @property
-    def cooperation_score(self):
-        return None
-
 
 def get_or_create_game_score(battle, direction, algorithm):
     game_score = GameScore.objects.filter(
@@ -201,6 +197,8 @@ class GameScoreViewpoint:
             return getattr(self.game_score, f'warrior_{w1}_similarity')
         if key == 'warrior_2_similarity':
             return getattr(self.game_score, f'warrior_{w2}_similarity')
+        if key == 'warriors_similarity':
+            return self.game_score.warriors_similarity
 
         return super().__getattribute__(key)
 
@@ -238,4 +236,10 @@ class GameScoreViewpoint:
 
     @property
     def cooperation_score(self):
-        return None
+        if (
+            self.warriors_similarity is None or
+            self.warrior_1_similarity is None or
+            self.warrior_2_similarity is None
+        ):
+            return None
+        return self.warrior_1_similarity * self.warrior_2_similarity * (1 - self.warriors_similarity)
