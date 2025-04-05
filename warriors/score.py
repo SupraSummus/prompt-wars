@@ -242,4 +242,5 @@ class GameScoreViewpoint:
             self.warrior_2_similarity is None
         ):
             return None
-        return self.warrior_1_similarity * self.warrior_2_similarity * (1 - self.warriors_similarity)
+        similarity_diff = (self.warrior_1_similarity - self.warrior_2_similarity) ** 2
+        return similarity_diff * (1 - self.warriors_similarity)
