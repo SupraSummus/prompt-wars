@@ -502,6 +502,13 @@ class Game:
         return score_object.score_rev
 
     @property
+    def warriors_similarity(self):
+        score_object = self.score_object
+        if score_object is None:
+            return None
+        return score_object.warriors_similarity
+
+    @property
     def cooperation_score(self):
         score_object = self.score_object
         if score_object is None:

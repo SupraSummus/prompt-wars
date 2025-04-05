@@ -96,12 +96,26 @@
 
   <details>
     <summary>Cooperation score (experimental)</summary>
-    <p>
-      Cooperation score (LCS): {{ game.cooperation_score|percentage }}
-    </p>
-    <p>
-      Cooperation score (embeddings): {{ game.embedding_scoring.cooperation_score|percentage }}
-    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Scoring method</th>
+          <th>Warriors similarity</th>
+          <th>Cooperation score</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>LCS</td>
+          <td>{{ game.warriors_similarity|percentage }}</td>
+          <td>{{ game.cooperation_score|percentage }}</td>
+        </tr>
+          <td>Embeddings</td>
+          <td>{{ game.embedding_scoring.warriors_similarity|percentage }}</td>
+          <td>{{ game.embedding_scoring.cooperation_score|percentage }}</td>
+        </tr>
+      </tbody>
+    </table>
   </details>
 
 </div>
