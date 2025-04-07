@@ -242,7 +242,12 @@ class GameScoreViewpoint:
             self.warrior_2_similarity is None
         ):
             return None
-        return min(
+        smaller_similarity, larger_similarity = sorted([
             self.warrior_1_similarity,
             self.warrior_2_similarity,
+        ])
+        if larger_similarity <= 0:
+            return 0
+        return (
+            smaller_similarity / larger_similarity
         ) * (1 - self.warriors_similarity)
