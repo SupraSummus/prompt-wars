@@ -32,6 +32,8 @@ from warriors.views import (
     WarriorLeaderboard, warrior_set_public_battle_results,
 )
 
+from . import data_policy_view
+
 
 class SignedIntConverter:
     regex = r'-?\d+'
@@ -51,6 +53,7 @@ router.route_all('labirynth/', labirynth_router, name='labirynth')
 router.route_all('stories/', stories_router, name='stories')
 router.route_all('my-warriors/', my_warriors_view.router, name='my_warriors')
 router.route_all('warrior/', warrior_view.router, name='warrior')
+router.route_all('data-policy/', data_policy_view.router, name='data_policy')
 
 urlpatterns = (
     path('', TemplateView.as_view(template_name="home.html"), name='home'),

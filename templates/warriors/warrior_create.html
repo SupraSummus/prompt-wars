@@ -13,7 +13,10 @@
     <section>
       <h1>Create a Spell</h1>
       <form method="post">
-        <strong>Don't share any private, secret, or classified information!</strong>
+        <strong>
+          Don't share any private, secret, or classified information!
+          See <a href="{% url 'data_policy:root' %}">Data policy</a>
+        </strong>
         {% csrf_token %}
         {{ form.as_div }}
         <input type="submit" value="Create Spell">

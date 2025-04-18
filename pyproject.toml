@@ -20,6 +20,7 @@ django-goals = "*"
 humanize = "*"
 voyageai = "*"
 google-genai = "*"
+dominate = "*"
 
 
 [tool.poetry.group.dev.dependencies]
