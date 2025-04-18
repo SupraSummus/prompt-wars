@@ -14,6 +14,11 @@
       mark {
         padding: 0;
       }
+      .dot-separated > *:not(:last-child)::after {
+        content: "•";
+        margin-left: 0.5rem;
+        margin-right: 0.5rem;
+      }
     </style>
     <script
       src="https://unpkg.com/htmx.org@1.9.12"
@@ -65,18 +70,14 @@
     {% endblock %}
 
     <footer class="container">
-      <small>
-        <a href="{% url 'warrior_leaderboard' %}">Leaderboard</a>
-        •
-        <a href="{% url 'warrior_create' %}">New spell</a>
-        •
+      <small class="dot-separated">
+        <span><a href="{% url 'warrior_leaderboard' %}">Leaderboard</a></span>
+        <span><a href="{% url 'warrior_create' %}">New spell</a></span>
         <span>
           Want some <a href="https://github.com/SupraSummus/prompt-wars">source code</a>?
         </span>
-        •
         <span>Glory to the heroes 🇺🇦</span>
-        •
-        <a href="{% url 'data_policy:root' %}">Data policy</a>
+        <span><a href="{% url 'data_policy:root' %}">Data policy</a></span>
       </small>
     </footer>
 
