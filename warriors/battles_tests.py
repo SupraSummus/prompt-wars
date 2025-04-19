@@ -2,10 +2,10 @@ from uuid import UUID
 
 import pytest
 
-from ..battles import BattleViewpoint
-from ..text_unit import TextUnit
-from .factories import BattleFactory, WarriorArenaFactory
-from .fixtures import create_scores
+from .battles import BattleViewpoint
+from .tests.factories import BattleFactory, WarriorArenaFactory
+from .tests.fixtures import create_scores
+from .text_unit import TextUnit
 
 
 @pytest.mark.django_db
