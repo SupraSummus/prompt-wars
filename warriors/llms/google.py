@@ -15,7 +15,6 @@ from .exceptions import TransientLLMError
 logger = logging.getLogger(__name__)
 client = genai.Client(
     api_key=settings.GOOGLE_AI_API_KEY,
-    http_options={'api_version': 'v1alpha'},
 )
 
 
