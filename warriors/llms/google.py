@@ -4,7 +4,9 @@ import requests
 from django.conf import settings
 from google import genai
 from google.genai.errors import ServerError
-from google.genai.types import FinishReason, GenerateContentConfig
+from google.genai.types import (
+    FinishReason, GenerateContentConfig, ThinkingConfig,
+)
 
 from ..warriors import MAX_WARRIOR_LENGTH
 from .exceptions import TransientLLMError
@@ -25,12 +27,16 @@ def resolve_battle_google(prompt_a, prompt_b, system_prompt=''):
 def call_gemini(prompt):
     try:
         response = client.models.generate_content(
-            model='gemini-2.0-flash-thinking-exp',
+            model='gemini-2.5-flash-preview-04-17',
             contents=prompt,
             config=GenerateContentConfig(
                 temperature=0,
                 # arbitrary value to prevent looping in chain of thought
-                max_output_tokens=MAX_WARRIOR_LENGTH * 20,
+                # we allow for 4x thinking tokens and 1x output tokens, additional 1x for margin
+                max_output_tokens=MAX_WARRIOR_LENGTH * 6,
+                thinking_config=ThinkingConfig(
+                    thinking_budget=MAX_WARRIOR_LENGTH * 4,
+                ),
             ),
         )
         candidates = response.candidates
@@ -47,8 +53,6 @@ def call_gemini(prompt):
             len(text) < MAX_WARRIOR_LENGTH
         ):
             return response.text, 'error', response.model_version
-        if len(text) > MAX_WARRIOR_LENGTH * 10:
-            logger.warning('Long battle result: %s chars', len(text))
         return text, finish_reason.value, response.model_version
     except ServerError as e:
         raise TransientLLMError() from e
