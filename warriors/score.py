@@ -16,8 +16,17 @@ class ScoreAlgorithm(models.TextChoices):
 
 class GameScore(GoalRelatedMixin, models.Model):
     """
-    Stores the score for a single game (battle direction) and scoring algorithm.
+    Stores the score for a single game (LLM run) and scoring algorithm.
+    Warrior similrities are stored in the order of the game -
+    warrior 1 is always the one that is concatenated first.
+
+    For example when asdf (lower warrior id) battles qwerty (greater warrior id), we have two game scores (for single scoring method):
+    1. direction 1_2: asdf || qwerty
+       Warrior 1 similarity is for asdf, warrior 2 similarity is for qwerty.
+    2. direction 2_1: qwerty || asdf
+       Warrior 1 similarity is for qwerty, warrior 2 similarity is for asdf.
     """
+
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
@@ -182,6 +191,12 @@ def _set_similarity(
 
 @dataclass(frozen=True)
 class GameScoreViewpoint:
+    """
+    For single game score we can present it as a score for one participant warrior or the other.
+    Viewpoint 1 means we present score for warrior that was concatenated first in the game.
+    Viewpoint 2 means we present score for warrior that was concatenated second in the game.
+    """
+
     game_score: GameScore
     viewpoint: str  # 1 is normal, 2 is reversed
 

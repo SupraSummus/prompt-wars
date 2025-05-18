@@ -517,9 +517,17 @@ class Game:
 
     @property
     def score_object(self):
+        if self.battle.viewpoint == '1':
+            score_direction = self.direction
+        elif self.battle.viewpoint == '2' and self.direction == '1_2':
+            score_direction = '2_1'
+        elif self.battle.viewpoint == '2' and self.direction == '2_1':
+            score_direction = '1_2'
+        else:
+            raise ValueError('Invalid viewpoint or direction')
         for game_score in self.battle.game_scores_list:
             if (
-                game_score.direction == self.direction and
+                game_score.direction == score_direction and
                 game_score.algorithm == self.score_algorithm
             ):
                 return game_score

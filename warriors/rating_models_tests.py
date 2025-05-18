@@ -64,7 +64,11 @@ def test_rating_is_isolated_for_each_arena():
         resolved_at_1_2=now,
         resolved_at_2_1=now,
     )
-    create_scores(battle_1, 1, 0.1, 1, 0.1)
+    create_scores(
+        battle_1,
+        score_1_2_1=1, score_1_2_2=0.1,
+        score_2_1_1=1, score_2_1_2=0.1,
+    )
 
     arena_2 = ArenaFactory(llm='model2')
     warrior_1_arena_2 = WarriorArenaFactory(warrior=warrior_1, arena=arena_2)
@@ -77,7 +81,11 @@ def test_rating_is_isolated_for_each_arena():
         resolved_at_1_2=now,
         resolved_at_2_1=now,
     )
-    create_scores(battle_2, 0.1, 1, 0.1, 1)
+    create_scores(
+        battle_2,
+        score_1_2_1=0.1, score_1_2_2=1,
+        score_2_1_1=0.1, score_2_1_2=1,
+    )
 
     for _ in range(2):
         warrior_1_arena_1.refresh_from_db()
