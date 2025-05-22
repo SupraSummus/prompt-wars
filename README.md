@@ -24,3 +24,9 @@ See `Procfile` for full details how we run in production.
 
 - [CONCEPT.md](CONCEPT.md)
 - [philosophical stuff](docs/parallels.md)
+
+# Any press is good press
+
+- https://community.openai.com/t/prompt-wars-an-ai-powered-language-battleground/669544
+- https://www.reddit.com/r/PromptEngineering/comments/1hqppcf/fun_promptengineering_game_i_found_online/
+- https://thecyberwire.com/podcasts/the-faik-files/29/notes
