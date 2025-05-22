@@ -2,6 +2,8 @@
 
 An AI word-battling game/puzzle inspired by the classic concept of Core War. Players craft prompts that manipulate large language models (LLMs) into echoing the original prompt.
 
+> Word battle: you speak. I speak. Smart machine hears both, speaks one. Who is strong?
+
 ## Technical Overview
 
 * Backend: Python (Poetry env management, Django framework)
