@@ -14,7 +14,7 @@ default_k = 0
 LOG10_OVER_400 = np.log(10) / 400
 
 # L2 regularization strength: at ||playstyle|| = 100, loss = X
-PLAYSTYLE_L2_LAMBDA = 0.05 / 100**2
+PLAYSTYLE_L2_LAMBDA = 0.06 / 100**2
 
 
 @dataclass(frozen=True)
