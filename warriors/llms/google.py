@@ -31,10 +31,10 @@ def call_gemini(prompt):
             config=GenerateContentConfig(
                 temperature=0,
                 # arbitrary value to prevent looping in chain of thought
-                # we allow for 4x thinking tokens and 1x output tokens, additional 1x for margin
-                max_output_tokens=MAX_WARRIOR_LENGTH * 6,
+                # we allow for 1x thinking tokens and 1x output tokens, additional 1x for margin
+                max_output_tokens=MAX_WARRIOR_LENGTH * 3,
                 thinking_config=ThinkingConfig(
-                    thinking_budget=MAX_WARRIOR_LENGTH * 4,
+                    thinking_budget=MAX_WARRIOR_LENGTH * 1,
                 ),
             ),
         )
