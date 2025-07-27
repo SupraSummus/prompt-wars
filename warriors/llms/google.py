@@ -26,7 +26,7 @@ def resolve_battle_google(prompt_a, prompt_b, system_prompt=''):
 def call_gemini(prompt):
     try:
         response = client.models.generate_content(
-            model='gemini-2.5-flash-lite-preview-06-17',
+            model='gemini-2.5-flash-lite',
             contents=prompt,
             config=GenerateContentConfig(
                 temperature=0,
