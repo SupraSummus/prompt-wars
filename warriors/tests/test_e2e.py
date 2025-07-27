@@ -3,7 +3,8 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 from django.utils import timezone
-from django_goals.models import schedule, worker, worker_turn
+from django_goals.busy_worker import worker, worker_turn
+from django_goals.models import schedule
 
 from .. import embeddings
 from ..battles import Battle

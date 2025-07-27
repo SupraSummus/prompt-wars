@@ -2,7 +2,7 @@ from hashlib import sha256
 
 import numpy as np
 import pytest
-from django_goals.models import worker
+from django_goals.busy_worker import worker
 
 from .score import GameScoreViewpoint, ScoreAlgorithm, get_or_create_game_score
 from .tests.factories import TextUnitFactory

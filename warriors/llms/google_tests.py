@@ -5,7 +5,7 @@ from .exceptions import TransientLLMError
 from .google import call_gemini
 
 
-gemini_endpoint = 'https://generativelanguage.googleapis.com/v1alpha/models/gemini-2.5-flash-preview-04-17:generateContent'
+gemini_endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent'
 
 
 @respx.mock

@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 from django.utils import timezone
-from django_goals.models import worker_turn
+from django_goals.busy_worker import worker_turn
 
 from .text_unit import TextUnit
 
