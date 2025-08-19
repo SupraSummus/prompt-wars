@@ -25,13 +25,15 @@ def resolve_battle_openai(prompt_a, prompt_b, system_prompt=''):
     try:
         response = openai_client.chat.completions.create(
             messages=messages,
-            model='gpt-4.1-mini',
+            model='gpt-5-mini',
             temperature=0,
+            reasoning_effort='low',
             # Completion length limit is in tokens, so when measured in chars we will likely get more.
             # Other way arund is I think possible also - exotic unicode symbols
             # may be multiple LLM tokens, but a single char.
             # But this is a marginal case, so lets forget it for now.
-            max_tokens=MAX_WARRIOR_LENGTH,
+            # 1x reasoning tokens, 1x output tokens, additional 1x for margin
+            max_completion_tokens=MAX_WARRIOR_LENGTH * 3,
         )
     except openai.RateLimitError as e:
         raise RateLimitError() from e
@@ -41,15 +43,23 @@ def resolve_battle_openai(prompt_a, prompt_b, system_prompt=''):
         raise
     else:
         (resp_choice,) = response.choices
+        finish_reason = resp_choice.finish_reason
         result = resp_choice.message.content
+        if (
+            # battle is not valid if we exceed token limit and MAX_WARRIOR_LENGTH is not reached
+            # model propably used all the tokens for reasoning
+            finish_reason == 'length' and
+            len(result) < MAX_WARRIOR_LENGTH
+        ):
+            return response.text, 'error', response.model_version
         return (
             result,
-            resp_choice.finish_reason,
+            finish_reason,
             response.model + '/' + (response.system_fingerprint or '')
         )
 
 
-def call_llm(examples, prompt, system_prompt=None, max_tokens=None):
+def call_llm(examples, prompt, system_prompt=None, max_tokens=None, max_completion_tokens=None):
     messages = []
     if system_prompt is not None:
         messages.append({'role': 'system', 'content': system_prompt})
@@ -69,10 +79,11 @@ def call_llm(examples, prompt, system_prompt=None, max_tokens=None):
     kwargs = {}
     if max_tokens is not None:
         kwargs['max_tokens'] = max_tokens
+    if max_completion_tokens is not None:
+        kwargs['max_completion_tokens'] = max_completion_tokens
     response = openai_client.chat.completions.create(
         messages=messages,
-        model='gpt-4.1',
-        temperature=0,
+        model='gpt-5',
         **kwargs,
     )
     (resp_choice,) = response.choices

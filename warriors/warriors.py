@@ -168,6 +168,7 @@ def generate_warrior_name(warrior, samples=20):
         examples, warrior.body,
         system_prompt=system_prompt,
         max_tokens=100,
+        max_completion_tokens=2000,
     )
 
     warrior.name = generated_name.strip()[:40]
