@@ -26,7 +26,6 @@ def resolve_battle_openai(prompt_a, prompt_b, system_prompt=''):
         response = openai_client.chat.completions.create(
             messages=messages,
             model='gpt-5-mini',
-            temperature=0,
             reasoning_effort='low',
             # Completion length limit is in tokens, so when measured in chars we will likely get more.
             # Other way arund is I think possible also - exotic unicode symbols
