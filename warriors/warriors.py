@@ -161,13 +161,13 @@ def generate_warrior_name(warrior, samples=20):
         "(warriors/spells/prompts) designed to manipulate large language models (LLMs) into "
         "echoing the original prompt. Your task is to generate a name for each warrior. "
         "The name should fit within a database field "
-        "of 40 characters maximum."
-    )
+        "of 40 characters maximum. "
+        "Output only the name, without any additional text, formatting or explanations. "
+    ).strip()
 
     generated_name, model_info = call_llm(
         examples, warrior.body,
         system_prompt=system_prompt,
-        max_tokens=100,
         max_completion_tokens=2000,
     )
 
