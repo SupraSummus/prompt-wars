@@ -32,3 +32,7 @@ See `Procfile` for full details how we run in production.
 - https://community.openai.com/t/prompt-wars-an-ai-powered-language-battleground/669544
 - https://www.reddit.com/r/PromptEngineering/comments/1hqppcf/fun_promptengineering_game_i_found_online/
 - https://thecyberwire.com/podcasts/the-faik-files/29/notes / https://www.youtube.com/watch?v=heEV8Ggy0m8
+
+## Similar stuff
+
+- https://tensortrust.ai/
