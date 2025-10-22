@@ -162,6 +162,7 @@ def generate_warrior_name(warrior, samples=20):
         "echoing the original prompt. Your task is to generate a name for each warrior. "
         "The name should fit within a database field "
         "of 40 characters maximum. "
+        "But no worries - if it is longer, it will be truncated without an error. "
         "Output only the name, without any additional text, formatting or explanations. "
     ).strip()
 
