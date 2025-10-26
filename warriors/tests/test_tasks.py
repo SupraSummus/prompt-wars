@@ -147,6 +147,7 @@ def test_resolve_battle(arena, battle, monkeypatch):
 
     # DB state is correct
     battle.refresh_from_db()
+    assert len(battle.input_sha256_2_1) == 32
     assert battle.text_unit_2_1.content == 'Some result'
     assert battle.finish_reason_2_1 == 'stop'
     assert battle.resolved_at_2_1 is not None

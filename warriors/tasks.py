@@ -17,7 +17,7 @@ from .random_matchmaking import create_battle
 from .score import ScoreAlgorithm, get_or_create_game_score
 from .text_unit import TextUnit
 from .warriors import MAX_WARRIOR_LENGTH, Warrior, ensure_name_generated
-
+from hashlib import sha256
 
 logger = logging.getLogger(__name__)
 
@@ -172,6 +172,9 @@ def _run_llm(battle_view, now):
             finish_reason = 'error'
             llm_version = ''
 
+    battle_view.input_sha256 = sha256(
+        (battle_view.warrior_1.body + battle_view.warrior_2.body).encode('utf-8')
+    ).digest()
     battle_view.text_unit = TextUnit.get_or_create_by_content(result[:MAX_WARRIOR_LENGTH], now=now)
     battle_view.lcs_len_1 = lcs_len(battle_view.warrior_1.body, battle_view.result)
     battle_view.lcs_len_2 = lcs_len(battle_view.warrior_2.body, battle_view.result)
@@ -183,6 +186,7 @@ def _run_llm(battle_view, now):
 
     battle_view.resolved_at = now
     battle_view.save(update_fields=[
+        'input_sha256',
         'text_unit',
         'lcs_len_1',
         'lcs_len_2',

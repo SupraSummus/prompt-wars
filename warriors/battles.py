@@ -103,6 +103,11 @@ class Battle(models.Model):
         related_name='+',
     )
 
+    input_sha256_1_2 = models.BinaryField(
+        max_length=32,
+        null=True,
+        blank=True,
+    )
     text_unit_1_2 = models.ForeignKey(
         to=TextUnit,
         on_delete=models.PROTECT,
@@ -132,6 +137,11 @@ class Battle(models.Model):
         default=0,
     )
 
+    input_sha256_2_1 = models.BinaryField(
+        max_length=32,
+        null=True,
+        blank=True,
+    )
     text_unit_2_1 = models.ForeignKey(
         to=TextUnit,
         on_delete=models.PROTECT,
@@ -328,6 +338,8 @@ class BattleViewpoint:
         ):
             return self.map_field_name_x(field_name)
         if field_name in (
+            'input_sha256_1_2',
+            'input_sha256_2_1',
             'text_unit_1_2',
             'text_unit_1_2_id',
             'text_unit_2_1',
@@ -435,6 +447,7 @@ class Game:
 
     def map_field_name(self, field_name):
         if field_name in (
+            'input_sha256',
             'text_unit',
             'finish_reason',
             'llm_version',
