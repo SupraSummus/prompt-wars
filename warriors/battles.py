@@ -185,7 +185,7 @@ class Battle(models.Model):
         )
         constraints = [
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     warrior_1_id__lt=models.F('warrior_2_id'),
                 ),
                 name='warrior_ordering',

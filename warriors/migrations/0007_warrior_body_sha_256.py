@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name='warrior',
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     (
                         'body_sha_256',
                         models.Func(

@@ -88,7 +88,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='warrior',
-            constraint=models.CheckConstraint(check=models.Q(('body_sha_256', models.Func(models.Func(models.F('body'), models.Value('utf-8'), function='convert_to'), function='sha256'))), name='warrior_body_sha_256'),
+            constraint=models.CheckConstraint(condition=models.Q(('body_sha_256', models.Func(models.Func(models.F('body'), models.Value('utf-8'), function='convert_to'), function='sha256'))), name='warrior_body_sha_256'),
         ),
 
         migrations.AddField(

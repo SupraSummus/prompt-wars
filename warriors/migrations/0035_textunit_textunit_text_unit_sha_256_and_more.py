@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='textunit',
-            constraint=models.CheckConstraint(check=models.Q(('sha_256', models.Func(models.Func(models.F('content'), models.Value('utf-8'), function='convert_to'), function='sha256'))), name='text_unit_sha_256'),
+            constraint=models.CheckConstraint(condition=models.Q(('sha_256', models.Func(models.Func(models.F('content'), models.Value('utf-8'), function='convert_to'), function='sha256'))), name='text_unit_sha_256'),
         ),
         migrations.AddField(
             model_name='battle',

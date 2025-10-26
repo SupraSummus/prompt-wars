@@ -33,7 +33,7 @@ class Room(models.Model):
                 name='unique_coords',
             ),
             models.CheckConstraint(
-                check=CombinedExpression(
+                condition=CombinedExpression(
                     models.F('x') + models.F('y') + models.F('z'),
                     '=',
                     models.Value(0),

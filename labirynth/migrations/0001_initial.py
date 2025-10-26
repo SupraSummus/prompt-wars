@@ -31,6 +31,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='room',
-            constraint=models.CheckConstraint(check=django.db.models.expressions.CombinedExpression(django.db.models.expressions.CombinedExpression(django.db.models.expressions.CombinedExpression(models.F('x'), '+', models.F('y')), '+', models.F('z')), '=', models.Value(0), output_field=models.BooleanField()), name='hex_grid'),
+            constraint=models.CheckConstraint(condition=django.db.models.expressions.CombinedExpression(django.db.models.expressions.CombinedExpression(django.db.models.expressions.CombinedExpression(models.F('x'), '+', models.F('y')), '+', models.F('z')), '=', models.Value(0), output_field=models.BooleanField()), name='hex_grid'),
         ),
     ]

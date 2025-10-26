@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name='warrior',
             constraint=models.CheckConstraint(
-                check=models.Q(('rating_error__gte', 0.0)),
+                condition=models.Q(('rating_error__gte', 0.0)),
                 name='rating_error_non_negative',
             ),
         ),

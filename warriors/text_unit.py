@@ -26,7 +26,7 @@ class TextUnit(EmbeddingMixin, models.Model):
         ordering = ('id',)
         constraints = [
             models.CheckConstraint(
-                check=models.Q(sha_256=models.Func(
+                condition=models.Q(sha_256=models.Func(
                     models.Func(
                         models.F('content'),
                         models.Value('utf-8'),

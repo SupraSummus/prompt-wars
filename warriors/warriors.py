@@ -103,7 +103,7 @@ class Warrior(EmbeddingMixin, models.Model):
         ordering = ('id',)
         constraints = [
             models.CheckConstraint(
-                check=models.Q(body_sha_256=models.Func(
+                condition=models.Q(body_sha_256=models.Func(
                     models.Func(
                         models.F('body'),
                         models.Value('utf-8'),

@@ -26,6 +26,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='battle',
-            constraint=models.CheckConstraint(check=models.Q(('warrior_arena_1_id__lt', models.F('warrior_arena_2_id'))), name='warrior_ordering'),
+            constraint=models.CheckConstraint(condition=models.Q(('warrior_arena_1_id__lt', models.F('warrior_arena_2_id'))), name='warrior_ordering'),
         ),
     ]
