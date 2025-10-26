@@ -48,7 +48,7 @@ def get_job_from_function(handler, interval, key=None):
 
 def run(local_jobs=None, blocking=True):
     if local_jobs is None:
-        global _local_jobs
+        global _local_jobs  # noqa: F824
         local_jobs = _local_jobs.copy()
         del _local_jobs  # prevent adding more jobs after we started
 
