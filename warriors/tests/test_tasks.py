@@ -5,6 +5,11 @@ import openai
 import pytest
 from django.utils import timezone
 from django_goals.models import AllDone, RetryMeLater
+from openai.types import Moderation, ModerationCreateResponse
+from openai.types.chat.chat_completion import (
+    ChatCompletion, ChatCompletionMessage, Choice,
+)
+from openai.types.completion_usage import CompletionUsage
 
 from ..tasks import (
     do_moderation, openai_client, resolve_battle, schedule_battle_top_arena,
@@ -22,11 +27,60 @@ from ..warriors import MAX_WARRIOR_LENGTH
 def test_do_moderation(warrior, monkeypatch, moderation_flagged):
     assert warrior.body
 
-    moderation_result_mock = mock.MagicMock()
-    moderation_result_mock.flagged = moderation_flagged
-    moderation_mock = mock.MagicMock()
-    moderation_mock.return_value.model = 'moderation-asdf'
-    moderation_mock.return_value.results = [moderation_result_mock]
+    moderation = Moderation(
+        flagged=moderation_flagged,
+        categories={
+            'sexual': False,
+            'hate': False,
+            'harassment': False,
+            'self-harm': False,
+            'sexual/minors': False,
+            'hate/threatening': False,
+            'violence/graphic': False,
+            'self-harm/intent': False,
+            'self-harm/instructions': False,
+            'harassment/threatening': False,
+            'violence': False,
+            'illicit': False,
+            'illicit/violent': False,
+        },
+        category_scores={
+            'sexual': 0.0,
+            'hate': 0.0,
+            'harassment': 0.0,
+            'self-harm': 0.0,
+            'sexual/minors': 0.0,
+            'hate/threatening': 0.0,
+            'violence/graphic': 0.0,
+            'self-harm/intent': 0.0,
+            'self-harm/instructions': 0.0,
+            'harassment/threatening': 0.0,
+            'violence': 0.0,
+            'illicit': 0.0,
+            'illicit/violent': 0.0,
+        },
+        category_applied_input_types={
+            'sexual': ['text'],
+            'hate': ['text'],
+            'harassment': ['text'],
+            'self-harm': ['text'],
+            'sexual/minors': ['text'],
+            'hate/threatening': ['text'],
+            'violence/graphic': ['text'],
+            'self-harm/intent': ['text'],
+            'self-harm/instructions': ['text'],
+            'harassment/threatening': ['text'],
+            'violence': ['text'],
+            'illicit': ['text'],
+            'illicit/violent': ['text'],
+        },
+    )
+    moderation_response = ModerationCreateResponse(
+        id='modr-123',
+        model='moderation-asdf',
+        results=[moderation],
+    )
+    moderation_mock = mock.Mock(return_value=moderation_response)
     monkeypatch.setattr(openai_client.moderations, 'create', moderation_mock)
 
     do_moderation(None, warrior.id)
@@ -52,14 +106,25 @@ def test_resolve_battle(arena, battle, monkeypatch):
     assert battle.warrior_1.body
     assert battle.warrior_2.body
 
-    completion_mock = mock.MagicMock()
-    completion_mock.message.content = 'Some result'
-    completion_mock.finish_reason = 'stop'
-    completions_mock = mock.MagicMock()
-    completions_mock.choices = [completion_mock]
-    completions_mock.model = 'gpt-3.5'
-    completions_mock.system_fingerprint = '1234'
-    create_mock = mock.Mock(return_value=completions_mock)
+    completion_message = ChatCompletionMessage(
+        role='assistant',
+        content='Some result',
+    )
+    completion_choice = Choice(
+        index=0,
+        message=completion_message,
+        finish_reason='stop',
+    )
+    completions = ChatCompletion(
+        id='chatcmpl-123',
+        object='chat.completion',
+        created=1234567890,
+        model='gpt-3.5',
+        choices=[completion_choice],
+        usage=CompletionUsage(prompt_tokens=10, completion_tokens=10, total_tokens=20),
+        system_fingerprint='1234',
+    )
+    create_mock = mock.Mock(return_value=completions)
     monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
 
     lcs_len_mock = mock.MagicMock()
@@ -128,14 +193,25 @@ def test_resolve_battle_rate_limit(battle, monkeypatch):
 
 @pytest.mark.django_db
 def test_resolve_battle_character_limit(battle, monkeypatch):
-    completion_mock = mock.MagicMock()
-    completion_mock.message.content = 'Some result' * 100
-    completion_mock.finish_reason = 'stop'
-    completions_mock = mock.MagicMock()
-    completions_mock.choices = [completion_mock]
-    completions_mock.model = 'gpt-3.5'
-    completions_mock.system_fingerprint = '1234'
-    create_mock = mock.Mock(return_value=completions_mock)
+    completion_message = ChatCompletionMessage(
+        role='assistant',
+        content='Some result' * 100,
+    )
+    completion_choice = Choice(
+        index=0,
+        message=completion_message,
+        finish_reason='stop',
+    )
+    completions = ChatCompletion(
+        id='chatcmpl-123',
+        object='chat.completion',
+        created=1234567890,
+        model='gpt-3.5',
+        choices=[completion_choice],
+        usage=CompletionUsage(prompt_tokens=10, completion_tokens=10, total_tokens=20),
+        system_fingerprint='1234',
+    )
+    create_mock = mock.Mock(return_value=completions)
     monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
 
     resolve_battle(battle.id, '1_2')
