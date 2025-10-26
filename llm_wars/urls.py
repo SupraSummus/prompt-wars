@@ -22,8 +22,6 @@ from django.views.generic import TemplateView
 
 import warriors.views
 from djsfc import Router
-from labirynth.map_view import router as labirynth_router
-from stories.models import router as stories_router
 from users.views import SignupView
 from warriors import my_warriors_view, warrior_view
 from warriors.create_view import WarriorCreateView
@@ -49,8 +47,6 @@ register_converter(SignedIntConverter, 'signed_int')
 
 
 router = Router(__name__)
-router.route_all('labirynth/', labirynth_router, name='labirynth')
-router.route_all('stories/', stories_router, name='stories')
 router.route_all('my-warriors/', my_warriors_view.router, name='my_warriors')
 router.route_all('warrior/', warrior_view.router, name='warrior')
 router.route_all('data-policy/', data_policy_view.router, name='data_policy')
