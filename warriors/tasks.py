@@ -27,6 +27,7 @@ def do_moderation(goal, warrior_id):
     warrior = Warrior.objects.get(id=warrior_id)
     assert warrior.moderation_date is None
     moderation_results = openai_client.moderations.create(
+        model="omni-moderation-latest",
         input='\n'.join([
             warrior.name,
             warrior.author_name,

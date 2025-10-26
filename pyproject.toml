@@ -67,6 +67,9 @@ DJANGO_SETTINGS_MODULE = "llm_wars.settings"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 FAIL_INVALID_TEMPLATE_VARS = true
 addopts = "--reuse-db"
+markers = [
+    "real_world: marks tests as real-world integration tests that call actual external APIs (deselect with '-m \"not real_world\"')",
+]
 
 [tool.black]
 skip-string-normalization = true

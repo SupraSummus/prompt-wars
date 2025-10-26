@@ -4,7 +4,7 @@ import httpx
 import openai
 import pytest
 from django.utils import timezone
-from django_goals.models import RetryMeLater
+from django_goals.models import AllDone, RetryMeLater
 
 from ..tasks import (
     do_moderation, openai_client, resolve_battle, schedule_battle_top_arena,
@@ -158,3 +158,26 @@ def test_resolve_battle_character_limit(battle, monkeypatch):
 }], indirect=True)
 def test_transfer_rating(battle):
     transfer_rating(None, battle.id)
+
+
+@pytest.mark.django_db
+@pytest.mark.real_world
+@pytest.mark.parametrize('warrior', [{
+    'name': 'Integration Test Warrior',
+    'author_name': 'Integration Test Author',
+}], indirect=True)
+def test_do_moderation_real_endpoint(warrior):
+    assert warrior.body
+    assert warrior.moderation_date is None
+
+    # Call the real moderation endpoint
+    result = do_moderation(None, warrior.id)
+
+    # Verify the result is AllDone
+    assert isinstance(result, AllDone)
+
+    # Verify the warrior was updated
+    warrior.refresh_from_db()
+    assert warrior.moderation_date is not None
+    assert warrior.moderation_passed is not None
+    assert warrior.moderation_model == 'omni-moderation-latest'
