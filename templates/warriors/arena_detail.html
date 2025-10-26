@@ -17,61 +17,63 @@
     <li><a href="{% url 'arena_recent_battles' arena.id %}">Recent battles</a></li>
   </ul>
 
-  <hgroup>
-    <h2>Stats</h2>
-    <p>{{ stats.date.date }}</p>
-  </hgroup>
-  <p>Number of spells: {{ stats.warrior_count }}</p>
-  <p>Number of battles: {{ stats.battle_count }}</p>
-  <canvas id="chart"></canvas>
-  <script
-    src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"
-    integrity="sha384-G436+Z2nlA8+PNoeRvWdxKbvOf8E/y+lYxqht2iBwNHTQDV5CJr3+AGVj8fGZi5t"
-    crossorigin="anonymous"
-  ></script>
-  {{ stats.rating_quantile_labels|json_script:'rating_quantile_labels' }}
-  {{ stats.rating_quantiles|json_script:'rating_quantile_values' }}
-  <script>
-    const ctx = document.getElementById('chart').getContext('2d');
-    const labels = JSON.parse(document.getElementById('rating_quantile_labels').textContent);
-    const values = JSON.parse(document.getElementById('rating_quantile_values').textContent);
-    const chart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            data: values,
-          },
-        ],
-      },
-      options: {
-        plugins: {
-          title: {
-            display: true,
-            text: 'Rating points quantile function',
-          },
-          legend: {
-            display: false,
-          },
+  {% if stats %}
+    <hgroup>
+      <h2>Stats</h2>
+      <p>{{ stats.date.date }}</p>
+    </hgroup>
+    <p>Number of spells: {{ stats.warrior_count }}</p>
+    <p>Number of battles: {{ stats.battle_count }}</p>
+    <canvas id="chart"></canvas>
+    <script
+      src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"
+      integrity="sha384-G436+Z2nlA8+PNoeRvWdxKbvOf8E/y+lYxqht2iBwNHTQDV5CJr3+AGVj8fGZi5t"
+      crossorigin="anonymous"
+    ></script>
+    {{ stats.rating_quantile_labels|json_script:'rating_quantile_labels' }}
+    {{ stats.rating_quantiles|json_script:'rating_quantile_values' }}
+    <script>
+      const ctx = document.getElementById('chart').getContext('2d');
+      const labels = JSON.parse(document.getElementById('rating_quantile_labels').textContent);
+      const values = JSON.parse(document.getElementById('rating_quantile_values').textContent);
+      const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              data: values,
+            },
+          ],
         },
-        scales: {
-          y: {
+        options: {
+          plugins: {
             title: {
               display: true,
-              text: 'Rating points',
+              text: 'Rating points quantile function',
+            },
+            legend: {
+              display: false,
             },
           },
-          x: {
-            title: {
-              display: true,
-              text: 'Quantile',
+          scales: {
+            y: {
+              title: {
+                display: true,
+                text: 'Rating points',
+              },
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Quantile',
+              },
             },
           },
         },
-      },
-    });
-  </script>
+      });
+    </script>
+  {% endif %}
 
 </main>
 {% endblock %}

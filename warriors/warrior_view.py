@@ -14,7 +14,7 @@ router = Router(__name__)
 template = parse_template('''\
 {% extends "base.html" %}
 
-{% block title %}{{ warrior }} - {{ arena.name }}{% endblock %}
+{% block title %}{{ warrior }}{% endblock %}
 
 {% block content %}
 <main class="container">

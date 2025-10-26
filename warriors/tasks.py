@@ -1,6 +1,7 @@
 import datetime
 import logging
 import random
+from hashlib import sha256
 
 from django.db import transaction
 from django.utils import timezone
@@ -17,7 +18,7 @@ from .random_matchmaking import create_battle
 from .score import ScoreAlgorithm, get_or_create_game_score
 from .text_unit import TextUnit
 from .warriors import MAX_WARRIOR_LENGTH, Warrior, ensure_name_generated
-from hashlib import sha256
+
 
 logger = logging.getLogger(__name__)
 
