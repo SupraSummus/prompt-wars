@@ -107,7 +107,7 @@ def test_find_opponents_exclude_not_worthy(warrior_arena, other_warrior_arena):
 @pytest.mark.parametrize('battle_exists', [True, False])
 def test_find_opponents_exclude_already_battled(warrior_arena, other_warrior_arena, battle_exists):
     if battle_exists:
-        Battle.create_from_warriors(warrior_arena, other_warrior_arena)
+        battle, _, _ = Battle.create_from_warriors(warrior_arena, other_warrior_arena)
     opponents = find_opponents(warrior_arena)
     opponent_expected = not battle_exists
     assert (other_warrior_arena in opponents) is opponent_expected

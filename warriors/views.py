@@ -184,7 +184,7 @@ class ChallengeWarriorView(WarriorViewMixin, FormView):
         return context
 
     def form_valid(self, form):
-        self.battle = Battle.create_from_warriors(self.warrior, form.cleaned_data['warrior'])
+        self.battle, _, _ = Battle.create_from_warriors(self.warrior, form.cleaned_data['warrior'])
         return super().form_valid(form)
 
     def get_success_url(self):

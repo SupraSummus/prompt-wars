@@ -95,7 +95,8 @@ def schedule_battle_top_arena(arena_id):
             ).order_by('rating').first()
 
             if opponent is not None:
-                return create_battle(warrior, opponent)
+                battle, _, _ = create_battle(warrior, opponent)
+                return battle
 
 
 def resolve_battle_1_2(goal, battle_id):

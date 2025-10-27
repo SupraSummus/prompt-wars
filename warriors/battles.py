@@ -221,14 +221,14 @@ class Battle(models.Model):
             resolve_battle_2_1,
             args=(str(battle.id),),
         )
-        DBGame.objects.create(
+        db_game_1_2 = DBGame.objects.create(
             llm=warrior_arena_1.arena.llm,
             warrior_1=warrior_1,
             warrior_2=warrior_2,
             scheduled_at=battle.scheduled_at,
             processed_goal=resolve_1_2_goal,
         )
-        DBGame.objects.create(
+        db_game_2_1 = DBGame.objects.create(
             llm=warrior_arena_1.arena.llm,
             warrior_1=warrior_2,
             warrior_2=warrior_1,
@@ -242,7 +242,7 @@ class Battle(models.Model):
             precondition_goals=[resolve_1_2_goal, resolve_2_1_goal],
         )
 
-        return battle
+        return battle, db_game_1_2, db_game_2_1
 
     def get_absolute_url(self):
         return reverse('battle_detail', args=[str(self.id)])

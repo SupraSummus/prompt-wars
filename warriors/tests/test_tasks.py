@@ -11,6 +11,7 @@ from openai.types.chat.chat_completion import (
 )
 from openai.types.completion_usage import CompletionUsage
 
+from ..battles import DBGame
 from ..tasks import (
     do_moderation, openai_client, resolve_battle, schedule_battle_top_arena,
     transfer_rating,
@@ -154,6 +155,13 @@ def test_resolve_battle(arena, battle, monkeypatch):
     assert battle.llm_version_2_1 == 'gpt-3.5/1234'
     assert battle.lcs_len_2_1_1 == 23
     assert battle.lcs_len_2_1_2 == 14
+
+    # DBGame is not created when goal is None (in unit tests)
+    # In production, DBGame would be created by Battle.create_from_warriors
+    assert DBGame.objects.filter(
+        warrior_1=battle.warrior_2,
+        warrior_2=battle.warrior_1,
+    ).count() == 0
 
 
 @pytest.mark.django_db
