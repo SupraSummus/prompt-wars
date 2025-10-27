@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.html import escape, format_html, mark_safe
 from django.utils.translation import gettext_lazy as _
 from django_goals.models import schedule
+from django_goals.utils import GoalRelatedMixin
 
 from .lcs import lcs_ranges
 from .rating import get_expected_game_score
@@ -220,6 +221,21 @@ class Battle(models.Model):
             resolve_battle_2_1,
             args=(str(battle.id),),
         )
+        DBGame.objects.create(
+            llm=warrior_arena_1.arena.llm,
+            warrior_1=warrior_1,
+            warrior_2=warrior_2,
+            scheduled_at=battle.scheduled_at,
+            processed_goal=resolve_1_2_goal,
+        )
+        DBGame.objects.create(
+            llm=warrior_arena_1.arena.llm,
+            warrior_1=warrior_2,
+            warrior_2=warrior_1,
+            scheduled_at=battle.scheduled_at,
+            processed_goal=resolve_2_1_goal,
+        )
+
         schedule(
             transfer_rating,
             args=(str(battle.id),),
@@ -243,6 +259,63 @@ class Battle(models.Model):
     @cached_property
     def game_scores_list(self):
         return tuple(self.game_scores.all())
+
+
+# TODO: rename to Game
+class DBGame(GoalRelatedMixin, models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+    llm = models.CharField(
+        max_length=20,
+        choices=LLM.choices,
+    )
+    scheduled_at = models.DateTimeField(
+        db_index=True,
+        default=timezone.now,
+    )
+    warrior_1 = models.ForeignKey(
+        to=Warrior,
+        on_delete=models.PROTECT,
+        related_name='+',
+    )
+    warrior_2 = models.ForeignKey(
+        to=Warrior,
+        on_delete=models.PROTECT,
+        related_name='+',
+    )
+    input_sha256 = models.BinaryField(
+        max_length=32,
+        null=True,
+        blank=True,
+    )
+    text_unit = models.ForeignKey(
+        to=TextUnit,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='+',
+    )
+    finish_reason = models.CharField(
+        max_length=20,
+        blank=True,
+    )
+    llm_version = models.CharField(
+        max_length=100,
+        blank=True,
+    )
+    resolved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+    attempts = models.PositiveSmallIntegerField(
+        default=0,
+    )
+
+    class Meta:
+        db_table = 'warriors_game'
 
 
 @dataclass(frozen=True)

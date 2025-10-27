@@ -131,7 +131,7 @@ def test_resolve_battle(arena, battle, monkeypatch):
     lcs_len_mock.side_effect = [14, 23]
     monkeypatch.setattr('warriors.tasks.lcs_len', lcs_len_mock)
 
-    resolve_battle(battle.id, '2_1')
+    resolve_battle(None, battle.id, '2_1')
 
     # LLM was properly invoked
     assert create_mock.call_count == 1
@@ -166,7 +166,7 @@ def test_resolve_battle_service_unavailable(battle, monkeypatch):
     ))
     monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
 
-    resolve_battle(battle.id, '2_1')
+    resolve_battle(None, battle.id, '2_1')
 
     # DB state is correct
     battle.refresh_from_db()
@@ -183,7 +183,7 @@ def test_resolve_battle_rate_limit(battle, monkeypatch):
     ))
     monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
 
-    ret = resolve_battle(battle.id, '2_1')
+    ret = resolve_battle(None, battle.id, '2_1')
     assert isinstance(ret, RetryMeLater)
 
     # DB state is correct
@@ -215,7 +215,7 @@ def test_resolve_battle_character_limit(battle, monkeypatch):
     create_mock = mock.Mock(return_value=completions)
     monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
 
-    resolve_battle(battle.id, '1_2')
+    resolve_battle(None, battle.id, '1_2')
 
     # DB state is correct
     battle.refresh_from_db()

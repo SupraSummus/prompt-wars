@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from users.tests.factories import UserFactory
 
-from ..battles import Battle
+from ..battles import Battle, DBGame
 from ..models import LLM, Arena, WarriorArena, WarriorUserPermission
 from ..score import GameScore
 from ..text_unit import TextUnit
@@ -74,6 +74,25 @@ def batch_create_battles(arena, warrior_arena, n):
             resolved_at_2_1=timezone.now(),
             text_unit_2_1=TextUnitFactory(),
         )
+
+        # Create corresponding DBGame objects
+        DBGame.objects.create(
+            llm=arena.llm,
+            warrior_1=battle_warrior_1,
+            warrior_2=battle_warrior_2,
+            scheduled_at=battle.scheduled_at,
+            text_unit=battle.text_unit_1_2,
+            resolved_at=battle.resolved_at_1_2,
+        )
+        DBGame.objects.create(
+            llm=arena.llm,
+            warrior_1=battle_warrior_2,
+            warrior_2=battle_warrior_1,
+            scheduled_at=battle.scheduled_at,
+            text_unit=battle.text_unit_2_1,
+            resolved_at=battle.resolved_at_2_1,
+        )
+
         battles.append(battle)
     return battles
 

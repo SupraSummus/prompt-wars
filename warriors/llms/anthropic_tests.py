@@ -33,7 +33,7 @@ def anthropic_messages_create_mock(monkeypatch):
 @pytest.mark.django_db
 @pytest.mark.parametrize('arena', [{'llm': LLM.CLAUDE_3_HAIKU}], indirect=True)
 def test_resolve_battle(battle, anthropic_messages_create_mock):
-    resolve_battle(battle.id, '1_2')
+    resolve_battle(None, battle.id, '1_2')
     battle.refresh_from_db()
     assert battle.text_unit_1_2.content == 'battlefield after the battle, littered with the bodies of the fallen'
     assert battle.llm_version_1_2 == 'claude-3-haiku-20240307'
