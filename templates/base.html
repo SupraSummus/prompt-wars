@@ -44,9 +44,13 @@
             {% if user.is_authenticated %}
               <li>
                 Hi, {{ user.username }}!
-                <form method="post" action="{% url 'logout' %}" style="display: inline;">
+              </li>
+              <li>
+                <form method="post" action="{% url 'logout' %}">
                   {% csrf_token %}
-                  <button type="submit" class="contrast outline">Log out</button>
+                  <button type="submit" class="secondary outline" role="button">
+                    Log out
+                  </button>
                 </form>
               </li>
             {% else %}
