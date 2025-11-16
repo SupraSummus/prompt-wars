@@ -37,3 +37,7 @@ See `Procfile` for full details how we run in production.
 ## Similar stuff
 
 - https://tensortrust.ai/
+
+## Citation
+
+Gerhard Stenzel, Maximilian Zorn, Philipp Altmann, Maximilian Balthasar Mansky, Michael Kölle, Thomas Gabor; July 22–26, 2024. "Self-Replicating Prompts for Large Language Models: Towards Artificial Culture." Proceedings of the ALIFE 2024: Proceedings of the 2024 Artificial Life Conference. ALIFE 2024: Proceedings of the 2024 Artificial Life Conference. Online. (pp. 110). ASME. https://doi.org/10.1162/isal_a_00813
