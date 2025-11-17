@@ -37,3 +37,4 @@ See `Procfile` for full details how we run in production.
 ## Similar stuff
 
 - https://tensortrust.ai/
+- https://doi.org/10.1162/isal_a_00813
