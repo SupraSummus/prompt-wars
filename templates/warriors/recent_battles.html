@@ -10,11 +10,7 @@
       </ul>
     </nav>
 
-    {% if request.user.is_authenticated %}
-      <h1>Your recent battles</h1>
-    {% else %}
-      <h1>Recent battles</h1>
-    {% endif %}
+    <h1>Recent battles</h1>
     <table>
       <thead>
         <tr>

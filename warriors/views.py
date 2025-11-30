@@ -309,19 +309,19 @@ class RecentBattlesView(ArenaViewMixin, ListView):
     context_object_name = 'battles'
 
     def get_queryset(self):
+        # Show battles where results are viewable:
+        # - user owns one of the warriors, OR
+        # - one of the warriors has public_battle_results=True, OR
+        # - user has authorized access via session
+        q = Q(warrior_1__public_battle_results=True) | Q(warrior_2__public_battle_results=True)
+        if self.request.user.is_authenticated:
+            q |= Q(warrior_1__users=self.request.user) | Q(warrior_2__users=self.request.user)
+        authorized_warriors = self.request.session.get('authorized_warriors', [])
+        if authorized_warriors:
+            q |= Q(warrior_1__id__in=authorized_warriors) | Q(warrior_2__id__in=authorized_warriors)
         qs = Battle.objects.filter(
             llm=self.arena.llm,
-        )
-        if self.request.user.is_authenticated:
-            qs = qs.for_user(self.request.user)
-        else:
-            authorized_warriors = self.request.session.get('authorized_warriors', [])
-            qs = qs.filter(Q(
-                warrior_1__id__in=authorized_warriors,
-            ) | Q(
-                warrior_2__id__in=authorized_warriors,
-            )).distinct()
-        qs = qs.order_by('-scheduled_at')
+        ).filter(q).distinct().order_by('-scheduled_at')
         battles = list(qs[:100])
         prefetch_warriors(battles)
         prefetch_warrior_arenas(self.arena, battles)

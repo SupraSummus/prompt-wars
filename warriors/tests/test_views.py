@@ -257,3 +257,25 @@ def test_recent_battles_no_duplicates(user, user_client, battle, default_arena):
     response = user_client.get(reverse('recent_battles'))
     assert response.status_code == 200
     assert len(response.context['battles']) == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('public_battle_results,expected_visible', [
+    (True, True),
+    (False, False),
+])
+def test_recent_battles_public_battle_results(
+    client, battle, default_arena,
+    public_battle_results, expected_visible,
+):
+    """Test that battles are visible based on warrior's public_battle_results setting."""
+    battle.warrior_1.public_battle_results = public_battle_results
+    battle.warrior_1.save(update_fields=['public_battle_results'])
+
+    response = client.get(reverse('recent_battles'))
+    assert response.status_code == 200
+
+    if expected_visible:
+        assert battle in response.context['battles']
+    else:
+        assert battle not in response.context['battles']
