@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.template.response import TemplateResponse
 
 from djsfc import Router, parse_template
@@ -8,6 +9,8 @@ from .warriors import Warrior
 
 
 router = Router(__name__)
+
+WARRIORS_PER_PAGE = 25
 
 
 template = parse_template('''\
@@ -25,7 +28,7 @@ template = parse_template('''\
             </tr>
         </thead>
         <tbody>
-            {% for warrior in warriors %}
+            {% for warrior in page_obj %}
                 <tr>
                     <td>{{ warrior.name }}</td>
                     {% for arena, warrior_arena in warrior.warrior_arena_objects %}
@@ -41,6 +44,24 @@ template = parse_template('''\
             {% endfor %}
         </tbody>
     </table>
+
+    {% if page_obj.has_other_pages %}
+        <nav class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page=1">&laquo; first</a>
+                <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            {% endif %}
+        </nav>
+    {% endif %}
 {% endblock %}
 ''', router=router)
 
@@ -51,14 +72,20 @@ def index(request):
     listed_arenas = list(Arena.objects.filter(
         listed=True,
     ))
-    warriors = list(Warrior.objects.filter(
+    warriors = Warrior.objects.filter(
         users=request.user,
-    ).prefetch_related('warrior_arenas').order_by('name'))
-    for warrior in warriors:
+    ).prefetch_related('warrior_arenas').order_by('name')
+
+    paginator = Paginator(warriors, WARRIORS_PER_PAGE)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    for warrior in page_obj:
         warrior.warrior_arena_objects = get_warrior_arena_objects(warrior, listed_arenas)
+
     context = {
         'listed_arenas': listed_arenas,
-        'warriors': warriors,
+        'page_obj': page_obj,
     }
     return TemplateResponse(request, template, context)
 
