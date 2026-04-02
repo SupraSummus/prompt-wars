@@ -16,7 +16,7 @@ from django.db import transaction
 from warriors.battles import Battle
 
 
-BATCH_SIZE = 100
+BATCH_SIZE = 1000
 REALLY_SAVE = True
 
 
@@ -65,4 +65,6 @@ def do_chunk(start_from):
     return last_id
 
 
-do_chunk('00000000-0000-0000-0000-000000000000')
+start = '00000000-0000-0000-0000-000000000000'
+while start:
+    start = do_chunk(start)
