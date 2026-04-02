@@ -1,10 +1,10 @@
 """
-Verify input_sha256 is consistent with lcs_len fields.
+Verify input_sha256 and lcs_len fields are consistent with warrior bodies.
 
-For each battle with SHA set, checks:
+For each battle checks:
   1. sha256(w1.body + w2.body) == input_sha256_1_2
   2. sha256(w2.body + w1.body) == input_sha256_2_1
-  3. lcs_len(w1.body, result_2_1) == lcs_len_2_1_1  (the tricky direction)
+  3. lcs_len_X_Y_Z where Z = warrior_Z on Battle (not position in direction)
 """
 
 from hashlib import sha256
@@ -22,7 +22,7 @@ battles = list(
     [:SAMPLE_SIZE]
 )
 
-print(f"Checking {len(battles)} battles (earliest by ID with SHA set)")
+print(f"Checking {len(battles)} battles (earliest by ID)")
 
 sha_ok = 0
 sha_bad = 0

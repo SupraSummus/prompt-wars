@@ -5,8 +5,8 @@ Convention (verified by verify_ordering.py):
   input_sha256_1_2 = sha256(warrior_1.body + warrior_2.body)
   input_sha256_2_1 = sha256(warrior_2.body + warrior_1.body)
 
-Usage: set START_AFTER and BATCH_SIZE below, then run via manage.py shell.
-Set DRY_RUN = True to preview without writing.
+Usage: run via manage.py shell.
+Set REALLY_SAVE = False to preview without writing.
 """
 
 from hashlib import sha256
