@@ -20,8 +20,11 @@ battles = (
     .exclude(finish_reason_1_2='error')
     .exclude(finish_reason_2_1='error')
     .select_related('warrior_1', 'warrior_2', 'text_unit_1_2', 'text_unit_2_1')
-    [:100]
+    .order_by('id')
+    [:1000]
 )
+
+print(f"Total battles in sample: {len(battles)}")
 
 interp_a = 0  # Z = warrior_Z on Battle (w1 = lower ID always)
 interp_b = 0  # Z = position in direction (1st/2nd to go)
@@ -74,13 +77,11 @@ print(f"SHA check for 2_1 (assuming w2 goes first):")
 print(f"  OK: {sha_ok}, Bad: {sha_bad}, Absent: {sha_absent}")
 
 # Count battles missing SHA fields
-from django.db.models import Q
-total = Battle.objects.count()
-missing_1_2 = Battle.objects.filter(input_sha256_1_2__isnull=True).count()
-missing_2_1 = Battle.objects.filter(input_sha256_2_1__isnull=True).count()
-missing_both = Battle.objects.filter(input_sha256_1_2__isnull=True, input_sha256_2_1__isnull=True).count()
-print(f"\nSHA coverage (total battles: {total}):")
+total = len(battles)
+missing_1_2 = sum(1 for b in battles if b.input_sha256_1_2 is None)
+missing_2_1 = sum(1 for b in battles if b.input_sha256_2_1 is None)
+missing_both = sum(1 for b in battles if b.input_sha256_1_2 is None and b.input_sha256_2_1 is None)
+print(f"\nSHA coverage in sample (total battles: {total}):")
 print(f"  Missing input_sha256_1_2: {missing_1_2}")
 print(f"  Missing input_sha256_2_1: {missing_2_1}")
 print(f"  Missing both: {missing_both}")
-print(f"  Have both: {total - missing_1_2 - missing_2_1 + missing_both}")
