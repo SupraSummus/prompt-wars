@@ -10,6 +10,7 @@ Set REALLY_SAVE = False to preview without writing.
 """
 
 from hashlib import sha256
+from uuid import UUID
 
 from django.db import transaction
 
@@ -68,3 +69,5 @@ def do_chunk(start_from):
 start = '00000000-0000-0000-0000-000000000000'
 while start:
     start = do_chunk(start)
+    if start:
+        start = UUID(int=UUID(start).int + 1)  # start from the next ID
