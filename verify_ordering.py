@@ -12,16 +12,11 @@ from hashlib import sha256
 from warriors.battles import Battle
 from warriors.lcs import lcs_len
 
+
 SAMPLE_SIZE = 100
 
 battles = list(
     Battle.objects
-    .filter(
-        resolved_at_1_2__isnull=False, resolved_at_2_1__isnull=False,
-        input_sha256_1_2__isnull=False, input_sha256_2_1__isnull=False,
-    )
-    .exclude(finish_reason_1_2='error')
-    .exclude(finish_reason_2_1='error')
     .select_related('warrior_1', 'warrior_2', 'text_unit_1_2', 'text_unit_2_1')
     .order_by('id')
     [:SAMPLE_SIZE]
@@ -42,15 +37,24 @@ for b in battles:
     sha_1_2 = sha256((w1 + w2).encode('utf-8')).digest()
     sha_2_1 = sha256((w2 + w1).encode('utf-8')).digest()
 
-    if sha_1_2 == bytes(b.input_sha256_1_2) and sha_2_1 == bytes(b.input_sha256_2_1):
+    if (
+        sha_1_2 == bytes(b.input_sha256_1_2 or b'') and
+        sha_2_1 == bytes(b.input_sha256_2_1 or b'')
+    ):
         sha_ok += 1
     else:
         sha_bad += 1
         print(f"SHA MISMATCH battle={b.id}")
 
-    # LCS cross-check on direction 2_1 (the ambiguous one)
+    # LCS cross-check
+    result_1_2 = b.text_unit_1_2.content
     result_2_1 = b.text_unit_2_1.content
-    if lcs_len(w1, result_2_1) == b.lcs_len_2_1_1 and lcs_len(w2, result_2_1) == b.lcs_len_2_1_2:
+    if (
+        lcs_len(w1, result_1_2) == b.lcs_len_1_2_1 and
+        lcs_len(w2, result_1_2) == b.lcs_len_1_2_2 and
+        lcs_len(w1, result_2_1) == b.lcs_len_2_1_1 and
+        lcs_len(w2, result_2_1) == b.lcs_len_2_1_2
+    ):
         lcs_ok += 1
     else:
         lcs_bad += 1
