@@ -18,7 +18,7 @@ battles = (
     .exclude(finish_reason_1_2='error')
     .exclude(finish_reason_2_1='error')
     .select_related('warrior_1', 'warrior_2', 'text_unit_1_2', 'text_unit_2_1')
-    .order_by('?')[:100]
+    [:100]
 )
 
 ok = 0
