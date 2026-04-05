@@ -29,4 +29,7 @@ jobs:
         run: poetry install
 
       - name: Lint with pylint
-        run: poetry run pylint django_scheduler/ embedding_explorer/ labirynth/ stories/ users/ warriors/
+        run: poetry run pylint .
+
+      - name: Lint with flake8
+        run: poetry run flake8
