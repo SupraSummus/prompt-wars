@@ -20,20 +20,19 @@ jobs:
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v4
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
 
       - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install
+
+      - name: Debug info
+        run: |
+          poetry run python --version
+          poetry run pylint --version
+          poetry run flake8 --version
+        env:
+          DJANGO_SECRET_KEY: stub
+          DATABASE_URL: sqlite:///db.sqlite3
+          FORCE_HTTPS: "False"
 
       - name: Lint with pylint
         run: poetry run pylint --errors-only django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/
@@ -80,19 +79,8 @@ jobs:
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v4
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
 
       - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install
 
       - name: Collect static files
