@@ -6,8 +6,9 @@ from django.template.response import TemplateResponse
 from django.urls import reverse
 from dominate.tags import a, button, dd, div, dl, dt, em
 from dominate.tags import form as form_tag
-from dominate.tags import h1, input_, main, p, strong
+from dominate.tags import h1, input_, li, main, p, strong, ul
 from dominate.util import raw
+from pgvector.django import HammingDistance
 
 from djsfc import Router, parse_template
 
@@ -72,6 +73,51 @@ def _build_index_page(request, form_instance):
     return main_el
 
 
+MAX_HAMMING_DISTANCE = 400
+NEAREST_ENTRIES_LIMIT = 5
+
+
+def _get_nearest_entries(query):
+    """Return up to 5 nearest entries by Hamming distance, max distance 400."""
+    if not query.embedding:
+        return []
+    distance = HammingDistance('embedding', query.embedding)
+    return (
+        ExplorerQuery.objects
+        .exclude(id=query.id)
+        .filter(embedding__isnull=False)
+        .annotate(distance=distance)
+        .filter(distance__lte=MAX_HAMMING_DISTANCE)
+        .order_by(distance)[:NEAREST_ENTRIES_LIMIT]
+    )
+
+
+def _render_nearest_entries(query):
+    """Render the nearest entries section."""
+    entries = _get_nearest_entries(query)
+    el = div(id="nearest-entries")
+    with el:
+        dt("Nearest entries")
+        if not query.embedding:
+            dd(em("Embedding not yet computed"))
+        elif not entries:
+            dd(em("No entries within distance " + str(MAX_HAMMING_DISTANCE)))
+        else:
+            with dd():
+                with ul():
+                    for entry in entries:
+                        with li():
+                            a(
+                                entry.phrase,
+                                href=reverse(
+                                    'embedding_explorer:detail',
+                                    kwargs={'query_id': entry.id},
+                                ),
+                            )
+                            p(f"distance: {entry.distance}")
+    return el
+
+
 def _build_detail_page(query):
     main_el = main(cls="container")
     with main_el:
@@ -81,6 +127,7 @@ def _build_detail_page(query):
             dd(query.phrase)
             dt("Embedding")
             dd(_render_embedding_status(query))
+            _render_nearest_entries(query)
         p(a(
             "\u2190 Back to explorer",
             href=reverse('embedding_explorer:index_get'),

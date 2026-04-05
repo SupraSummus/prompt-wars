@@ -155,6 +155,46 @@ def test_embedding_end_to_end(settings):
 
 
 @pytest.mark.django_db
+def test_detail_view_nearest_entries(client):
+    """Nearest entries are shown on the detail page with links and distances."""
+    # Create a query with all-zero embedding
+    bits_a = '0' * EMBEDDING_BITS
+    query_a = _create_query('phrase a', embedding=bits_a)
+
+    # Create a near neighbor (distance = 10)
+    bits_b = '1' * 10 + '0' * (EMBEDDING_BITS - 10)
+    query_b = _create_query('phrase b', embedding=bits_b)
+
+    # Create a far neighbor (distance > 400, should be excluded)
+    bits_c = '1' * 500 + '0' * (EMBEDDING_BITS - 500)
+    _create_query('phrase c', embedding=bits_c)
+
+    response = client.get(reverse(
+        'embedding_explorer:detail', kwargs={'query_id': query_a.id},
+    ))
+    content = response.content.decode()
+
+    # Near neighbor should appear with link and distance
+    assert 'phrase b' in content
+    assert str(query_b.id) in content
+    assert '10' in content
+
+    # Far neighbor should not appear
+    assert 'phrase c' not in content
+
+
+@pytest.mark.django_db
+def test_detail_view_nearest_entries_no_embedding(client):
+    """When embedding is not computed, show appropriate message."""
+    query = _create_query('no embedding')
+    response = client.get(reverse(
+        'embedding_explorer:detail', kwargs={'query_id': query.id},
+    ))
+    content = response.content.decode()
+    assert 'not yet computed' in content
+
+
+@pytest.mark.django_db
 def test_status_pending(client):
     query = _create_query('test phrase')
     response = client.get(reverse('embedding_explorer:status', kwargs={'query_id': query.id}))
