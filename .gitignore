@@ -1,4 +1,5 @@
 .env
 *.pyc
 static
+.venv
 .aider*

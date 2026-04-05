@@ -29,7 +29,7 @@ jobs:
         run: poetry install
 
       - name: Lint with pylint
-        run: poetry run pylint django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/
+        run: poetry run pylint --errors-only django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/
         env:
           DJANGO_SECRET_KEY: stub
           DATABASE_URL: sqlite:///db.sqlite3

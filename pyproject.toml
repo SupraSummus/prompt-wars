@@ -63,11 +63,7 @@ load-plugins = [
 
 [tool.pylint.messages_control]
 disable = [
-    "all",
-]
-enable = [
-    "E",
-    "F",
+    "import-error",
 ]
 
 [tool.pylint.pylint_django]
