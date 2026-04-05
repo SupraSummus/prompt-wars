@@ -35,7 +35,16 @@ jobs:
           FORCE_HTTPS: "False"
 
       - name: Lint with pylint
-        run: poetry run pylint --errors-only --disable=import-error django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/
+        run: |
+          set +e
+          OUTPUT=$(poetry run pylint --errors-only --disable=import-error django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/ 2>&1)
+          EXIT_CODE=$?
+          echo "$OUTPUT"
+          echo "::notice::Pylint exit code: $EXIT_CODE"
+          if [ -n "$OUTPUT" ]; then
+            echo "::error::Pylint output: $OUTPUT"
+          fi
+          exit $EXIT_CODE
         env:
           DJANGO_SECRET_KEY: stub
           DATABASE_URL: sqlite:///db.sqlite3
