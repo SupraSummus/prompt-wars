@@ -40,11 +40,14 @@ base_template = parse_template('''\
 ''', router=router)
 
 
-def _render_embedding_status(query):
-    """Render embedding status fragment. Pending state polls via htmx."""
-    el = div(id="embedding-status")
+def _render_embedding_details(query):
+    """Render embedding status and nearest entries. Polls via htmx until ready."""
+    el = div(id="embedding-details")
     if query.embedding:
-        el.add(strong("Computed"))
+        with el:
+            dt("Embedding")
+            dd(strong("Computed"))
+            _render_nearest_entries(query)
     else:
         el.attributes['hx-get'] = reverse(
             'embedding_explorer:status',
@@ -52,7 +55,11 @@ def _render_embedding_status(query):
         )
         el.attributes['hx-trigger'] = 'every 2s'
         el.attributes['hx-swap'] = 'outerHTML'
-        el.add(em("Pending computation..."))
+        with el:
+            dt("Embedding")
+            dd(em("Pending computation..."))
+            dt("Nearest entries")
+            dd(em("Embedding not yet computed"))
     return el
 
 
@@ -93,29 +100,24 @@ def _get_nearest_entries(query):
 
 
 def _render_nearest_entries(query):
-    """Render the nearest entries section."""
+    """Render the nearest entries list. Assumes embedding is computed."""
     entries = _get_nearest_entries(query)
-    el = div(id="nearest-entries")
-    with el:
-        dt("Nearest entries")
-        if not query.embedding:
-            dd(em("Embedding not yet computed"))
-        elif not entries:
-            dd(em("No entries within distance " + str(MAX_HAMMING_DISTANCE)))
-        else:
-            with dd():
-                with ul():
-                    for entry in entries:
-                        with li():
-                            a(
-                                entry.phrase,
-                                href=reverse(
-                                    'embedding_explorer:detail',
-                                    kwargs={'query_id': entry.id},
-                                ),
-                            )
-                            p(f"distance: {entry.distance}")
-    return el
+    dt("Nearest entries")
+    if not entries:
+        dd(em("No entries within distance " + str(MAX_HAMMING_DISTANCE)))
+    else:
+        with dd():
+            with ul():
+                for entry in entries:
+                    with li():
+                        a(
+                            entry.phrase,
+                            href=reverse(
+                                'embedding_explorer:detail',
+                                kwargs={'query_id': entry.id},
+                            ),
+                        )
+                        p(f"distance: {entry.distance}")
 
 
 def _build_detail_page(query):
@@ -125,9 +127,7 @@ def _build_detail_page(query):
         with dl():
             dt("Phrase")
             dd(query.phrase)
-            dt("Embedding")
-            dd(_render_embedding_status(query))
-            _render_nearest_entries(query)
+            _render_embedding_details(query)
         p(a(
             "\u2190 Back to explorer",
             href=reverse('embedding_explorer:index_get'),
@@ -171,4 +171,4 @@ def detail(request, query_id):
 def status(request, query_id):
     """HTMX endpoint returning the embedding status fragment."""
     query = get_object_or_404(ExplorerQuery, id=query_id)
-    return HttpResponse(_render_embedding_status(query).render())
+    return HttpResponse(_render_embedding_details(query).render())
