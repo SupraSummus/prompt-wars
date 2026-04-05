@@ -213,3 +213,27 @@ def test_status_computed(client):
     content = response.content.decode()
     assert 'hx-get' not in content
     assert 'Computed' in content
+
+
+@pytest.mark.django_db
+def test_status_computed_includes_nearest_entries(client):
+    """When embedding is computed, status response includes nearest entries."""
+    bits_a = '0' * EMBEDDING_BITS
+    query_a = _create_query('phrase a', embedding=bits_a)
+
+    bits_b = '1' * 10 + '0' * (EMBEDDING_BITS - 10)
+    _create_query('phrase b', embedding=bits_b)
+
+    response = client.get(reverse('embedding_explorer:status', kwargs={'query_id': query_a.id}))
+    content = response.content.decode()
+    assert 'Nearest entries' in content
+    assert 'phrase b' in content
+
+
+@pytest.mark.django_db
+def test_status_pending_includes_nearest_entries_placeholder(client):
+    """When embedding is pending, status response includes nearest entries placeholder."""
+    query = _create_query('test phrase')
+    response = client.get(reverse('embedding_explorer:status', kwargs={'query_id': query.id}))
+    content = response.content.decode()
+    assert 'not yet computed' in content
