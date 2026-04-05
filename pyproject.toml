@@ -21,6 +21,7 @@ humanize = "*"
 voyageai = "*"
 google-genai = "*"
 dominate = "*"
+pgvector = "*"
 
 
 [tool.poetry.group.dev.dependencies]

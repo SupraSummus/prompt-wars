@@ -30,6 +30,8 @@ from warriors.views import (
     WarriorLeaderboard, warrior_set_public_battle_results,
 )
 
+from embedding_explorer import views as embedding_explorer_views
+
 from . import data_policy_view
 
 
@@ -50,6 +52,7 @@ router = Router(__name__)
 router.route_all('my-warriors/', my_warriors_view.router, name='my_warriors')
 router.route_all('warrior/', warrior_view.router, name='warrior')
 router.route_all('data-policy/', data_policy_view.router, name='data_policy')
+router.route_all('embedding-explorer/', embedding_explorer_views.router, name='embedding_explorer')
 
 urlpatterns = (
     path('', TemplateView.as_view(template_name="home.html"), name='home'),
