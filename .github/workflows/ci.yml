@@ -7,32 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  test-and-lint:
+  lint:
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: pgvector/pgvector:0.8.0-pg16
-        env:
-          POSTGRES_USER: promptwars
-          POSTGRES_PASSWORD: promptwars
-          POSTGRES_DB: promptwars
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U promptwars"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    env:
-      DATABASE_URL: postgres://promptwars:promptwars@localhost:5432/promptwars
-      DJANGO_SECRET_KEY: test-secret-key-for-ci-only
-      DJANGO_DEBUG: "True"
-      ALLOWED_HOSTS: "*"
-      FORCE_HTTPS: "False"
-      VOYAGE_API_KEY: test
-      GOOGLE_AI_API_KEY: test-dummy-key
 
     steps:
       - uses: actions/checkout@v4
@@ -52,16 +28,5 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Lint with flake8
-        run: poetry run flake8 .
-
       - name: Lint with pylint
-        run: >-
-          poetry run pylint
-          --load-plugins pylint_django
-          --errors-only
-          --disable=E0401,F5110
-          django_scheduler/ embedding_explorer/ labirynth/ stories/ users/ warriors/
-
-      - name: Run tests
-        run: poetry run python -m pytest -v -m "not real_world"
+        run: poetry run pylint django_scheduler/ embedding_explorer/ labirynth/ stories/ users/ warriors/

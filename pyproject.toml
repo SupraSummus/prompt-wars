@@ -53,12 +53,18 @@ lines_after_imports = 2
 multi_line_output = 5
 include_trailing_comma = true
 
-[tool.pylint.format]
-recursive = "yes"
-errors-only = "yes"
+[tool.pylint.main]
+recursive = true
 load-plugins = [
     "pylint_django",
 ]
+disable = [
+    "E0401",
+    "F5110",
+]
+
+[tool.pylint.format]
+errors-only = "yes"
 
 [tool.pylint.pylint_django]
 django-settings-module = "llm_wars.settings"
