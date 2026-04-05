@@ -58,13 +58,15 @@ recursive = true
 load-plugins = [
     "pylint_django",
 ]
-disable = [
-    "E0401",
-    "F5110",
-]
 
-[tool.pylint.format]
-errors-only = "yes"
+[tool.pylint.messages_control]
+disable = [
+    "all",
+]
+enable = [
+    "E",
+    "F",
+]
 
 [tool.pylint.pylint_django]
 django-settings-module = "llm_wars.settings"
