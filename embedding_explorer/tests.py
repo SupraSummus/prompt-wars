@@ -30,6 +30,15 @@ def test_index_get(client):
 
 
 @pytest.mark.django_db
+def test_index_get_csrf_token_rendered(client):
+    """CSRF token must be rendered as a hidden input, not as a raw template tag."""
+    response = client.get(reverse('embedding_explorer:index_get'))
+    content = response.content.decode()
+    assert '{% csrf_token %}' not in content
+    assert 'csrfmiddlewaretoken' in content
+
+
+@pytest.mark.django_db
 def test_create_query(client):
     response = client.post(
         reverse('embedding_explorer:index_post'),
