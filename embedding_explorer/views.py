@@ -1,11 +1,12 @@
 from django import forms
 from django.http import HttpResponse
+from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from dominate.tags import a, button, dd, div, dl, dt, em
 from dominate.tags import form as form_tag
-from dominate.tags import h1, main, p, strong
+from dominate.tags import h1, input_, main, p, strong
 from dominate.util import raw
 
 from djsfc import Router, parse_template
@@ -54,7 +55,7 @@ def _render_embedding_status(query):
     return el
 
 
-def _build_index_page(form_instance):
+def _build_index_page(request, form_instance):
     main_el = main(cls="container")
     with main_el:
         h1("Embedding Explorer")
@@ -65,7 +66,7 @@ def _build_index_page(form_instance):
             str(EMBEDDING_BITS), " bits).",
         )
         with form_tag(method="post"):
-            raw('{% csrf_token %}')
+            input_(type="hidden", name="csrfmiddlewaretoken", value=get_token(request))
             raw(form_instance.as_div())
             button("Compute Embedding", type="submit")
     return main_el
@@ -89,7 +90,7 @@ def _build_detail_page(query):
 
 @router.route('GET', '')
 def index_get(request):
-    content = _build_index_page(ExplorerForm())
+    content = _build_index_page(request, ExplorerForm())
     return TemplateResponse(request, base_template, {
         'page_title': 'Embedding Explorer - Prompt wars',
         'content': content.render(),
@@ -102,7 +103,7 @@ def index_post(request):
     if form_instance.is_valid():
         query = ExplorerQuery.get_or_create(form_instance.cleaned_data['phrase'])
         return redirect('embedding_explorer:detail', query_id=query.id)
-    content = _build_index_page(form_instance)
+    content = _build_index_page(request, form_instance)
     return TemplateResponse(request, base_template, {
         'page_title': 'Embedding Explorer - Prompt wars',
         'content': content.render(),
