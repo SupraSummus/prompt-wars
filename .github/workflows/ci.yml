@@ -30,6 +30,10 @@ jobs:
 
       - name: Lint with pylint
         run: poetry run pylint .
+        env:
+          DJANGO_SECRET_KEY: stub
+          DATABASE_URL: sqlite:///db.sqlite3
+          FORCE_HTTPS: "False"
 
       - name: Lint with flake8
         run: poetry run flake8
