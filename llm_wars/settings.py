@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'warriors.apps.WarriorsConfig',
     'labirynth.apps.LabirynthConfig',
     'stories.apps.StoriesConfig',
+    'embedding_explorer.apps.EmbeddingExplorerConfig',
 ]
 
 MIDDLEWARE = [
