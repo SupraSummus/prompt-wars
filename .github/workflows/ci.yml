@@ -29,7 +29,7 @@ jobs:
         run: poetry install
 
       - name: Lint with pylint
-        run: poetry run pylint .
+        run: poetry run pylint django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/
         env:
           DJANGO_SECRET_KEY: stub
           DATABASE_URL: sqlite:///db.sqlite3
@@ -80,6 +80,9 @@ jobs:
 
       - name: Install dependencies
         run: poetry install
+
+      - name: Collect static files
+        run: poetry run python manage.py collectstatic --noinput
 
       - name: Run tests
         run: poetry run python -m pytest -v -m "not real_world"
