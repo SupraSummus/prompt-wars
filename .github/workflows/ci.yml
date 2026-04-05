@@ -36,7 +36,7 @@ jobs:
           FORCE_HTTPS: "False"
 
       - name: Lint with flake8
-        run: poetry run flake8
+        run: poetry run flake8 django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/
 
   test:
     runs-on: ubuntu-latest
