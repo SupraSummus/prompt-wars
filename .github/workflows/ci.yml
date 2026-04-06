@@ -51,11 +51,17 @@ jobs:
 
       - name: Report pylint failure
         if: failure()
-        run: |
-          echo "## Pylint Output" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          cat /tmp/pylint-output.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.readFileSync('/tmp/pylint-output.txt', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## Pylint CI Output\n\`\`\`\n${output}\n\`\`\``
+            });
 
       - name: Lint with flake8
         run: poetry run flake8 django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/
