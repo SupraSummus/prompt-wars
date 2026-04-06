@@ -45,7 +45,17 @@ jobs:
         run: poetry install
 
       - name: Lint with pylint
-        run: poetry run pylint --errors-only --disable=import-error django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/
+        run: |
+          poetry run pylint --errors-only --disable=import-error django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/ 2>&1 | tee /tmp/pylint-output.txt
+          exit ${PIPESTATUS[0]}
+
+      - name: Report pylint failure
+        if: failure()
+        run: |
+          echo "## Pylint Output" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat /tmp/pylint-output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Lint with flake8
         run: poetry run flake8 django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/
