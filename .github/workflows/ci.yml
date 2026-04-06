@@ -10,6 +10,26 @@ jobs:
   lint:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.0-pg16
+        env:
+          POSTGRES_USER: promptwars
+          POSTGRES_PASSWORD: promptwars
+          POSTGRES_DB: promptwars
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U promptwars"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://promptwars:promptwars@localhost:5432/promptwars
+      DJANGO_SECRET_KEY: stub
+      FORCE_HTTPS: "False"
+
     steps:
       - uses: actions/checkout@v4
 
@@ -24,31 +44,8 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Debug info
-        run: |
-          poetry run python --version
-          poetry run pylint --version
-          poetry run flake8 --version
-        env:
-          DJANGO_SECRET_KEY: stub
-          DATABASE_URL: sqlite:///db.sqlite3
-          FORCE_HTTPS: "False"
-
       - name: Lint with pylint
-        run: |
-          set +e
-          OUTPUT=$(poetry run pylint --errors-only --disable=import-error django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/ 2>&1)
-          EXIT_CODE=$?
-          echo "$OUTPUT"
-          echo "::notice::Pylint exit code: $EXIT_CODE"
-          if [ -n "$OUTPUT" ]; then
-            echo "::error::Pylint output: $OUTPUT"
-          fi
-          exit $EXIT_CODE
-        env:
-          DJANGO_SECRET_KEY: stub
-          DATABASE_URL: sqlite:///db.sqlite3
-          FORCE_HTTPS: "False"
+        run: poetry run pylint --errors-only --disable=import-error django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/
 
       - name: Lint with flake8
         run: poetry run flake8 django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/
