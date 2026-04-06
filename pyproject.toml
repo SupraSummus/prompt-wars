@@ -41,6 +41,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.flake8]
+exclude = [".venv"]
 ignore = [
     "E501",  # line too long
     "W504",  # line break after binary operator
@@ -53,11 +54,16 @@ lines_after_imports = 2
 multi_line_output = 5
 include_trailing_comma = true
 
-[tool.pylint.format]
-recursive = "yes"
-errors-only = "yes"
+[tool.pylint.main]
+recursive = true
+ignore = [".venv"]
 load-plugins = [
     "pylint_django",
+]
+
+[tool.pylint.messages_control]
+disable = [
+    "import-error",
 ]
 
 [tool.pylint.pylint_django]
