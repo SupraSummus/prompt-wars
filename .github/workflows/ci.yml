@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-permissions:
-  contents: read
-  pull-requests: write
-
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -33,6 +29,8 @@ jobs:
       DATABASE_URL: postgres://promptwars:promptwars@localhost:5432/promptwars
       DJANGO_SECRET_KEY: stub
       FORCE_HTTPS: "False"
+      VOYAGE_API_KEY: test
+      GOOGLE_AI_API_KEY: test
 
     steps:
       - uses: actions/checkout@v4
@@ -49,23 +47,7 @@ jobs:
         run: poetry install
 
       - name: Lint with pylint
-        run: |
-          poetry run pylint --errors-only --disable=import-error django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/ 2>&1 | tee /tmp/pylint-output.txt
-          exit ${PIPESTATUS[0]}
-
-      - name: Report pylint failure
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const output = fs.readFileSync('/tmp/pylint-output.txt', 'utf8');
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `## Pylint CI Output\n\`\`\`\n${output}\n\`\`\``
-            });
+        run: poetry run pylint --errors-only --disable=import-error django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/
 
       - name: Lint with flake8
         run: poetry run flake8 django_scheduler/ embedding_explorer/ labirynth/ llm_wars/ stories/ users/ warriors/
