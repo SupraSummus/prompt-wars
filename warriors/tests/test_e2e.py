@@ -49,6 +49,8 @@ def test_submit_warrior_e2e(client, mocked_recaptcha, monkeypatch, default_arena
 def test_battle_from_warriors_e2e(monkeypatch, warrior_arena, other_warrior_arena):
     assert warrior_arena.rating == 0.0
 
+    monkeypatch.setattr(embeddings, 'get_embedding', mock.MagicMock(return_value=[0.0] * 1024))
+
     completion_mock = mock.MagicMock()
     completion_mock.message.content = 'Some result'
     completion_mock.finish_reason = 'stop'
