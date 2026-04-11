@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Lint with pylint
+        run: poetry run pylint .
+
+      - name: Lint with flake8
+        run: poetry run flake8
+
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg18-trixie
+        env:
+          POSTGRES_USER: promptwars
+          POSTGRES_PASSWORD: promptwars
+          POSTGRES_DB: promptwars
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U promptwars"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://promptwars:promptwars@localhost:5432/promptwars
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Collect static files
+        run: poetry run ./manage.py collectstatic --noinput
+
+      - name: Run tests
+        run: poetry run pytest -v -m "not real_world"

@@ -22,6 +22,7 @@ from django.views.generic import TemplateView
 
 import warriors.views
 from djsfc import Router
+from embedding_explorer import views as embedding_explorer_views
 from users.views import SignupView
 from warriors import my_warriors_view, warrior_view
 from warriors.create_view import WarriorCreateView
@@ -29,8 +30,6 @@ from warriors.views import (
     ArenaDetailView, BattleDetailView, ChallengeWarriorView, WarriorDetailView,
     WarriorLeaderboard, warrior_set_public_battle_results,
 )
-
-from embedding_explorer import views as embedding_explorer_views
 
 from . import data_policy_view
 
