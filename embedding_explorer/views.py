@@ -80,7 +80,7 @@ def _build_index_page(request, form_instance):
     return main_el
 
 
-MAX_HAMMING_DISTANCE = 400
+MAX_HAMMING_DISTANCE = 500
 NEAREST_ENTRIES_LIMIT = 5
 
 
