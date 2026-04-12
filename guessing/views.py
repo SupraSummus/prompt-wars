@@ -68,7 +68,9 @@ def _render_guess_row(guess):
 
 
 def _build_detail_page(request, target, form_instance):
-    guesses = list(_annotated_guesses(target, request.user))
+    annotated = _annotated_guesses(target, request.user)
+    guesses = list(annotated)
+    last_guess = annotated.order_by('-created_at').first()
 
     main_el = main(cls="container")
     with main_el:
@@ -90,8 +92,13 @@ def _build_detail_page(request, target, form_instance):
             raw(form_instance.as_div())
             button("Submit Guess", type="submit")
 
+        if last_guess is not None:
+            h2("Last guess")
+            with ul():
+                _render_guess_row(last_guess)
+
         if guesses:
-            h2("Guesses")
+            h2("All guesses")
             with ul():
                 for guess in guesses:
                     _render_guess_row(guess)
