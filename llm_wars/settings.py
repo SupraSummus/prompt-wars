@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'labirynth.apps.LabirynthConfig',
     'stories.apps.StoriesConfig',
     'embedding_explorer.apps.EmbeddingExplorerConfig',
+    'guessing.apps.GuessingConfig',
 ]
 
 MIDDLEWARE = [

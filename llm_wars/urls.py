@@ -23,6 +23,7 @@ from django.views.generic import TemplateView
 import warriors.views
 from djsfc import Router
 from embedding_explorer import views as embedding_explorer_views
+from guessing import views as guessing_views
 from users.views import SignupView
 from warriors import my_warriors_view, warrior_view
 from warriors.create_view import WarriorCreateView
@@ -52,6 +53,7 @@ router.route_all('my-warriors/', my_warriors_view.router, name='my_warriors')
 router.route_all('warrior/', warrior_view.router, name='warrior')
 router.route_all('data-policy/', data_policy_view.router, name='data_policy')
 router.route_all('embedding-explorer/', embedding_explorer_views.router, name='embedding_explorer')
+router.route_all('guessing/', guessing_views.router, name='guessing')
 
 urlpatterns = (
     path('', TemplateView.as_view(template_name="home.html"), name='home'),
