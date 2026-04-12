@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.decorators import login_required
+from django.db.models import F
 from django.http import HttpResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404, redirect
@@ -43,7 +44,7 @@ def _annotated_guesses(target, user):
         .filter(target=target, user=user)
         .select_related('query')
         .annotate(distance=HammingDistance('query__embedding', target.embedding))
-        .order_by('distance')
+        .order_by(F('distance').asc(nulls_first=True))
     )
 
 
@@ -81,6 +82,11 @@ def _build_detail_page(request, target, form_instance):
             action=reverse('guessing:guess_post', kwargs={'target_id': target.id}),
         ):
             input_(type="hidden", name="csrfmiddlewaretoken", value=get_token(request))
+            with strong():
+                raw(
+                    "Don't share any private, secret, or classified information! "
+                    f'See <a href="{reverse("data_policy:root")}">Data policy</a>'
+                )
             raw(form_instance.as_div())
             button("Submit Guess", type="submit")
 
