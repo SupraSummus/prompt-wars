@@ -77,6 +77,7 @@ def batch_create_battles(arena, warrior_arena, n):
 
         # Create corresponding DBGame objects
         DBGame.objects.create(
+            battle=battle,
             llm=arena.llm,
             warrior_1=battle_warrior_1,
             warrior_2=battle_warrior_2,
@@ -85,6 +86,7 @@ def batch_create_battles(arena, warrior_arena, n):
             resolved_at=battle.resolved_at_1_2,
         )
         DBGame.objects.create(
+            battle=battle,
             llm=arena.llm,
             warrior_1=battle_warrior_2,
             warrior_2=battle_warrior_1,
