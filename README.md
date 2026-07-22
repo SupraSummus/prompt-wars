@@ -26,6 +26,7 @@ See `Procfile` for full details how we run in production.
 
 - [CONCEPT.md](CONCEPT.md)
 - [philosophical stuff](docs/parallels.md)
+- [product strategy](docs/strategy.md)
 
 ## Any press is good press
 
