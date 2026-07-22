@@ -8,7 +8,6 @@ from django.utils import timezone
 from django_goals.models import AllDone, RetryMeLater, schedule
 
 from .battles import LLM, MATCHMAKING_COOLDOWN, Battle, DBGame, Game
-from .lcs import lcs_len
 from .llms import anthropic
 from .llms.exceptions import TransientLLMError
 from .llms.google import resolve_battle_google
@@ -193,8 +192,6 @@ def _run_llm(battle_view, now, db_game=None):
         (battle_view.warrior_1.body + battle_view.warrior_2.body).encode('utf-8')
     ).digest()
     battle_view.text_unit = TextUnit.get_or_create_by_content(result[:MAX_WARRIOR_LENGTH], now=now)
-    battle_view.lcs_len_1 = lcs_len(battle_view.warrior_1.body, battle_view.result)
-    battle_view.lcs_len_2 = lcs_len(battle_view.warrior_2.body, battle_view.result)
     battle_view.finish_reason = finish_reason
     # but the API finish reason doesn't matter if we cut the response
     if len(result) > MAX_WARRIOR_LENGTH:
@@ -205,8 +202,6 @@ def _run_llm(battle_view, now, db_game=None):
     battle_view.save(update_fields=[
         'input_sha256',
         'text_unit',
-        'lcs_len_1',
-        'lcs_len_2',
         'finish_reason',
         'llm_version',
         'resolved_at',
