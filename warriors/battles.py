@@ -249,7 +249,7 @@ class Battle(models.Model):
         return tuple(self.game_scores.all())
 
 
-# TODO: rename to Game
+# TODO: rename to Game once the facade below is gone (docs/game-migration.md)
 class DBGame(GoalRelatedMixin, models.Model):
     id = models.UUIDField(
         primary_key=True,

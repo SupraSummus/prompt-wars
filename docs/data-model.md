@@ -104,8 +104,8 @@ The schema should say so:
 - **The battle stream is keyed by LLM** (already true);
   `Battle.arena` gets dropped,
   and the `DBGame`-direction migration
-  (the "rename to Game" TODO in `warriors/battles.py`)
-  makes the per-direction game the canonical record.
+  makes the per-direction game the canonical record
+  (plan: `docs/game-migration.md`).
 - **Ranking configuration moves to code**:
   a registry mapping a ranking key (enum)
   to (llm, score_algorithm, mELO parameters).
