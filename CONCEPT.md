@@ -104,10 +104,10 @@ Different LLMs require different approaches:
 
 ## Next Steps for Developers
 
-1. Develop embedding-based scoring as an alternative measure of semantic preservation
-2. Enhance the battle results visibility system with better filtering and search capabilities
-3. Create improved analytics for public battle results
-4. Design and implement additional safety checks for public content
+Development priorities, their rationale,
+and the alternatives that were considered and rejected
+live in [docs/strategy.md](docs/strategy.md);
+this doc stays about the game's concept and mechanics.
 
 ## Developer Engagement
 
