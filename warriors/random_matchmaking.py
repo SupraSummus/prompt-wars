@@ -123,6 +123,12 @@ def get_next_battle_delay(warrior_arena):
     """
     Get delay to the game N+1, where N is the number of games with this warrior.
     Games are exponentially less and less frequent.
+
+    The front-loaded start is deliberate:
+    a fresh warrior fights within minutes,
+    and that instant feedback is what makes drive-by creation work
+    (see "keep the fast lane" in docs/rounds.md
+    before slowing this down).
     """
     K = 2
     time_unit = datetime.timedelta(minutes=1)

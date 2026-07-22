@@ -236,6 +236,16 @@ class GameScoreViewpoint:
 
     @property
     def cooperation_score(self):
+        """
+        Fusion quality, as opposed to who won:
+        high when both prompts survive into the output in balance
+        (the smaller-to-larger similarity ratio)
+        and are distinct to begin with —
+        the ``1 - warriors_similarity`` factor zeroes out mutual copying,
+        where balanced survival would be trivial.
+        For why this axis matters, see "The central tension"
+        in docs/design-tensions.md.
+        """
         if (
             self.warriors_similarity is None or
             self.warrior_1_similarity is None or
