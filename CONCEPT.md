@@ -107,6 +107,9 @@ Different LLMs require different approaches:
 Development priorities, their rationale,
 and the alternatives that were considered and rejected
 live in [docs/strategy.md](docs/strategy.md);
+design-level strengths, tensions, and candidate directions
+in [docs/design-tensions.md](docs/design-tensions.md);
+the fixed-cadence rounds proposal in [docs/rounds.md](docs/rounds.md);
 this doc stays about the game's concept and mechanics.
 
 ## Developer Engagement

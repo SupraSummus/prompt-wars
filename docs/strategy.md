@@ -45,10 +45,25 @@ Where the money actually goes, in order:
    (see the data–instruction separation theme in `docs/parallels.md`).
    The thinking budget is a game-design dial that happens to cost money,
    priced at roughly €15–20/month for a smarter adversary.
-   Lever that leaves the referee untouched: batch APIs —
-   both Google and OpenAI price batch requests at half,
-   and battles are async, retry-tolerant, and latency-irrelevant,
-   so the workload fits batching exactly.
+   Levers that leave the referee untouched: discounted pricing tiers.
+   OpenAI's flex service tier
+   (in beta — verify model coverage before relying on it)
+   halves the price of the same synchronous call —
+   nearly free to adopt
+   (one request parameter plus capacity-retry handling
+   of the kind `warriors/tasks.py` already does).
+   Batch APIs (Google and OpenAI, also half price)
+   fit most of the workload —
+   battles are async and retry-tolerant —
+   but not the fresh-warrior window:
+   a new warrior's first games arrive within minutes by design
+   (`get_next_battle_delay` in `warriors/random_matchmaking.py`),
+   while batch turnaround is best-effort within 24 hours.
+   Gemini has no flex equivalent,
+   so its half-price path needs either an eligibility split
+   (batch only the battles between warriors past the fast window)
+   or the rounds redesign (`docs/rounds.md`),
+   which turns the scheduled mass into the canonical batch workload.
 3. **Everything else is noise.**
    Visible input/output tokens across ~30k LLM calls per month
    cost less than a coffee.
@@ -89,9 +104,11 @@ it is a signal the system already emits and currently discards.
 
 ## Direction and priority order
 
-1. **Cost levers first** (container sizes, worker/scheduler merge,
-   batch APIs) — the ones that leave gameplay untouched.
-   The infra levers are hours of work; batching is a small project.
+1. **Cost levers first** (container sizes, flex and batch pricing) —
+   the ones that leave gameplay untouched.
+   Container sizing and flex are hours of work;
+   batching is a small project
+   constrained by the fresh-warrior window (see above).
    Together they halve the burn and remove the anxiety
    that distorts every other decision.
 2. **Close the retention loop for players we already get.**
