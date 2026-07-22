@@ -16,11 +16,7 @@ def test_battle_score():
         warrior_2__id=UUID(int=2),
         warrior_2__body='qwerty',
         text_unit_1_2=TextUnit.get_or_create_by_content('qwerty'),
-        lcs_len_1_2_1=0,
-        lcs_len_1_2_2=6,
         text_unit_2_1=TextUnit.get_or_create_by_content('qwerty'),
-        lcs_len_2_1_1=0,
-        lcs_len_2_1_2=6,
     )
     create_scores(battle, 0, 1, 0, 1)
     battle_viewpoint = BattleViewpoint(battle, '1')

@@ -69,3 +69,12 @@ that changes the ratings the site computes,
 so it needs sign-off as a behavior change.
 Doing it would also let the widened tolerance
 in `rating_tests.py::test_get_performance_rating` tighten back.
+
+`Battle.rating_transferred_at` is a dead column:
+nothing writes or reads it —
+only a "not used anymore" comment in `warriors/battles.py`
+and a passthrough entry in `BattleViewpoint.map_field_name`
+keep it in the code.
+Next move: drop the field, the comment, and the mapping entry,
+same shape as the `lcs_len_*` column removal;
+implies a schema migration but no behavior change.

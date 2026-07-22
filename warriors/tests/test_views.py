@@ -27,8 +27,6 @@ def test_arena_detail(client, arena):
 ], indirect=True)
 @pytest.mark.parametrize('battle', [{
     'resolved_at_1_2': timezone.now(),
-    'lcs_len_1_2_1': 23,
-    'lcs_len_1_2_2': 32,
 }], indirect=True)
 def test_warrior_details(client, warrior_arena, battle):
     response = client.get(

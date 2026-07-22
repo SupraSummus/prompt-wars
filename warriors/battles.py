@@ -116,12 +116,6 @@ class Battle(models.Model):
         blank=True,
         related_name='+',
     )
-    lcs_len_1_2_1 = models.PositiveIntegerField(
-        default=0,
-    )
-    lcs_len_1_2_2 = models.PositiveIntegerField(
-        default=0,
-    )
     finish_reason_1_2 = models.CharField(
         max_length=20,
         blank=True,
@@ -149,12 +143,6 @@ class Battle(models.Model):
         null=True,
         blank=True,
         related_name='+',
-    )
-    lcs_len_2_1_1 = models.PositiveIntegerField(
-        default=0,
-    )
-    lcs_len_2_1_2 = models.PositiveIntegerField(
-        default=0,
     )
     finish_reason_2_1 = models.CharField(
         max_length=20,
@@ -427,13 +415,6 @@ class BattleViewpoint:
             'attempts_2_1',
         ):
             return self.map_field_name_x_x(field_name)
-        if field_name in (
-            'lcs_len_1_2_1',
-            'lcs_len_1_2_2',
-            'lcs_len_2_1_1',
-            'lcs_len_2_1_2',
-        ):
-            return self.map_field_name_x_x_x(field_name)
 
     def map_field_name_x(self, field_name):
         if self.viewpoint == '1':
@@ -454,14 +435,6 @@ class BattleViewpoint:
             elif '2_1' in field_name:
                 return field_name.replace('2_1', '1_2')
         assert False
-
-    def map_field_name_x_x_x(self, field_name):
-        if self.viewpoint == '1':
-            return field_name
-        elif self.viewpoint == '2':
-            base, n, m, k = field_name.rsplit('_', 3)
-            k = {'1': '2', '2': '1'}[k]
-            return f'{base}_{m}_{n}_{k}'
 
     @cached_property
     def game_scores_list(self):
@@ -528,10 +501,6 @@ class Game:
             'attempts',
         ):
             return f'{field_name}_{self.direction}'
-        elif field_name == 'lcs_len_1':
-            return f'lcs_len_{self.direction}_{self.direction_from}'
-        elif field_name == 'lcs_len_2':
-            return f'lcs_len_{self.direction}_{self.direction_to}'
         elif field_name == 'warrior_1':
             return f'warrior_{self.direction_from}'
         elif field_name == 'warrior_2':
