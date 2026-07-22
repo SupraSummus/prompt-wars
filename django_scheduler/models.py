@@ -1,7 +1,7 @@
 import datetime
 import inspect
 import logging
-import time
+import threading
 import uuid
 from dataclasses import dataclass
 from typing import Callable
@@ -46,7 +46,11 @@ def get_job_from_function(handler, interval, key=None):
     return LocalJob(key=key, handler=handler, interval=interval)
 
 
-def run(local_jobs=None, blocking=True):
+def run(local_jobs=None, blocking=True, stop_event=None):
+    # stop_event lets a host process (see the worker management command)
+    # stop the loop cleanly from another thread.
+    if stop_event is None:
+        stop_event = threading.Event()
     if local_jobs is None:
         global _local_jobs  # noqa: F824
         local_jobs = _local_jobs.copy()
@@ -70,7 +74,7 @@ def run(local_jobs=None, blocking=True):
     logger.info("Starting scheduler. Jobs: %s", [job.key for _, job in queue])
 
     # run jobs
-    while True:
+    while not stop_event.is_set():
         now = timezone.now()
         if not queue:
             logger.info("No jobs in queue, exiting")
@@ -83,7 +87,9 @@ def run(local_jobs=None, blocking=True):
                 break
             time_to_sleep = (next_run - now).total_seconds()
             logger.info("Sleeping for %s seconds until next job %s", time_to_sleep, local_job.key)
-            time.sleep(time_to_sleep)
+            if stop_event.wait(time_to_sleep):
+                logger.info("Stop requested, exiting")
+                break
 
         next_run, local_job = queue.pop(0)
         db_job = run_job(local_job)

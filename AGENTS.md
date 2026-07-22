@@ -114,6 +114,10 @@ sudo -u postgres psql -c "CREATE DATABASE promptwars OWNER promptwars;"
 
 # Upgrade pgvector to >= 0.7.0 (system package is 0.6.0, too old)
 # Required for HammingDistance on BitField (the <~> operator on bit type).
+# Only tests that run HammingDistance queries need this (embedding_explorer,
+# guessing); for everything else the system package alone is enough
+# (migrations only CREATE EXTENSION vector), and the source build below
+# takes several minutes — skip it when not testing those apps.
 apt-get install -y postgresql-16-pgvector postgresql-server-dev-16
 cd /tmp && git clone --branch v0.8.0 --depth 1 https://github.com/pgvector/pgvector.git
 cd /tmp/pgvector && make && make install
