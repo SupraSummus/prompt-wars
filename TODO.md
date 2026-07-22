@@ -29,6 +29,10 @@ Belongs here: refactors, dead code, inconsistencies,
 missing tests, sketchy patterns.
 Does not: game-design ideas and open design questions —
 those live in `CONCEPT.md` or `docs/`, next to their rationale.
+Nor work that lives outside the tree —
+GitHub settings, hosting config, third-party dashboards;
+an entry belongs here only if a commit to this repo can resolve it,
+because nothing else can ever close it.
 Prefer behavior-preserving noticings;
 when an entry implies a behavior change, say so,
 since it will need sign-off.
