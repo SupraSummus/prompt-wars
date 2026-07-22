@@ -56,6 +56,16 @@ and move the mechanical detail into docstrings at the source,
 leaving the doc pointing at `warriors/battles.py`
 and `warriors/score.py` by name.
 
+`warriors/cross_arena.py` is dead code and no longer matches the schema:
+`ensure_warrior_on_all_arenas` has no callers,
+and it passes `WarriorArena.objects.get_or_create` fields
+(`body_sha_256`, `body`, `created_at`, …)
+that moved to `Warrior` in migrations 0030–0034,
+so calling it would raise.
+Its role is filled implicitly by `transfer_rating` in `warriors/tasks.py`
+(see docs/data-model.md).
+Next move: delete the module and its test file `cross_arena_tests.py`.
+
 `get_performance_rating` in `warriors/rating.py` returns
 start-position-dependent results even where the loss is convex:
 with `gtol=1e-6` and the loss gradient scaled by `log(10)/400/n`,

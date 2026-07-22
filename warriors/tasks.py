@@ -224,6 +224,9 @@ def _run_llm(battle_view, now, db_game=None):
 
 
 def transfer_rating(goal, battle_id):
+    # Fanning out to every same-llm arena lazily enrolls both warriors there,
+    # battle-eligible immediately — the implicit cross-arena spread described in
+    # "The one bag of warriors already exists — implicitly" in docs/data-model.md.
     battle = Battle.objects.get(id=battle_id)
     for arena in Arena.objects.filter(llm=battle.llm):
         for warrior_arena in get_or_create_warrior_arenas(
