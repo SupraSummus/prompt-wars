@@ -110,6 +110,8 @@ live in [docs/strategy.md](docs/strategy.md);
 design-level strengths, tensions, and candidate directions
 in [docs/design-tensions.md](docs/design-tensions.md);
 the fixed-cadence rounds proposal in [docs/rounds.md](docs/rounds.md);
+the gameplay data model's coupling analysis and target shape
+in [docs/data-model.md](docs/data-model.md);
 this doc stays about the game's concept and mechanics.
 
 ## Developer Engagement
