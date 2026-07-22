@@ -9,6 +9,7 @@ from django_goals.models import AllDone, RetryMeLater
 from .models import (
     EMBEDDING_BITS, MAX_PHRASE_LENGTH, ExplorerQuery, _ensure_embedding,
 )
+from .views import MAX_HAMMING_DISTANCE
 
 
 def _sha256(text):
@@ -165,8 +166,9 @@ def test_detail_view_nearest_entries(client):
     bits_b = '1' * 10 + '0' * (EMBEDDING_BITS - 10)
     query_b = _create_query('phrase b', embedding=bits_b)
 
-    # Create a far neighbor (distance > 400, should be excluded)
-    bits_c = '1' * 500 + '0' * (EMBEDDING_BITS - 500)
+    # Create a far neighbor, just beyond the cutoff
+    far = MAX_HAMMING_DISTANCE + 1
+    bits_c = '1' * far + '0' * (EMBEDDING_BITS - far)
     _create_query('phrase c', embedding=bits_c)
 
     response = client.get(reverse(
@@ -177,7 +179,7 @@ def test_detail_view_nearest_entries(client):
     # Near neighbor should appear with link and distance
     assert 'phrase b' in content
     assert str(query_b.id) in content
-    assert '10' in content
+    assert 'distance: 10' in content
 
     # Far neighbor should not appear
     assert 'phrase c' not in content

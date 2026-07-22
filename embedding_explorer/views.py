@@ -85,7 +85,7 @@ NEAREST_ENTRIES_LIMIT = 5
 
 
 def _get_nearest_entries(query):
-    """Return up to 5 nearest entries by Hamming distance, max distance 400."""
+    """Return nearest entries within MAX_HAMMING_DISTANCE, at most NEAREST_ENTRIES_LIMIT."""
     if not query.embedding:
         return []
     distance = HammingDistance('embedding', query.embedding)
