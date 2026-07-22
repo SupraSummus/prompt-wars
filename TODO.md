@@ -56,12 +56,16 @@ and move the mechanical detail into docstrings at the source,
 leaving the doc pointing at `warriors/battles.py`
 and `warriors/score.py` by name.
 
-`warriors/rating_tests.py::test_get_performance_rating` is flaky:
-`get_performance_rating` in `warriors/rating.py` seeds its optimizer
-with an unseeded `np.random.uniform` starting position,
-so the test intermittently converges to a different optimum
-and misses its `pytest.approx(2550.5, abs=0.1)` assertion
-(observed failing in a full-suite run, passing in isolation).
-Next move: seed the RNG in the test
-(e.g. `np.random.seed` in a fixture)
-or pass an explicit `rating_guess` so the outcome is deterministic.
+`get_performance_rating` in `warriors/rating.py` returns
+start-position-dependent results even where the loss is convex:
+with `gtol=1e-6` and the loss gradient scaled by `log(10)/400/n`,
+L-BFGS-B terminates up to ~0.2 rating points away from the optimum,
+and the unseeded random starting position decides where in that band
+each call lands (measured spread ±0.22 over 2000 runs
+on the `rating_tests.py` fixture data).
+Tightening `gtol` to `1e-8` shrinks the spread below 0.01
+at the cost of a few more optimizer iterations (verified empirically);
+that changes the ratings the site computes,
+so it needs sign-off as a behavior change.
+Doing it would also let the widened tolerance
+in `rating_tests.py::test_get_performance_rating` tighten back.
