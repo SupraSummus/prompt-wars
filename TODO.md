@@ -88,3 +88,14 @@ keep it in the code.
 Next move: drop the field, the comment, and the mapping entry,
 same shape as the `lcs_len_*` column removal;
 implies a schema migration but no behavior change.
+
+`tmp.py` at the repo root is a one-off `DBGame` backfill script
+committed as scratch:
+it replays for historical battles
+what the dual-write in `Battle.create_from_warriors` does for new ones,
+with no CLI entry point,
+and whether it was ever run against production
+is not recorded anywhere in the repo.
+Next move: absorb it into the verify-and-backfill management command
+of step 2 in `docs/game-migration.md`, then delete it;
+if that plan stalls, delete it anyway once the backfill is verified.
