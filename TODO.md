@@ -55,3 +55,13 @@ Next move: keep the concept-level narrative
 and move the mechanical detail into docstrings at the source,
 leaving the doc pointing at `warriors/battles.py`
 and `warriors/score.py` by name.
+
+`warriors/rating_tests.py::test_get_performance_rating` is flaky:
+`get_performance_rating` in `warriors/rating.py` seeds its optimizer
+with an unseeded `np.random.uniform` starting position,
+so the test intermittently converges to a different optimum
+and misses its `pytest.approx(2550.5, abs=0.1)` assertion
+(observed failing in a full-suite run, passing in isolation).
+Next move: seed the RNG in the test
+(e.g. `np.random.seed` in a fixture)
+or pass an explicit `rating_guess` so the outcome is deterministic.

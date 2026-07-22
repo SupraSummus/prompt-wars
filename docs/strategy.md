@@ -25,13 +25,14 @@ not because the project bleeds without it.
 Where the money actually goes, in order:
 
 1. **Fixed compute, lightly loaded.**
-   Three always-on containers serve a workload of roughly one battle
-   every three minutes.
+   Two always-on containers serve a workload of roughly one battle
+   every three minutes
+   (the scheduler runs inside the worker process —
+   see the `worker` command in `warriors/management/commands/`
+   and `Procfile`).
    Lever: smaller container sizes
    (the constraint is process memory, not load —
-   downsize per-container and watch the metrics),
-   and merging the `scheduler` process into the `worker`
-   (see `Procfile` and `django_scheduler`) to drop a container entirely.
+   downsize per-container and watch the metrics).
 2. **Reasoning tokens — an expense, but a deliberate one.**
    Battle resolution pays for model thinking that never appears in output:
    the Gemini thinking budget in `warriors/llms/google.py`

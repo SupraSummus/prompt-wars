@@ -1,3 +1,4 @@
+import threading
 import uuid
 from datetime import timedelta
 from unittest.mock import Mock
@@ -120,4 +121,49 @@ def test_non_blocking_exits_early(caplog):
     )
 
     run([local_job], blocking=False)
+    assert not handler.called
+
+
+@pytest.mark.django_db(transaction=True)
+def test_stop_event_interrupts_sleep():
+    """Setting stop_event wakes the scheduler from its sleep and exits the loop"""
+    Job.objects.create(
+        key="future_job",
+        last_run=timezone.now(),
+    )
+    handler = Mock()
+    local_job = LocalJob(
+        key="future_job",
+        handler=handler,
+        interval=timedelta(hours=1),
+    )
+    stop_event = threading.Event()
+
+    thread = threading.Thread(
+        target=run,
+        args=([local_job],),
+        kwargs={"stop_event": stop_event},
+    )
+    thread.start()
+    stop_event.set()
+    thread.join(timeout=5)
+
+    assert not thread.is_alive()
+    assert not handler.called
+
+
+@pytest.mark.django_db
+def test_pre_set_stop_event_exits_immediately():
+    """A stop_event set before run() skips even due jobs"""
+    handler = Mock()
+    local_job = LocalJob(
+        key="due_job",
+        handler=handler,
+        interval=timedelta(minutes=30),
+    )
+    stop_event = threading.Event()
+    stop_event.set()
+
+    run([local_job], stop_event=stop_event)
+
     assert not handler.called
