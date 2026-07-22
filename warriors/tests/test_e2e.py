@@ -69,6 +69,8 @@ def test_battle_from_warriors_e2e(monkeypatch, warrior_arena, other_warrior_aren
     # Verify DBGame objects were created
     db_game_1_2.refresh_from_db()
     db_game_2_1.refresh_from_db()
+    assert db_game_1_2.battle_id == battle.id
+    assert db_game_2_1.battle_id == battle.id
     assert db_game_1_2.warrior_1 == battle.warrior_1
     assert db_game_1_2.warrior_2 == battle.warrior_2
     assert db_game_2_1.warrior_1 == battle.warrior_2

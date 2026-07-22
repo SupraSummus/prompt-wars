@@ -210,6 +210,7 @@ class Battle(models.Model):
             args=(str(battle.id),),
         )
         db_game_1_2 = DBGame.objects.create(
+            battle=battle,
             llm=warrior_arena_1.arena.llm,
             warrior_1=warrior_1,
             warrior_2=warrior_2,
@@ -217,6 +218,7 @@ class Battle(models.Model):
             processed_goal=resolve_1_2_goal,
         )
         db_game_2_1 = DBGame.objects.create(
+            battle=battle,
             llm=warrior_arena_1.arena.llm,
             warrior_1=warrior_2,
             warrior_2=warrior_1,
@@ -256,6 +258,15 @@ class DBGame(GoalRelatedMixin, models.Model):
         default=uuid.uuid4,
         editable=False,
     )
+    # Null only on legacy rows awaiting the backfill_game_battles command;
+    # goes not-null once the backfill has run
+    # (docs/game-migration.md, step 1).
+    battle = models.ForeignKey(
+        to='Battle',
+        on_delete=models.CASCADE,
+        related_name='games',
+        null=True,
+    )
     llm = models.CharField(
         max_length=20,
         choices=LLM.choices,
@@ -264,6 +275,9 @@ class DBGame(GoalRelatedMixin, models.Model):
         db_index=True,
         default=timezone.now,
     )
+    # Warriors are in prompt order, unlike the battle's canonical order;
+    # comparing warrior_1_id with battle.warrior_1_id recovers the direction,
+    # so direction is derived, never stored (docs/game-migration.md).
     warrior_1 = models.ForeignKey(
         to=Warrior,
         on_delete=models.PROTECT,
@@ -304,6 +318,12 @@ class DBGame(GoalRelatedMixin, models.Model):
 
     class Meta:
         db_table = 'warriors_game'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('battle', 'warrior_1'),
+                name='unique_battle_direction',
+            ),
+        ]
 
 
 @dataclass(frozen=True)

@@ -20,6 +20,7 @@ while True:
             warrior_2=battle.warrior_2,
             scheduled_at=battle.scheduled_at,
             defaults={
+                'battle': battle,
                 'input_sha256': battle.input_sha256_1_2,
                 'text_unit': battle.text_unit_1_2,
                 'finish_reason': battle.finish_reason_1_2,
@@ -39,6 +40,7 @@ while True:
             warrior_2=battle.warrior_1,
             scheduled_at=battle.scheduled_at,
             defaults={
+                'battle': battle,
                 'input_sha256': battle.input_sha256_2_1,
                 'text_unit': battle.text_unit_2_1,
                 'finish_reason': battle.finish_reason_2_1,

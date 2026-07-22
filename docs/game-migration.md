@@ -65,13 +65,22 @@ rolling back a reader flip is a code revert with no data repair.
 ### 1. Link games to their battle
 
 Add a nullable `battle` foreign key to `DBGame`,
-written in `Battle.create_from_warriors`;
-backfill historical rows by the (llm, warriors, scheduled_at) match
-the backfill script already uses —
+written in `Battle.create_from_warriors`
+and guarded from day one by a unique (battle, warrior_1) constraint,
+which null rows are exempt from.
+Historical rows are linked out-of-band
+by the `backfill_game_battles` management command,
+matching on (llm, warriors, scheduled_at) —
 the same triple rejected above as a pairing *key*,
 acceptable for a one-time match because
-enforcing not-null and unique (battle, warrior_1) right after
-surfaces any ambiguous rows for manual resolution.
+making the column not-null once the backfill has run clean
+surfaces any unmatched rows for manual resolution.
+The backfill is a command rather than a data migration
+because at production scale (hundreds of thousands of games)
+it must not hold a table lock inside a deploy;
+the command batches and can be interrupted and rerun.
+The not-null enforcement is its own follow-up migration,
+shipped only after the production backfill reports zero unlinked rows.
 This replaces implicit pairing with an explicit one
 *before* anything starts reading game rows,
 and lets `resolve_battle` locate its game by battle and direction
