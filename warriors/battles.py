@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from functools import cached_property
 
 from django.contrib.postgres.functions import TransactionNow
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
@@ -191,46 +191,52 @@ class Battle(models.Model):
         if warrior_1.id > warrior_2.id:
             warrior_1, warrior_2 = warrior_2, warrior_1
 
-        battle = cls.objects.create(
-            arena_id=arena_id,
-            llm=warrior_arena_1.arena.llm,
-            warrior_1=warrior_1,
-            warrior_2=warrior_2,
-            scheduled_at=TransactionNow(),
-        )
         from .tasks import (
             resolve_battle_1_2, resolve_battle_2_1, transfer_rating,
         )
-        resolve_1_2_goal = schedule(
-            resolve_battle_1_2,
-            args=(str(battle.id),),
-        )
-        resolve_2_1_goal = schedule(
-            resolve_battle_2_1,
-            args=(str(battle.id),),
-        )
-        db_game_1_2 = DBGame.objects.create(
-            battle=battle,
-            llm=warrior_arena_1.arena.llm,
-            warrior_1=warrior_1,
-            warrior_2=warrior_2,
-            scheduled_at=battle.scheduled_at,
-            processed_goal=resolve_1_2_goal,
-        )
-        db_game_2_1 = DBGame.objects.create(
-            battle=battle,
-            llm=warrior_arena_1.arena.llm,
-            warrior_1=warrior_2,
-            warrior_2=warrior_1,
-            scheduled_at=battle.scheduled_at,
-            processed_goal=resolve_2_1_goal,
-        )
 
-        schedule(
-            transfer_rating,
-            args=(str(battle.id),),
-            precondition_goals=[resolve_1_2_goal, resolve_2_1_goal],
-        )
+        # battle.scheduled_at is an unevaluated TransactionNow() that the
+        # game inserts re-send, so the three timestamps (asserted equal in
+        # resolve_battle) only match inside one transaction — which also
+        # ensures a battle never exists without its two games.
+        with transaction.atomic():
+            battle = cls.objects.create(
+                arena_id=arena_id,
+                llm=warrior_arena_1.arena.llm,
+                warrior_1=warrior_1,
+                warrior_2=warrior_2,
+                scheduled_at=TransactionNow(),
+            )
+            resolve_1_2_goal = schedule(
+                resolve_battle_1_2,
+                args=(str(battle.id),),
+            )
+            resolve_2_1_goal = schedule(
+                resolve_battle_2_1,
+                args=(str(battle.id),),
+            )
+            db_game_1_2 = DBGame.objects.create(
+                battle=battle,
+                llm=warrior_arena_1.arena.llm,
+                warrior_1=warrior_1,
+                warrior_2=warrior_2,
+                scheduled_at=battle.scheduled_at,
+                processed_goal=resolve_1_2_goal,
+            )
+            db_game_2_1 = DBGame.objects.create(
+                battle=battle,
+                llm=warrior_arena_1.arena.llm,
+                warrior_1=warrior_2,
+                warrior_2=warrior_1,
+                scheduled_at=battle.scheduled_at,
+                processed_goal=resolve_2_1_goal,
+            )
+
+            schedule(
+                transfer_rating,
+                args=(str(battle.id),),
+                precondition_goals=[resolve_1_2_goal, resolve_2_1_goal],
+            )
 
         return battle, db_game_1_2, db_game_2_1
 
@@ -258,14 +264,10 @@ class DBGame(GoalRelatedMixin, models.Model):
         default=uuid.uuid4,
         editable=False,
     )
-    # Null only on legacy rows awaiting the backfill_game_battles command;
-    # goes not-null once the backfill has run
-    # (docs/game-migration.md, step 1).
     battle = models.ForeignKey(
         to='Battle',
         on_delete=models.CASCADE,
         related_name='games',
-        null=True,
     )
     llm = models.CharField(
         max_length=20,

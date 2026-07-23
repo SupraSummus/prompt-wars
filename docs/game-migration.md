@@ -62,31 +62,7 @@ after the last reader leaves.
 While a dual-write holds,
 rolling back a reader flip is a code revert with no data repair.
 
-### 1. Link games to their battle
-
-Add a nullable `battle` foreign key to `DBGame`,
-written in `Battle.create_from_warriors`
-and guarded from day one by a unique (battle, warrior_1) constraint,
-which null rows are exempt from.
-Historical rows are linked out-of-band
-by the `backfill_game_battles` management command,
-matching on (llm, warriors, scheduled_at) —
-the same triple rejected above as a pairing *key*,
-acceptable for a one-time match because
-making the column not-null once the backfill has run clean
-surfaces any unmatched rows for manual resolution.
-The backfill is a command rather than a data migration
-because at production scale (hundreds of thousands of games)
-it must not hold a table lock inside a deploy;
-the command batches and can be interrupted and rerun.
-The not-null enforcement is its own follow-up migration,
-shipped only after the production backfill reports zero unlinked rows.
-This replaces implicit pairing with an explicit one
-*before* anything starts reading game rows,
-and lets `resolve_battle` locate its game by battle and direction
-rather than only via `processed_goal`.
-
-### 2. Verify the shadow copy and make it mandatory
+### 1. Verify the shadow copy and make it mandatory
 
 A management command walks every battle direction
 and compares all mirrored fields against the game row —
@@ -99,7 +75,7 @@ With the table verified complete,
 the `DBGame.DoesNotExist` branch goes away
 (test factories already create game rows alongside battles).
 
-### 3. Invert write authority
+### 2. Invert write authority
 
 `resolve_battle` and `_run_llm` currently treat
 the `Game` facade over `Battle` as primary
@@ -113,7 +89,7 @@ only which object is authoritative and which is the copy.
 After this step the directional columns are write-only,
 the same state the `lcs_len_*` columns were in before removal.
 
-### 4. Re-key GameScore
+### 3. Re-key GameScore
 
 Add a nullable `game` foreign key to `GameScore`,
 dual-written in `get_or_create_game_score` (`warriors/score.py`);
@@ -125,7 +101,7 @@ instead of constructing the battle facade.
 `direction` and `battle` drop from `GameScore`
 once nothing selects by them.
 
-### 5. Cut the remaining readers over
+### 4. Cut the remaining readers over
 
 In order of blast radius:
 
@@ -149,20 +125,20 @@ In order of blast radius:
   cooldown, opponent exclusion, and `battle_count`
   are pair-level and stay on `Battle`.
 
-### 6. Drop the directional columns
+### 5. Drop the directional columns
 
 Delete the paired columns from `Battle`
 (`input_sha256_*`, `text_unit_*`, `finish_reason_*`,
 `llm_version_*`, `resolved_at_*`, `attempts_*`),
-the step-3 mirror writes,
+the step-2 mirror writes,
 and the facade machinery that mapped suffixed names.
 Same shape as the `lcs_len_*` removal.
 The dead `rating_transferred_at` column
 (tracked in `TODO.md`) rides along.
 
-### 7. Rename
+### 6. Rename
 
-With the in-memory `Game` facade deleted in step 6,
+With the in-memory `Game` facade deleted in step 5,
 the name is free:
 `DBGame` becomes `Game`.
 The table is already `warriors_game`,
@@ -178,7 +154,7 @@ This plan is one of its independently-shippable tracks
 and orders only its own steps;
 dropping `Battle.arena` can land any time,
 and the ranking-registry work is untouched by it —
-rating reads change *representation* here (step 5),
+rating reads change *representation* here (step 4),
 not which signal feeds them.
 
 ## Open decisions

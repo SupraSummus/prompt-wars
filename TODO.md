@@ -97,5 +97,5 @@ with no CLI entry point,
 and whether it was ever run against production
 is not recorded anywhere in the repo.
 Next move: absorb it into the verify-and-backfill management command
-of step 2 in `docs/game-migration.md`, then delete it;
+of step 1 in `docs/game-migration.md`, then delete it;
 if that plan stalls, delete it anyway once the backfill is verified.

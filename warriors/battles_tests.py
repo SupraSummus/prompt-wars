@@ -2,7 +2,7 @@ from uuid import UUID
 
 import pytest
 
-from .battles import BattleViewpoint
+from .battles import Battle, BattleViewpoint
 from .tests.factories import BattleFactory, WarriorArenaFactory
 from .tests.fixtures import create_scores
 from .text_unit import TextUnit
@@ -34,3 +34,16 @@ def test_battle_score():
     battle.warrior_arena_1 = WarriorArenaFactory(warrior=battle.warrior_1, rating_playstyle=[0, 0])
     battle.warrior_arena_2 = WarriorArenaFactory(warrior=battle.warrior_2, rating_playstyle=[0, 0])
     assert battle_viewpoint.performance == pytest.approx(-0.5, abs=0.01)  # it could have been closer to 1 if there was a discrepancy in the ratings
+
+
+# transaction=True runs the test in autocommit, like a plain view request;
+# under the default test-wrapping transaction the timestamps would agree
+# even without create_from_warriors' own atomic block.
+@pytest.mark.django_db(transaction=True)
+def test_create_from_warriors_scheduled_at_consistent(warrior_arena, other_warrior_arena):
+    battle, db_game_1_2, db_game_2_1 = Battle.create_from_warriors(warrior_arena, other_warrior_arena)
+    battle.refresh_from_db()
+    db_game_1_2.refresh_from_db()
+    db_game_2_1.refresh_from_db()
+    assert db_game_1_2.scheduled_at == battle.scheduled_at
+    assert db_game_2_1.scheduled_at == battle.scheduled_at
