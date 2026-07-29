@@ -99,11 +99,10 @@ it wrote the battle and skipped the mirror.
 Why the lookup missed is not established;
 the rows carry their goals and match their battle
 on `llm` and `scheduled_at`, so the row existed when the goal ran.
-Next move: a `backfill_game_resolution` command,
-one `UPDATE ... FROM` per direction guarded by
-`g.resolved_at IS NULL AND b.resolved_at_<dir> IS NOT NULL`
-so it cannot touch a direction still in flight,
-deleted after its run.
+`backfill_game_resolution` fills them;
+next move is to run it in production
+and delete the command once `verify_games` reports nothing,
+the way `backfill_game_battles` went.
 The directional columns cannot be dropped before that:
 the battle holds the only copy of those seven results.
 A recurrence now surfaces as a `DBGame.DoesNotExist` goal failure,

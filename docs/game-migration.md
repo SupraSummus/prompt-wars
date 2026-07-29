@@ -79,9 +79,11 @@ because a single bad historical backfill leaves a finding
 on every battle in the table
 and the mass ones must not bury the single odd one.
 Each repair is its own command, named for what it repairs,
-deleted once a production run leaves nothing to do —
-`backfill_game_input_sha256` covers the one cause known so far,
-`backfill_sha.py` having written the battle's sha and not the game's.
+deleted once a production run leaves nothing to do:
+`backfill_game_input_sha256` for `backfill_sha.py`
+having written the battle's sha and not the game's,
+`backfill_game_resolution` for the old resolver
+having written the battle's result and skipped the mirror.
 A finding nothing explains is a bug to chase, not data to copy over.
 
 ### 1. Invert write authority
