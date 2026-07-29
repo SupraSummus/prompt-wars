@@ -636,12 +636,11 @@ def mirrored_game_fields(battle, direction):
     One battle direction expressed as game-row field values.
 
     `Game.map_field_name` owns the suffixed-column mapping,
-    so callers that need the correspondence —
-    the `verify_games` command, the test factory —
-    read it through the facade instead of re-deriving column names.
+    so callers read the correspondence through the facade
+    instead of re-deriving column names.
     Both go away with the facade
-    when the directional columns are dropped
-    (step 4 of docs/game-migration.md).
+    in the "Drop the directional columns" step
+    of docs/game-migration.md.
     """
     game = Game(battle, direction)
     return {

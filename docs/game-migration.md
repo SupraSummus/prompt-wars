@@ -66,15 +66,29 @@ rolling back a reader flip is a code revert with no data repair.
 
 The `verify_games` management command walks every battle direction
 and compares all mirrored fields against the game row —
-the per-request assertions in `resolve_battle`, made exhaustive —
-creating any missing rows.
+the per-request assertions in `resolve_battle`, made exhaustive.
 It ships and runs on its own,
 ahead of anything that depends on a complete table.
-Then `resolve_battle` stops tolerating a missing game row:
+
+Auditing and repairing stay apart.
+`verify_games` writes nothing:
+it counts each kind of difference with one example row,
+because a single bad historical backfill leaves a finding
+on every battle in the table
+and the mass ones must not bury the single odd one.
+Each repair is then its own command, named for what it repairs,
+deleted once a production run leaves nothing to do —
+`backfill_game_input_sha256` covers the one cause known so far,
+`backfill_sha.py` having written the battle's sha and not the game's.
+A finding nothing explains is a bug to chase, not data to copy over,
+and the directional columns cannot be dropped while any remain.
+
+With the table verified, `resolve_battle`
+stops tolerating a missing game row:
 the `DBGame.DoesNotExist` branch goes away,
 and the lookup keys on the unique (battle, warrior_1)
 rather than on `processed_goal`,
-which rows the command creates cannot have.
+which backfilled rows do not have.
 The test factory takes on the same invariant,
 creating both game rows with every battle.
 
