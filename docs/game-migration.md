@@ -51,6 +51,26 @@ game-level processing reads the game's.
 Collapsing the duplication is possible after the dust settles
 but is not part of this migration.
 
+**`Game` keeps `input_sha256`.**
+Nothing reads it in production;
+it stays as a consistency anchor:
+a future audit can recompute the sha from the warrior bodies
+and compare,
+catching a drifted body
+or a resolution recorded against different inputs.
+The rejected alternative — dropping it as derivable —
+misses that derivability is what makes the check possible:
+a value that is only ever recomputed
+can never disagree with anything.
+The battle's directional pair carries no extra information
+and drops in step 4 with the other paired columns.
+The blank game rows (tracked in `TODO.md`)
+become worth filling by that same recomputation —
+but only after step 4:
+filling one side of a live mirror
+reads as a `verify_games` finding,
+and filling both sides writes columns that are about to drop.
+
 ## Steps
 
 Each step ships independently
@@ -93,6 +113,10 @@ and the battle's directional columns become the mirror.
 The facade's attribute names already match the game row's fields,
 so the resolver body barely changes —
 only which object is authoritative and which is the copy.
+The invariant and the `verify_games` audit survive
+with their direction flipped:
+equality is symmetric, so the comparison is unchanged,
+and only the docstrings' framing of who mirrors whom moves.
 After this step the directional columns are write-only,
 the same state the `lcs_len_*` columns were in before removal.
 
@@ -119,6 +143,11 @@ In order of blast radius:
   and their (game, algorithm) scores,
   instead of the directional columns and direction-keyed scores.
   The score-averaging semantics are unchanged.
+  This includes `BattleQuerySet.resolved()`,
+  which `update_rating` filters by:
+  it reads `resolved_at_1_2`/`_2_1` directly
+  and must come to mean
+  "both game rows have `resolved_at` set".
 - **Views and templates**:
   `BattleDetailView`, `RecentBattlesView`,
   and the warrior-detail battle list keep their battle-level shape,
@@ -180,11 +209,3 @@ not which signal feeds them.
   in `GameScore` though it is symmetric per (battle, algorithm);
   correct home is a per-battle score object,
   which is not worth introducing during this migration.
-- **Whether `Game` keeps `input_sha256`.**
-  The resolver writes it and nothing reads it,
-  and it is derivable from the two warrior bodies —
-  `backfill_sha.py` recomputes it that way.
-  If it stays, the blanks tracked in `TODO.md`
-  have to be filled before the columns drop;
-  if it goes, they stop mattering
-  and the drop is the moment to remove it.

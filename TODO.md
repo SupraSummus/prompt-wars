@@ -89,21 +89,22 @@ Next move: drop the field, the comment, and the mapping entry,
 same shape as the `lcs_len_*` column removal;
 implies a schema migration but no behavior change.
 
-`warriors/management/commands/backfill_game_input_sha256.py`
-is a one-time repair with 34 rows left to its name:
-those game rows are blank because their battle has no sha either,
-so it has nothing to copy,
+`Game.input_sha256` stays as a consistency anchor
+("Where the design lands" in `docs/game-migration.md`),
+which makes the 34 game rows with a blank sha worth filling.
+They are blank because their battle has no sha either,
+so `backfill_game_input_sha256` has nothing to copy,
 and `verify_games` cannot see them —
 blank on both sides compares equal.
-A direction still in flight is among them and needs nothing:
-resolution writes both sides.
-Next move: for the rest, either recompute the missing battle shas
-(the root-level `backfill_sha.py` derives them from the warrior bodies)
-and run the command once more,
-or settle that the 34 stay blank —
-either way the command then goes,
-the way `backfill_game_battles` went
-once the battle links were in place.
+The fill waits for step 4 to drop the battle columns:
+filling only the game side of a live mirror
+reads as a `conflicting input_sha256` finding.
+Next move: once the columns are gone,
+a repair command that recomputes the sha from the warrior bodies
+(the way the root-level `backfill_sha.py` derives it)
+onto blank game rows.
+`backfill_game_input_sha256` goes at step 4
+with the columns it copies from.
 
 `verify_games` skips a direction the battle has not resolved,
 which leaves `llm` and `scheduled_at` unchecked
@@ -132,3 +133,7 @@ a management command next to `warriors/management/commands/verify_games.py`
 if the operation is still worth running,
 and deletion if it was a one-time fix —
 git keeps whichever ones get deleted.
+For `backfill_sha.py` the decision is settled:
+its recompute-from-bodies logic moves into
+the game-row sha repair command (see the `input_sha256` entry),
+and the script goes.
