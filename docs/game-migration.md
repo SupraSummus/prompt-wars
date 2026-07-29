@@ -62,37 +62,29 @@ after the last reader leaves.
 While a dual-write holds,
 rolling back a reader flip is a code revert with no data repair.
 
-### 1. Verify the shadow copy and make it mandatory
+Every step rests on one invariant:
+a battle direction always has its game row,
+faithful to the battle's directional columns
+while the battle is the authoritative writer.
+`Battle.create_from_warriors` writes battle and both games
+in one transaction,
+`resolve_battle` loads the row unconditionally
+by the unique (battle, warrior_1),
+and the test factory creates both rows with every battle.
 
-The `verify_games` management command walks every battle direction
-and compares all mirrored fields against the game row —
-the per-request assertions in `resolve_battle`, made exhaustive.
-It ships and runs on its own,
-ahead of anything that depends on a complete table.
-
-Auditing and repairing stay apart.
-`verify_games` writes nothing:
+Checking that invariant and repairing it stay apart.
+The `verify_games` audit writes nothing:
 it counts each kind of difference with one example row,
 because a single bad historical backfill leaves a finding
 on every battle in the table
 and the mass ones must not bury the single odd one.
-Each repair is then its own command, named for what it repairs,
+Each repair is its own command, named for what it repairs,
 deleted once a production run leaves nothing to do —
 `backfill_game_input_sha256` covers the one cause known so far,
 `backfill_sha.py` having written the battle's sha and not the game's.
-A finding nothing explains is a bug to chase, not data to copy over,
-and the directional columns cannot be dropped while any remain.
+A finding nothing explains is a bug to chase, not data to copy over.
 
-With the table verified, `resolve_battle`
-stops tolerating a missing game row:
-the `DBGame.DoesNotExist` branch goes away,
-and the lookup keys on the unique (battle, warrior_1)
-rather than on `processed_goal`,
-which backfilled rows do not have.
-The test factory takes on the same invariant,
-creating both game rows with every battle.
-
-### 2. Invert write authority
+### 1. Invert write authority
 
 `resolve_battle` and `_run_llm` currently treat
 the `Game` facade over `Battle` as primary
@@ -106,7 +98,7 @@ only which object is authoritative and which is the copy.
 After this step the directional columns are write-only,
 the same state the `lcs_len_*` columns were in before removal.
 
-### 3. Re-key GameScore
+### 2. Re-key GameScore
 
 Add a nullable `game` foreign key to `GameScore`,
 dual-written in `get_or_create_game_score` (`warriors/score.py`);
@@ -118,7 +110,7 @@ instead of constructing the battle facade.
 `direction` and `battle` drop from `GameScore`
 once nothing selects by them.
 
-### 4. Cut the remaining readers over
+### 3. Cut the remaining readers over
 
 In order of blast radius:
 
@@ -142,23 +134,27 @@ In order of blast radius:
   cooldown, opponent exclusion, and `battle_count`
   are pair-level and stay on `Battle`.
 
-### 5. Drop the directional columns
+### 4. Drop the directional columns
+
+Not while `verify_games` still reports a finding:
+after this the game row is the only copy,
+so anything it lacks is lost here.
 
 Delete the paired columns from `Battle`
 (`input_sha256_*`, `text_unit_*`, `finish_reason_*`,
 `llm_version_*`, `resolved_at_*`, `attempts_*`),
-the step-2 mirror writes,
+the step-1 mirror writes,
 and the facade machinery that mapped suffixed names.
-The `verify_games` command goes with them —
+The command goes with the columns —
 it compares game rows against columns that no longer exist,
 and `mirrored_game_fields` has nothing left to map.
 Same shape as the `lcs_len_*` removal.
 The dead `rating_transferred_at` column
 (tracked in `TODO.md`) rides along.
 
-### 6. Rename
+### 5. Rename
 
-With the in-memory `Game` facade deleted in step 5,
+With the in-memory `Game` facade deleted in step 4,
 the name is free:
 `DBGame` becomes `Game`.
 The table is already `warriors_game`,
@@ -174,7 +170,7 @@ This plan is one of its independently-shippable tracks
 and orders only its own steps;
 dropping `Battle.arena` can land any time,
 and the ranking-registry work is untouched by it —
-rating reads change *representation* here (step 4),
+rating reads change *representation* here (step 3),
 not which signal feeds them.
 
 ## Open decisions

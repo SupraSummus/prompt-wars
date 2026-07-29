@@ -3,7 +3,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.utils import timezone
 
-from ..battles import LLM, DBGame, mirrored_game_fields
+from ..battles import LLM
 from .factories import BattleFactory, TextUnitFactory, WarriorFactory
 
 
@@ -19,7 +19,7 @@ def create_mirrored_battle():
         WarriorFactory.create_batch(2),
         key=lambda warrior: warrior.id,
     )
-    battle = BattleFactory(
+    return BattleFactory(
         llm=LLM.OPENAI_GPT,
         warrior_1=warrior_1,
         warrior_2=warrior_2,
@@ -34,12 +34,6 @@ def create_mirrored_battle():
         llm_version_2_1='gpt-3.5/1234',
         input_sha256_2_1=b'\x02' * 32,
     )
-    for direction in ('1_2', '2_1'):
-        DBGame.objects.create(
-            battle=battle,
-            **mirrored_game_fields(battle, direction),
-        )
-    return battle
 
 
 @pytest.mark.django_db
