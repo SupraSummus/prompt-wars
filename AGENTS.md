@@ -137,13 +137,17 @@ pg_ctlcluster 16 main start
 sudo -u postgres psql -c "CREATE USER promptwars WITH PASSWORD 'promptwars' SUPERUSER CREATEDB;"
 sudo -u postgres psql -c "CREATE DATABASE promptwars OWNER promptwars;"
 
-# Upgrade pgvector to >= 0.7.0 (system package is 0.6.0, too old)
-# Required for HammingDistance on BitField (the <~> operator on bit type).
-# Only tests that run HammingDistance queries need this (embedding_explorer,
-# guessing); for everything else the system package alone is enough
-# (migrations only CREATE EXTENSION vector), and the source build below
-# takes several minutes — skip it when not testing those apps.
-apt-get install -y postgresql-16-pgvector postgresql-server-dev-16
+# Install pgvector. Every test needs it: the migrations CREATE EXTENSION
+# vector, so without it database setup fails for the whole suite with
+# 'extension "vector" is not available'. No restart — a backend resolves
+# the extension when it runs CREATE EXTENSION, not at startup.
+apt-get install -y postgresql-16-pgvector
+
+# Upgrade to >= 0.7.0 only to test embedding_explorer or guessing: the
+# system package is 0.6.0, which lacks HammingDistance on BitField (the
+# <~> operator on bit type). This build takes several minutes, and the
+# restart is what picks up the replaced library.
+apt-get install -y postgresql-server-dev-16
 cd /tmp && git clone --branch v0.8.0 --depth 1 https://github.com/pgvector/pgvector.git
 cd /tmp/pgvector && make && make install
 pg_ctlcluster 16 main restart
