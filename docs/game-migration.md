@@ -64,16 +64,19 @@ rolling back a reader flip is a code revert with no data repair.
 
 ### 1. Verify the shadow copy and make it mandatory
 
-A management command walks every battle direction
+The `verify_games` management command walks every battle direction
 and compares all mirrored fields against the game row —
 the per-request assertions in `resolve_battle`, made exhaustive —
-creating any missing rows
-(this absorbs and replaces the root-level `tmp.py` scratch script,
-which gets deleted).
-With the table verified complete,
-`resolve_battle` stops tolerating a missing game row:
-the `DBGame.DoesNotExist` branch goes away
-(test factories already create game rows alongside battles).
+creating any missing rows.
+It ships and runs on its own,
+ahead of anything that depends on a complete table.
+Then `resolve_battle` stops tolerating a missing game row:
+the `DBGame.DoesNotExist` branch goes away,
+and the lookup keys on the unique (battle, warrior_1)
+rather than on `processed_goal`,
+which rows the command creates cannot have.
+The test factory takes on the same invariant,
+creating both game rows with every battle.
 
 ### 2. Invert write authority
 
@@ -132,6 +135,9 @@ Delete the paired columns from `Battle`
 `llm_version_*`, `resolved_at_*`, `attempts_*`),
 the step-2 mirror writes,
 and the facade machinery that mapped suffixed names.
+The `verify_games` command goes with them —
+it compares game rows against columns that no longer exist,
+and `mirrored_game_fields` has nothing left to map.
 Same shape as the `lcs_len_*` removal.
 The dead `rating_transferred_at` column
 (tracked in `TODO.md`) rides along.

@@ -89,13 +89,15 @@ Next move: drop the field, the comment, and the mapping entry,
 same shape as the `lcs_len_*` column removal;
 implies a schema migration but no behavior change.
 
-`tmp.py` at the repo root is a one-off `DBGame` backfill script
-committed as scratch:
-it replays for historical battles
-what the dual-write in `Battle.create_from_warriors` does for new ones,
-with no CLI entry point,
-and whether it was ever run against production
-is not recorded anywhere in the repo.
-Next move: absorb it into the verify-and-backfill management command
-of step 1 in `docs/game-migration.md`, then delete it;
-if that plan stalls, delete it anyway once the backfill is verified.
+Five one-off scripts sit at the repo root —
+`backfill_sha.py`, `create_game_score.py`, `set_game_score.py`,
+`gemini_redo_max_tokens.py`, `moderation_experiment.py` —
+imported by hand in a shell, outside any app,
+untested and unreachable from `manage.py`.
+They rot invisibly:
+`backfill_sha.py` cites a `verify_ordering.py` that is not in the tree.
+Next move: for each, decide between
+a management command next to `warriors/management/commands/verify_games.py`
+if the operation is still worth running,
+and deletion if it was a one-time fix —
+git keeps whichever ones get deleted.
