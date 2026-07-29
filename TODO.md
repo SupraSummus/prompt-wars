@@ -89,13 +89,24 @@ Next move: drop the field, the comment, and the mapping entry,
 same shape as the `lcs_len_*` column removal;
 implies a schema migration but no behavior change.
 
+`warriors/management/commands/backfill_game_input_sha256.py`
+is a one-time repair, kept only until it has nothing left to do:
+it copies `Battle.input_sha256_*` onto the game rows that lack it,
+the gap `backfill_sha.py` leaves behind.
+Next move: delete it once a production run reports nothing still blank
+and `verify_games` no longer reports `blank input_sha256`,
+the same way `backfill_game_battles` went
+after the battle links were in place.
+
 Five one-off scripts sit at the repo root —
 `backfill_sha.py`, `create_game_score.py`, `set_game_score.py`,
 `gemini_redo_max_tokens.py`, `moderation_experiment.py` —
 imported by hand in a shell, outside any app,
 untested and unreachable from `manage.py`.
 They rot invisibly:
-`backfill_sha.py` cites a `verify_ordering.py` that is not in the tree.
+`backfill_sha.py` cites a `verify_ordering.py` that is not in the tree,
+and it writes `Battle.input_sha256_*` without the matching game rows —
+the blanks the `verify_games` command exists to fill.
 Next move: for each, decide between
 a management command next to `warriors/management/commands/verify_games.py`
 if the operation is still worth running,
