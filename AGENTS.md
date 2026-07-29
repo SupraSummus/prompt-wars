@@ -73,6 +73,31 @@ its header has the convention.
 Game-design ideas and philosophical observations are not debt:
 they go to `CONCEPT.md` or `docs/`, next to their rationale.
 
+## One-off data repairs are commands, not scripts
+
+A migration or a bad backfill leaves rows to fix.
+The fix belongs in `warriors/management/commands/`
+as a named command with a test,
+reachable from `manage.py` and reviewed like any other code.
+The scripts at the repo root show what the alternative costs:
+untested, invisible to `manage.py`,
+and no record of whether they were ever run
+(`TODO.md` tracks them).
+Name the command after what it repairs,
+say in its docstring what made the rows wrong,
+and log the condition for deleting it in `TODO.md`:
+a repair is finished when its rows are gone,
+and the ones that outlive that condition are the ones that rot.
+
+Auditing and repairing are separate commands.
+An audit that writes is one you hesitate to run,
+and a repair that decides for itself which differences are benign
+hides the bug you were looking for —
+so an audit reports, counting each kind of finding
+rather than listing every row,
+and a repair fixes one named cause.
+`verify_games` and `backfill_game_input_sha256` are the pair to copy.
+
 ## Prose uses semantic line breaks
 
 Write natural-language text —

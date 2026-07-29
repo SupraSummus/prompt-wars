@@ -89,14 +89,54 @@ Next move: drop the field, the comment, and the mapping entry,
 same shape as the `lcs_len_*` column removal;
 implies a schema migration but no behavior change.
 
+Seven game rows hold none of the result their battle recorded:
+`text_unit`, `finish_reason`, `llm_version` and `resolved_at` are blank
+on a direction the battle has resolved
+(five battles, all scheduled 2026-02-08; `verify_games` reports them).
+Blank is what the old resolver left
+when it could not find the game row by `processed_goal`:
+it wrote the battle and skipped the mirror.
+Why the lookup missed is not established;
+the rows carry their goals and match their battle
+on `llm` and `scheduled_at`, so the row existed when the goal ran.
+Next move: a `backfill_game_resolution` command,
+one `UPDATE ... FROM` per direction guarded by
+`g.resolved_at IS NULL AND b.resolved_at_<dir> IS NOT NULL`
+so it cannot touch a direction still in flight,
+deleted after its run.
+The directional columns cannot be dropped before that:
+the battle holds the only copy of those seven results.
+A recurrence now surfaces as a `DBGame.DoesNotExist` goal failure,
+which is what to look for if the count grows.
+
 `warriors/management/commands/backfill_game_input_sha256.py`
-is a one-time repair, kept only until it has nothing left to do:
-it copies `Battle.input_sha256_*` onto the game rows that lack it,
-the gap `backfill_sha.py` leaves behind.
-Next move: delete it once a production run reports nothing still blank
-and `verify_games` no longer reports `blank input_sha256`,
-the same way `backfill_game_battles` went
-after the battle links were in place.
+is a one-time repair with 34 rows left to its name:
+those game rows are blank because their battle has no sha either,
+so it has nothing to copy,
+and `verify_games` cannot see them —
+blank on both sides compares equal.
+A direction still in flight is among them and needs nothing:
+resolution writes both sides.
+Next move: for the rest, either recompute the missing battle shas
+(the root-level `backfill_sha.py` derives them from the warrior bodies)
+and run the command once more,
+or settle that the 34 stay blank —
+either way the command then goes,
+the way `backfill_game_battles` went
+once the battle links were in place.
+
+`verify_games` skips a direction the battle has not resolved,
+which leaves `llm` and `scheduled_at` unchecked
+on exactly the rows `resolve_battle`'s asserts act on:
+those two are set when the pair is created, not at resolution,
+so an unresolved direction can hold a drifted copy
+and the audit will not say so.
+Next move: split the comparison —
+the creation-time fields (`llm`, `scheduled_at`, the warrior pair)
+on every direction,
+the resolution fields only once the battle has resolved it.
+The skip exists because `attempts` climbs while a direction retries,
+and that is a resolution field.
 
 Five one-off scripts sit at the repo root —
 `backfill_sha.py`, `create_game_score.py`, `set_game_score.py`,
@@ -106,7 +146,7 @@ untested and unreachable from `manage.py`.
 They rot invisibly:
 `backfill_sha.py` cites a `verify_ordering.py` that is not in the tree,
 and it writes `Battle.input_sha256_*` without the matching game rows —
-the blanks the `verify_games` command exists to fill.
+the blanks `backfill_game_input_sha256` exists to fill.
 Next move: for each, decide between
 a management command next to `warriors/management/commands/verify_games.py`
 if the operation is still worth running,
