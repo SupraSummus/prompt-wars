@@ -523,6 +523,8 @@ class Game:
             'attempts',
         ):
             return f'{field_name}_{self.direction}'
+        elif field_name == 'text_unit_id':
+            return f'text_unit_{self.direction}_id'
         elif field_name == 'warrior_1':
             return f'warrior_{self.direction_from}'
         elif field_name == 'warrior_2':
@@ -535,7 +537,7 @@ class Game:
             return f'warrior_arena_{self.direction_from}'
         elif field_name == 'warrior_arena_2':
             return f'warrior_arena_{self.direction_to}'
-        elif field_name in ('arena', 'llm'):
+        elif field_name in ('arena', 'llm', 'scheduled_at'):
             return field_name
         else:
             return None
@@ -613,6 +615,44 @@ class Game:
     @property
     def embedding_scoring(self):
         return Game(self.battle, self.direction, score_algorithm='embeddings')
+
+
+MIRRORED_GAME_FIELDS = (
+    'llm',
+    'scheduled_at',
+    'warrior_1_id',
+    'warrior_2_id',
+    'input_sha256',
+    'text_unit_id',
+    'finish_reason',
+    'llm_version',
+    'resolved_at',
+    'attempts',
+)
+
+
+def mirrored_game_fields(battle, direction):
+    """
+    One battle direction expressed as game-row field values.
+
+    `Game.map_field_name` owns the suffixed-column mapping,
+    so callers that need the correspondence —
+    the `verify_games` command, the test factory —
+    read it through the facade instead of re-deriving column names.
+    Both go away with the facade
+    when the directional columns are dropped
+    (step 4 of docs/game-migration.md).
+    """
+    game = Game(battle, direction)
+    return {
+        name: as_bytes(getattr(game, name))
+        for name in MIRRORED_GAME_FIELDS
+    }
+
+
+def as_bytes(value):
+    """A bytea column reads back as a memoryview, which is unequal to bytes."""
+    return bytes(value) if isinstance(value, memoryview) else value
 
 
 def lcs_mark(result, warrior_body):
