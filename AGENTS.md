@@ -157,16 +157,12 @@ pg_ctlcluster 16 main restart
 # and HammingDistance queries will fail with "operator does not exist".
 sudo -u postgres psql -c "DROP DATABASE IF EXISTS test_promptwars;"
 
-# Create .env
-cat > /home/user/prompt-wars/.env << 'EOF'
-DATABASE_URL=postgres://promptwars:promptwars@localhost:5432/promptwars
-DJANGO_SECRET_KEY=test-secret-key-for-testing-only
-DJANGO_DEBUG=True
-ALLOWED_HOSTS=*
-FORCE_HTTPS=False
-VOYAGE_API_KEY=test
-GOOGLE_AI_API_KEY=test-dummy-key
-EOF
+# Create .env from the same file CI uses, so the stub API keys the LLM
+# clients need stay in one place, then point it at the database created
+# above (example.env names a different one).
+cp /home/user/prompt-wars/example.env /home/user/prompt-wars/.env
+sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgres://promptwars:promptwars@localhost:5432/promptwars|' \
+    /home/user/prompt-wars/.env
 
 # Install dependencies
 cd /home/user/prompt-wars

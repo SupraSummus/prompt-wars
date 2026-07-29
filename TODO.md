@@ -106,6 +106,35 @@ onto blank game rows.
 `backfill_game_input_sha256` goes at step 4
 with the columns it copies from.
 
+The token-limit branch in `resolve_battle_openai`
+(`warriors/llms/openai.py`) reads `response.text` and `response.model_version`;
+openai's `ChatCompletion` has neither,
+so the branch raises `AttributeError`
+instead of returning the `'error'` result it means to
+whenever the model spends its whole budget on reasoning.
+It is a copy of the equivalent branch in `call_gemini`
+(`warriors/llms/google.py`), typo in the shared comment included,
+where both attributes do exist.
+Only a `real_world` test reaches `resolve_battle_openai`,
+so nothing exercises the branch.
+Next move: return the `result` and `response.model` values
+the success path a few lines down already uses,
+and cover it with a `respx`-mocked test for `finish_reason == 'length'`,
+shaped like the token-limit tests in `warriors/llms/google_tests.py`.
+
+`warriors/embeddings.py` uses the `voyageai` SDK for a single `embed()` call,
+and since voyageai 0.5.0 that SDK requires
+`langchain-text-splitters`, `tokenizers`, and `pillow` —
+so installing it drags in langchain-core, langsmith, and huggingface-hub
+to send one HTTP request.
+`embedding_explorer/voyage.py` shows the alternative:
+the same endpoint called directly with `requests`.
+Next move: fold the `voyage-3` request into that module's shape,
+drop `voyageai` from `pyproject.toml`,
+and map a 429 response to the `RetryMeLater` that
+`voyageai.error.RateLimitError` currently triggers —
+that exception is the only thing the SDK contributes here.
+
 `verify_games` skips a direction the battle has not resolved,
 which leaves `llm` and `scheduled_at` unchecked
 on exactly the rows `resolve_battle`'s asserts act on:
