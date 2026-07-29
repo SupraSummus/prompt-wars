@@ -73,17 +73,13 @@ by the unique (battle, warrior_1),
 and the test factory creates both rows with every battle.
 
 Checking that invariant and repairing it stay apart.
-The `verify_games` audit writes nothing:
-it counts each kind of difference with one example row,
-because a single bad historical backfill leaves a finding
-on every battle in the table
-and the mass ones must not bury the single odd one.
+The `verify_games` audit writes nothing
+and reports by category rather than by row
+(its docstring says why).
 Each repair is its own command, named for what it repairs,
 deleted once a production run leaves nothing to do:
 `backfill_game_input_sha256` for `backfill_sha.py`
-having written the battle's sha and not the game's,
-`backfill_game_resolution` for the old resolver
-having written the battle's result and skipped the mirror.
+having written the battle's sha and not the game's.
 A finding nothing explains is a bug to chase, not data to copy over.
 
 ### 1. Invert write authority

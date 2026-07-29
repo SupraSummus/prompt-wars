@@ -89,25 +89,6 @@ Next move: drop the field, the comment, and the mapping entry,
 same shape as the `lcs_len_*` column removal;
 implies a schema migration but no behavior change.
 
-Seven game rows hold none of the result their battle recorded:
-`text_unit`, `finish_reason`, `llm_version` and `resolved_at` are blank
-on a direction the battle has resolved
-(five battles, all scheduled 2026-02-08; `verify_games` reports them).
-Blank is what the old resolver left
-when it could not find the game row by `processed_goal`:
-it wrote the battle and skipped the mirror.
-Why the lookup missed is not established;
-the rows carry their goals and match their battle
-on `llm` and `scheduled_at`, so the row existed when the goal ran.
-`backfill_game_resolution` fills them;
-next move is to run it in production
-and delete the command once `verify_games` reports nothing,
-the way `backfill_game_battles` went.
-The directional columns cannot be dropped before that:
-the battle holds the only copy of those seven results.
-A recurrence now surfaces as a `DBGame.DoesNotExist` goal failure,
-which is what to look for if the count grows.
-
 `warriors/management/commands/backfill_game_input_sha256.py`
 is a one-time repair with 34 rows left to its name:
 those game rows are blank because their battle has no sha either,
