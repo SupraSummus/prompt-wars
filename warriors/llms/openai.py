@@ -14,6 +14,15 @@ openai_client = openai.Client(
 )
 
 
+def _llm_version(response):
+    """Which model actually answered.
+
+    Unlike the other providers, openai splits this across two fields -
+    the resolved model name and a fingerprint of the backend behind it.
+    """
+    return response.model + '/' + (response.system_fingerprint or '')
+
+
 def resolve_battle_openai(prompt_a, prompt_b, system_prompt=''):
     messages = []
     if system_prompt:
@@ -43,19 +52,16 @@ def resolve_battle_openai(prompt_a, prompt_b, system_prompt=''):
     else:
         (resp_choice,) = response.choices
         finish_reason = resp_choice.finish_reason
-        result = resp_choice.message.content
+        # content is Optional in the response schema, hence the fallback
+        result = resp_choice.message.content or ''
         if (
             # battle is not valid if we exceed token limit and MAX_WARRIOR_LENGTH is not reached
             # model propably used all the tokens for reasoning
             finish_reason == 'length' and
             len(result) < MAX_WARRIOR_LENGTH
         ):
-            return response.text, 'error', response.model_version
-        return (
-            result,
-            finish_reason,
-            response.model + '/' + (response.system_fingerprint or '')
-        )
+            finish_reason = 'error'
+        return result, finish_reason, _llm_version(response)
 
 
 def call_llm(examples, prompt, system_prompt=None, max_completion_tokens=None):
@@ -84,7 +90,4 @@ def call_llm(examples, prompt, system_prompt=None, max_completion_tokens=None):
         **kwargs,
     )
     (resp_choice,) = response.choices
-    return (
-        resp_choice.message.content,
-        response.model + '/' + (response.system_fingerprint or '')
-    )
+    return resp_choice.message.content, _llm_version(response)

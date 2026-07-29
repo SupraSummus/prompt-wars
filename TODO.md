@@ -106,21 +106,34 @@ onto blank game rows.
 `backfill_game_input_sha256` goes at step 4
 with the columns it copies from.
 
-The token-limit branch in `resolve_battle_openai`
-(`warriors/llms/openai.py`) reads `response.text` and `response.model_version`;
-openai's `ChatCompletion` has neither,
-so the branch raises `AttributeError`
-instead of returning the `'error'` result it means to
-whenever the model spends its whole budget on reasoning.
-It is a copy of the equivalent branch in `call_gemini`
-(`warriors/llms/google.py`), typo in the shared comment included,
-where both attributes do exist.
-Only a `real_world` test reaches `resolve_battle_openai`,
-so nothing exercises the branch.
-Next move: return the `result` and `response.model` values
-the success path a few lines down already uses,
-and cover it with a `respx`-mocked test for `finish_reason == 'length'`,
-shaped like the token-limit tests in `warriors/llms/google_tests.py`.
+The token-limit branch in `call_gemini` (`warriors/llms/google.py`)
+returns the raw `response.text` where the success path two lines down
+returns the `text` it already defaulted to `''`,
+so a candidate carrying no parts leaves the function as `None`
+and `resolve_battle` crashes on `result[:MAX_WARRIOR_LENGTH]`
+(`warriors/tasks.py`) instead of recording an error result.
+Reachable when thinking exhausts the budget
+but a candidate is still emitted —
+the existing `test_google_token_limit_reasoning` covers only
+the no-candidates shape, which returns early.
+Next move: return `text` in that branch,
+and extend the test with a parts-less candidate.
+
+`call_llm` (`warriors/llms/openai.py`) talks to the same endpoint as
+`resolve_battle_openai` but shares none of its defenses:
+no `RateLimitError`/`TransientLLMError` mapping,
+so a rate limit or a 502 escapes raw from the `ensure_name_generated` goal
+and fails it outright instead of earning the retry
+`resolve_battle` gets for the identical condition;
+and it hands `message.content` straight to `generated_name.strip()`
+in `generate_warrior_name` (`warriors/warriors.py`),
+which is `AttributeError` for the null content the schema allows.
+Nothing covers the function.
+Next move: wrap the call in the same two `except` clauses,
+have `ensure_name_generated` return `RetryMeLater` for them,
+default the content to `''`,
+and cover all three with `respx` mocks next to the battle tests.
+This changes behavior — a failed name generation starts retrying — so it needs sign-off.
 
 `warriors/embeddings.py` uses the `voyageai` SDK for a single `embed()` call,
 and since voyageai 0.5.0 that SDK requires
