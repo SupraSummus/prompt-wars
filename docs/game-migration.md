@@ -182,3 +182,11 @@ not which signal feeds them.
   in `GameScore` though it is symmetric per (battle, algorithm);
   correct home is a per-battle score object,
   which is not worth introducing during this migration.
+- **Whether `Game` keeps `input_sha256`.**
+  The resolver writes it and nothing reads it,
+  and it is derivable from the two warrior bodies —
+  `backfill_sha.py` recomputes it that way.
+  If it stays, the blanks tracked in `TODO.md`
+  have to be filled before the columns drop;
+  if it goes, they stop mattering
+  and the drop is the moment to remove it.
