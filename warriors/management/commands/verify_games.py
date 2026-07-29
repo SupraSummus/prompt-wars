@@ -1,7 +1,8 @@
 """
 Audit every battle direction against its game row.
 Read-only: it reports, and repairing is a separate deliberate act
-(`backfill_game_input_sha256` is the one such repair the tree needs).
+(`backfill_game_input_sha256` and `backfill_game_resolution`
+are the repairs the tree needs).
 
 This checks the invariant every step of docs/game-migration.md rests on:
 a battle direction always has its game row,

@@ -168,6 +168,11 @@ EOF
 cd /home/user/prompt-wars
 pip install poetry
 poetry install
+
+# Build the staticfiles manifest — ManifestStaticFilesStorage resolves
+# {% static %} through it, so any test that renders a page (the admin
+# tests) fails with "Missing staticfiles manifest entry" without this.
+poetry run python manage.py collectstatic --noinput
 ```
 
 ### Running tests
@@ -175,6 +180,10 @@ poetry install
 ```bash
 cd /home/user/prompt-wars
 poetry run python -m pytest embedding_explorer/tests.py -v
+
+# Tests marked real_world call live LLM and embedding endpoints and fail
+# on the dummy keys above; deselect them to read the suite's real state.
+poetry run python -m pytest warriors/ -m "not real_world"
 ```
 
 ### Linting
