@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from users.tests.factories import UserFactory
 
-from ..battles import Battle, DBGame
+from ..battles import Battle, DBGame, mirrored_game_fields
 from ..models import LLM, Arena, WarriorArena, WarriorUserPermission
 from ..score import GameScore
 from ..text_unit import TextUnit
@@ -50,9 +50,25 @@ class WarriorUserPermissionFactory(factory.django.DjangoModelFactory):
 class BattleFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Battle
+        skip_postgeneration_save = True
 
     warrior_1 = factory.SubFactory(WarriorFactory)
     warrior_2 = factory.SubFactory(WarriorFactory)
+
+    @factory.post_generation
+    def games(battle, create, extracted, **kwargs):
+        """
+        Hold the invariant `resolve_battle` relies on:
+        a battle comes with its two game rows,
+        mirroring whichever directional fields the caller set.
+        """
+        if not create:
+            return
+        for direction in ('1_2', '2_1'):
+            DBGame.objects.create(
+                battle=battle,
+                **mirrored_game_fields(battle, direction),
+            )
 
 
 def batch_create_battles(arena, warrior_arena, n):
@@ -74,27 +90,6 @@ def batch_create_battles(arena, warrior_arena, n):
             resolved_at_2_1=timezone.now(),
             text_unit_2_1=TextUnitFactory(),
         )
-
-        # Create corresponding DBGame objects
-        DBGame.objects.create(
-            battle=battle,
-            llm=arena.llm,
-            warrior_1=battle_warrior_1,
-            warrior_2=battle_warrior_2,
-            scheduled_at=battle.scheduled_at,
-            text_unit=battle.text_unit_1_2,
-            resolved_at=battle.resolved_at_1_2,
-        )
-        DBGame.objects.create(
-            battle=battle,
-            llm=arena.llm,
-            warrior_1=battle_warrior_2,
-            warrior_2=battle_warrior_1,
-            scheduled_at=battle.scheduled_at,
-            text_unit=battle.text_unit_2_1,
-            resolved_at=battle.resolved_at_2_1,
-        )
-
         battles.append(battle)
     return battles
 

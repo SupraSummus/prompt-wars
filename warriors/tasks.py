@@ -7,7 +7,7 @@ from django.db import transaction
 from django.utils import timezone
 from django_goals.models import AllDone, RetryMeLater, schedule
 
-from .battles import LLM, MATCHMAKING_COOLDOWN, Battle, DBGame, Game
+from .battles import LLM, MATCHMAKING_COOLDOWN, Battle, Game
 from .llms import anthropic
 from .llms.exceptions import TransientLLMError
 from .llms.google import resolve_battle_google
@@ -106,25 +106,26 @@ def resolve_battle_2_1(goal, battle_id):
     return resolve_battle(goal, battle_id, '2_1')
 
 
-def resolve_battle(goal, battle_id, direction, _game=None):
+def resolve_battle(goal, battle_id, direction):
     now = timezone.now()
     battle = Battle.objects.filter(id=battle_id).select_related(
         'warrior_1',
         'warrior_2',
     ).get()
     battle_view = Game(battle, direction)
-    try:
-        db_game = DBGame.objects.get(processed_goal=goal)
-    except DBGame.DoesNotExist:
-        db_game = None
-    if db_game is not None:
-        assert db_game.llm == battle.llm
-        assert db_game.warrior_1_id == battle_view.warrior_1_id
-        assert db_game.warrior_2_id == battle_view.warrior_2_id
-        assert db_game.scheduled_at == battle.scheduled_at
+    # Both rows exist for every battle: Battle.create_from_warriors writes
+    # them in its transaction, and the verify_games audit reports any
+    # battle that lacks one. The lookup keys on the unique
+    # (battle, warrior_1) — the direction key of the target schema.
+    # processed_goal cannot key it: backfilled rows have none, and goal
+    # collection clears the rest (SET_NULL).
+    db_game = battle.games.get(warrior_1_id=battle_view.warrior_1_id)
+    assert db_game.llm == battle.llm
+    assert db_game.warrior_2_id == battle_view.warrior_2_id
+    assert db_game.scheduled_at == battle.scheduled_at
 
     if battle_view.resolved_at is None:
-        r = _run_llm(battle_view, now, db_game=db_game)
+        r = _run_llm(battle_view, now, db_game)
         if isinstance(r, RetryMeLater):
             return r
         else:
@@ -147,7 +148,7 @@ def resolve_battle(goal, battle_id, direction, _game=None):
     return AllDone()
 
 
-def _run_llm(battle_view, now, db_game=None):
+def _run_llm(battle_view, now, db_game):
     resolve_battle_function = {
         LLM.OPENAI_GPT: resolve_battle_openai,
         LLM.CLAUDE_3_HAIKU: anthropic.resolve_battle,
@@ -171,9 +172,8 @@ def _run_llm(battle_view, now, db_game=None):
         battle_view.save(update_fields=['attempts'])
 
         # Update corresponding Game object
-        if db_game is not None:
-            db_game.attempts = battle_view.attempts
-            db_game.save(update_fields=['attempts'])
+        db_game.attempts = battle_view.attempts
+        db_game.save(update_fields=['attempts'])
 
         if attempts < 6:
             # try again in some time
@@ -208,19 +208,18 @@ def _run_llm(battle_view, now, db_game=None):
     ])
 
     # Update corresponding Game object
-    if db_game is not None:
-        db_game.input_sha256 = battle_view.input_sha256
-        db_game.text_unit = battle_view.text_unit
-        db_game.finish_reason = battle_view.finish_reason
-        db_game.llm_version = battle_view.llm_version
-        db_game.resolved_at = now
-        db_game.save(update_fields=[
-            'input_sha256',
-            'text_unit',
-            'finish_reason',
-            'llm_version',
-            'resolved_at',
-        ])
+    db_game.input_sha256 = battle_view.input_sha256
+    db_game.text_unit = battle_view.text_unit
+    db_game.finish_reason = battle_view.finish_reason
+    db_game.llm_version = battle_view.llm_version
+    db_game.resolved_at = now
+    db_game.save(update_fields=[
+        'input_sha256',
+        'text_unit',
+        'finish_reason',
+        'llm_version',
+        'resolved_at',
+    ])
 
 
 def transfer_rating(goal, battle_id):

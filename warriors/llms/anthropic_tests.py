@@ -3,7 +3,6 @@ from unittest import mock
 import anthropic
 import pytest
 
-from ..battles import DBGame
 from ..models import LLM
 from ..tasks import resolve_battle
 
@@ -40,9 +39,8 @@ def test_resolve_battle(battle, anthropic_messages_create_mock):
     assert battle.llm_version_1_2 == 'claude-3-haiku-20240307'
     assert battle.finish_reason_1_2 == 'end_turn'
 
-    # DBGame is not created when goal is None (in unit tests)
-    # In production, DBGame would be created by Battle.create_from_warriors
-    assert DBGame.objects.filter(
-        warrior_1=battle.warrior_1,
-        warrior_2=battle.warrior_2,
-    ).count() == 0
+    # the game row mirrors what the battle's directional columns got
+    db_game = battle.games.get(warrior_1=battle.warrior_1)
+    assert db_game.text_unit_id == battle.text_unit_1_2_id
+    assert db_game.llm_version == battle.llm_version_1_2
+    assert db_game.finish_reason == battle.finish_reason_1_2
