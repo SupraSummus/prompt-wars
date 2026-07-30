@@ -106,18 +106,38 @@ onto blank game rows.
 `backfill_game_input_sha256` goes at step 4
 with the columns it copies from.
 
-The token-limit branch in `call_gemini` (`warriors/llms/google.py`)
-returns the raw `response.text` where the success path two lines down
-returns the `text` it already defaulted to `''`,
-so a candidate carrying no parts leaves the function as `None`
-and `resolve_battle` crashes on `result[:MAX_WARRIOR_LENGTH]`
-(`warriors/tasks.py`) instead of recording an error result.
-Reachable when thinking exhausts the budget
-but a candidate is still emitted —
-the existing `test_google_token_limit_reasoning` covers only
-the no-candidates shape, which returns early.
-Next move: return `text` in that branch,
-and extend the test with a parts-less candidate.
+The `thinking_config` that `call_gemini` sends (`warriors/llms/google.py`)
+buys thinking but does not bound it:
+`gemini-flash-lite-latest` resolves to a Gemini 3 model,
+which treats the budget as a hint and reasons into the low thousands of tokens
+whatever number it is given,
+while `thinking_budget=0` is rejected outright with a 400.
+`max_output_tokens` is the only real cap,
+and reasoning shares it with the answer,
+so a reasoning-heavy pair of warriors can spend the whole cap thinking
+and resolve as an error.
+The dial that does work is binary —
+sending no `thinking_config` at all stops the thinking
+on every prompt measured — which is a change to battle outcomes,
+so it needs sign-off, as does trading the budget for `thinking_level`.
+Next move: pick one and record the reasoning
+in the reasoning-tokens item of `docs/strategy.md`,
+which owns why the spend is deliberate.
+
+The three connectors (`warriors/llms/`) each spell out the same policy
+in their own provider's dialect:
+rate limit to `RateLimitError`, server and transport failures
+to `TransientLLMError`, everything else out raw,
+and — for the two that reason — a token limit reached with less than
+`MAX_WARRIOR_LENGTH` of text downgraded to the `'error'` sentinel.
+Nothing names that contract or that sentinel in one place,
+so the defenses get audited and repaired one provider at a time;
+anthropic has no downgrade at all,
+having no reasoning that can run past its cap.
+Next move: state the `(text, finish_reason, llm_version)` contract
+and the meaning of `'error'` where the shared exceptions live
+(`warriors/llms/exceptions.py`),
+and give the downgrade one home the connectors call.
 
 `call_llm` (`warriors/llms/openai.py`) talks to the same endpoint as
 `resolve_battle_openai` but shares none of its defenses:

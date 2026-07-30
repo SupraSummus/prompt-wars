@@ -43,8 +43,13 @@ Where the money actually goes, in order:
    a thinking referee is harder to hijack,
    and resistance to manipulation is the game's difficulty setting
    (see the data–instruction separation theme in `docs/parallels.md`).
-   The thinking budget is a game-design dial that happens to cost money,
+   Whether the referee thinks at all is a game-design dial
+   that happens to cost money,
    priced at roughly €15–20/month for a smarter adversary.
+   On the Gemini side that dial is close to binary:
+   the requested budget is a hint the model reasons past,
+   so the choice is whether to ask for thinking, not how much
+   (see the `thinking_config` note in `warriors/llms/google.py`).
    Levers that leave the referee untouched: discounted pricing tiers.
    OpenAI's flex service tier
    (in beta — verify model coverage before relying on it)

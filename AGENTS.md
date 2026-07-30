@@ -125,7 +125,9 @@ if it doesn't fit, move detail to the body.
 ## Running tests in Claude Code web environment
 
 The web environment has Python 3.11 as the default, but the project requires
-Python 3.13. PostgreSQL 16 is available but needs to be started manually.
+Python 3.13. PostgreSQL 16 is available but needs to be started manually —
+and again after an idle stretch, which shows up as every database test
+erroring at setup on a failed connection rather than as anything about the code.
 
 ### Setup
 
