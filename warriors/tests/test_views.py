@@ -231,22 +231,38 @@ def battle_url(battle, warrior_arena=None):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('scoped', [True, False])
-def test_battle_details_nav(client, arena, warrior_arena, scoped):
-    """The warrior parameter is what keeps a stranger's battle out of the walk."""
+def test_battle_details_nav_walks_both(client, arena, warrior_arena):
+    """A battle of other warriors is the arena's next one and not the warrior's."""
     older, middle, newer = batch_create_battles(arena, warrior_arena, 3)
     stranger = batch_create_battles(arena, WarriorArenaFactory(arena=arena), 1)[0]
     schedule_in_order(older, middle, stranger, newer)
 
-    nav_warrior = warrior_arena if scoped else None
-    response = client.get(battle_url(middle, nav_warrior))
+    response = client.get(battle_url(middle, warrior_arena))
 
     assert response.status_code == 200
-    assert response.context['nav_warrior_arena'] == nav_warrior
-    assert response.context['previous_battle_url'] == battle_url(older, nav_warrior)
-    assert response.context['next_battle_url'] == battle_url(
-        newer if scoped else stranger, nav_warrior,
-    )
+    assert response.context['arena_previous_battle_url'] == battle_url(older, warrior_arena)
+    assert response.context['arena_next_battle_url'] == battle_url(stranger, warrior_arena)
+    assert response.context['warrior_previous_battle_url'] == battle_url(older, warrior_arena)
+    assert response.context['warrior_next_battle_url'] == battle_url(newer, warrior_arena)
+    # both walks reach the page, not just the context
+    content = response.content.decode()
+    assert battle_url(stranger, warrior_arena) in content
+    assert battle_url(newer, warrior_arena) in content
+
+
+@pytest.mark.django_db
+def test_battle_details_nav_without_a_warrior(client, arena, warrior_arena):
+    """Naming no warrior leaves the arena walk, so the battle URL stands alone."""
+    older, middle, newer = batch_create_battles(arena, warrior_arena, 3)
+    schedule_in_order(older, middle, newer)
+
+    response = client.get(battle_url(middle))
+
+    assert response.status_code == 200
+    assert response.context['arena_previous_battle_url'] == battle_url(older)
+    assert response.context['arena_next_battle_url'] == battle_url(newer)
+    assert response.context['warrior_previous_battle_url'] is None
+    assert response.context['warrior_next_battle_url'] is None
 
 
 @pytest.mark.django_db
