@@ -83,14 +83,21 @@ with no way even to watch a rival.
 
 ## Directions, ranked by leverage
 
-1. **Novelty surfacing.**
-   Rank outputs by embedding distance from the existing corpus;
-   surface a feed of notable battles.
+1. **Novelty surfacing, as a shortlist rather than a feed.**
+   Rank outputs by embedding distance from the existing corpus,
+   and use the ranking to narrow a period's outputs
+   to a handful a person then picks and sequences.
    This attacks the buried-gems problem
    with data the system pays for anyway,
-   and provides the content engine
-   for the digest email and the shareable meta-report
+   and produces the digest email and shareable meta-report
    in `docs/strategy.md`.
+   Ranking alone is not an editor:
+   every comparable system that worked was curated by a human,
+   and the uncurated ones failed (`docs/precedents.md`).
+   Embedding novelty is also much harder to goodhart
+   than an LLM interestingness judge,
+   which players would hijack immediately
+   (the data–instruction separation theme in `docs/parallels.md`).
 2. **Adopt-an-output.**
    One click turns a battle result into a warrior.
    This makes the competition-creation duality
@@ -101,13 +108,14 @@ with no way even to watch a rival.
    Adoption count is also a fame metric that rewards generativity:
    "my warrior's children are everywhere"
    points the opposite way from sterile dominance.
-3. **A second leaderboard axis.**
-   Keep the dominance rating untouched;
-   add a parallel ranking fed by output novelty and adoption counts.
-   Embedding-based novelty is much harder to goodhart
-   than an LLM interestingness judge,
-   which players would hijack immediately
-   (the data–instruction separation theme in `docs/parallels.md`).
+3. **A second leaderboard axis — rejected at this scale.**
+   A parallel ranking fed by novelty and adoption counts
+   is ranking machinery aimed at single-digit monthly actives,
+   and a board nobody reads changes no behavior.
+   Compute both signals anyway,
+   as inputs to the shortlist in direction 1
+   and as the fame metrics attached to a warrior's page.
+   Revisit when there is a population to rank.
 4. **A cooperative mode.**
    Two strangers' prompts scored on fusion quality
    (`cooperation_score`) instead of dominance —
@@ -123,3 +131,9 @@ Novelty (embeddings),
 lineage (players copy-paste battle results by hand),
 and cooperation (scored but hidden)
 all exist with no surface and no consequence.
+`docs/twitter-for-prompts.md` reads the first two directions
+as one product framing —
+the game as a microblog whose publishing step is the model —
+and prunes it to what evidence supports.
+`docs/precedents.md` holds that evidence:
+every direction above has been run somewhere else.

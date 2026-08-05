@@ -110,6 +110,14 @@ live in [docs/strategy.md](docs/strategy.md);
 design-level strengths, tensions, and candidate directions
 in [docs/design-tensions.md](docs/design-tensions.md);
 the fixed-cadence rounds proposal in [docs/rounds.md](docs/rounds.md);
+the microblog reading of the same mechanics
+in [docs/twitter-for-prompts.md](docs/twitter-for-prompts.md);
+prior art for the mechanics this project keeps proposing —
+audience-as-fitness, lineage, blending, generated feeds —
+in [docs/precedents.md](docs/precedents.md);
+the doctrinal gap around blended outputs,
+used as a novelty detector,
+in [docs/authorship.md](docs/authorship.md);
 the gameplay data model's coupling analysis and target shape
 in [docs/data-model.md](docs/data-model.md);
 this doc stays about the game's concept and mechanics.

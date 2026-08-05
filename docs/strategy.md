@@ -128,6 +128,9 @@ it is a signal the system already emits and currently discards.
    A periodic "meta report" — top warriors, upsets, strategy shifts,
    generated mostly from battle data —
    posted to the communities that already know the game.
+   `docs/twitter-for-prompts.md` designs the editorial half of this:
+   what a human-picked selection of battle outputs publishes,
+   under whose byline, and what it must not publish.
    Battle permalinks with proper link previews make each post land better.
 4. **The dataset as downside protection.**
    Hundreds of thousands of adversarial prompt battles
@@ -137,6 +140,10 @@ it is a signal the system already emits and currently discards.
    This pays out even if the game never grows:
    the project's floor is "interesting dataset plus writeup",
    not "abandoned side project".
+   The same rows carry a second, unrelated claim —
+   measured per-contributor survival in a two-author machine derivation,
+   which copyright doctrine has no mechanic for
+   (`docs/authorship.md`).
 
 Nothing else lands until signups and 30-day actives move.
 In particular the side apps (`stories`, `labirynth`, `guessing`)

@@ -41,9 +41,10 @@ But a daily pile is exactly as unreadable
 as a trickle of the same size;
 the round needs an editor.
 Rounds are the cadence;
-the novelty-surfacing direction in `docs/design-tensions.md`
-is the editor;
-each is weak without the other.
+the editor is a person,
+assisted by the novelty shortlist
+in `docs/design-tensions.md`;
+cadence without editing is a pile with a timestamp.
 
 ## Hard requirement: keep the fast lane
 
