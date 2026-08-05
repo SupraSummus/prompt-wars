@@ -105,6 +105,28 @@ a repair command that recomputes the sha from the warrior bodies
 onto blank game rows.
 `backfill_game_input_sha256` goes with the columns it copies from.
 
+`backfill_game_score_game` is a one-time re-keying,
+not an ongoing repair:
+it links the `GameScore` rows written before the `game` column existed
+to the game row their (battle, direction) pair already names.
+Delete it once a production run reports zero still unlinked —
+the same condition that lets the column go not-null
+in step 1 of `docs/game-migration.md`,
+so the two land together.
+
+Every test that builds a `Battle` has to sort the warrior pair first,
+because `BattleFactory` passes its two `SubFactory` warriors through
+in the order given and the `warrior_ordering` check constraint
+demands the smaller id first —
+so a bare `BattleFactory()` fails about half the time,
+and five call sites
+(`warriors/tests/fixtures.py` twice, `batch_create_battles`,
+`create_mirrored_battle`, and the rating tests)
+repeat the same three-line swap.
+Next move: swap the pair in a `_adjust_kwargs` classmethod on the factory
+and delete the swaps at the call sites;
+behavior-preserving for every test that already sorts.
+
 The `thinking_config` that `call_gemini` sends (`warriors/llms/google.py`)
 buys thinking but does not bound it:
 `gemini-flash-lite-latest` resolves to a Gemini 3 model,
@@ -192,6 +214,9 @@ They rot invisibly:
 `backfill_sha.py` cites a `verify_ordering.py` that is not in the tree,
 and it writes `Battle.input_sha256_*` without the matching game rows —
 the blanks `backfill_game_input_sha256` exists to fill.
+`create_game_score.py` and `set_game_score.py` key `GameScore`
+on (battle, direction), which the re-keying in
+`docs/game-migration.md` drops out from under them.
 Next move: for each, decide between
 a management command next to `warriors/management/commands/verify_games.py`
 if the operation is still worth running,

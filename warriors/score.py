@@ -28,6 +28,13 @@ class GameScore(GoalRelatedMixin, models.Model):
         on_delete=models.CASCADE,
         related_name='game_scores',
     )
+    game = models.ForeignKey(
+        to='DBGame',
+        on_delete=models.CASCADE,
+        related_name='scores',
+        null=True,
+        blank=True,
+    )
     direction = models.CharField(
         max_length=3,
         choices=[
@@ -62,18 +69,37 @@ class GameScore(GoalRelatedMixin, models.Model):
         indexes = [
             models.Index(fields=['battle', 'direction', 'algorithm']),
         ]
+        constraints = [
+            # the key that replaces the pair above; rows with no game yet
+            # are exempt until backfill_game_score_game has run
+            models.UniqueConstraint(
+                fields=('game', 'algorithm'),
+                name='unique_game_algorithm',
+            ),
+        ]
 
 
-def get_or_create_game_score(battle, direction, algorithm):
+def get_or_create_game_score(game, direction, algorithm):
+    """
+    The score of one game under one algorithm.
+
+    The lookup keys on (battle, direction) though the write names the game:
+    a score written before the column existed carries no game,
+    so keying the lookup on it would miss that score
+    and create a duplicate the old uniqueness rejects.
+    `direction` is that key's other half, and drops with it
+    once `backfill_game_score_game` has run (docs/game-migration.md).
+    """
     game_score = GameScore.objects.filter(
-        battle=battle,
+        battle_id=game.battle_id,
         direction=direction,
         algorithm=algorithm,
     ).first()
     if game_score is None:
         game_score = GameScore.objects.create(
-            battle=battle,
+            battle_id=game.battle_id,
             direction=direction,
+            game=game,
             algorithm=algorithm,
             processed_goal=schedule(ensure_score),
         )

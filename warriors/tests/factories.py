@@ -104,6 +104,20 @@ class TextUnitFactory(factory.django.DjangoModelFactory):
     )
 
 
+def game_of(battle, direction):
+    """The game row that plays the battle out in the given direction."""
+    return battle.games.get(
+        warrior_1_id=(
+            battle.warrior_1_id if direction == '1_2'
+            else battle.warrior_2_id
+        ),
+    )
+
+
 class GameScoreFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = GameScore
+
+    # what get_or_create_game_score writes: the pair and the game row it
+    # names, so a test row is shaped like a production one
+    game = factory.LazyAttribute(lambda score: game_of(score.battle, score.direction))

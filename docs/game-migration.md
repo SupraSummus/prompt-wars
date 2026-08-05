@@ -111,10 +111,13 @@ A finding nothing explains is a bug to chase, not data to copy over.
 
 ### 1. Re-key GameScore
 
-Add a nullable `game` foreign key to `GameScore`,
-dual-written in `get_or_create_game_score` (`warriors/score.py`);
-backfill from (battle, direction);
-move the uniqueness to (game, algorithm).
+`get_or_create_game_score` (`warriors/score.py`)
+names the game on every score it writes,
+and `backfill_game_score_game` links the rows written before it did.
+Once a production run reports nothing left to link,
+the column goes not-null
+and the lookup and the uniqueness move off (battle, direction)
+onto the (game, algorithm) constraint that already guards the writes.
 `_ensure_score` then reads the game row directly —
 warriors, result text unit, finish reason —
 instead of constructing the battle facade.

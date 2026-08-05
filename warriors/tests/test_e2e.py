@@ -103,6 +103,10 @@ def test_battle_from_warriors_e2e(monkeypatch, warrior_arena, other_warrior_aren
     assert db_game_1_2.llm_version == 'gpt-3.5/1234'
     assert db_game_2_1.llm_version == 'gpt-3.5/1234'
 
+    # each direction's scores name the game they score, not just the pair
+    assert db_game_1_2.scores.count() == 2
+    assert db_game_2_1.scores.count() == 2
+
 
 @pytest.mark.django_db
 def test_battle_retry(battle, monkeypatch):
