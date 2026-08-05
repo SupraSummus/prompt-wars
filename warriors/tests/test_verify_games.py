@@ -101,11 +101,26 @@ def test_verify_summarizes_each_category_once(mirrored_battle):
 def test_verify_leaves_an_unresolved_direction_alone(mirrored_battle):
     # attempts climbs while the direction retries, so a difference here
     # is in-flight state, not drift — comparing it would cry wolf
+    game = mirrored_battle.games.get(warrior_1=mirrored_battle.warrior_1)
+    game.resolved_at = None
+    game.attempts = 3
+    game.save(update_fields=['resolved_at', 'attempts'])
     mirrored_battle.resolved_at_1_2 = None
-    mirrored_battle.attempts_1_2 = 3
-    mirrored_battle.save(update_fields=['resolved_at_1_2', 'attempts_1_2'])
+    mirrored_battle.save(update_fields=['resolved_at_1_2'])
 
     call_command('verify_games')
+
+
+@pytest.mark.django_db
+def test_verify_reports_a_resolution_the_mirror_missed(mirrored_battle):
+    # the in-flight gate reads the game row, which is the side resolution
+    # writes first: keyed on the column instead, the one drift this audit
+    # exists to catch would pass for a direction still running
+    mirrored_battle.resolved_at_1_2 = None
+    mirrored_battle.save(update_fields=['resolved_at_1_2'])
+
+    with pytest.raises(CommandError, match='conflicting resolved_at: 1'):
+        call_command('verify_games')
 
 
 @pytest.mark.django_db

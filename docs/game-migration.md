@@ -63,10 +63,10 @@ misses that derivability is what makes the check possible:
 a value that is only ever recomputed
 can never disagree with anything.
 The battle's directional pair carries no extra information
-and drops in step 4 with the other paired columns.
+and drops with the other paired columns.
 The blank game rows (tracked in `TODO.md`)
 become worth filling by that same recomputation —
-but only after step 4:
+but only once those columns are gone:
 filling one side of a live mirror
 reads as a `verify_games` finding,
 and filling both sides writes columns that are about to drop.
@@ -84,13 +84,20 @@ rolling back a reader flip is a code revert with no data repair.
 
 Every step rests on one invariant:
 a battle direction always has its game row,
-faithful to the battle's directional columns
-while the battle is the authoritative writer.
+and the two agree while both copies exist.
 `Battle.create_from_warriors` writes battle and both games
 in one transaction,
 `resolve_battle` loads the row unconditionally
 by the unique (battle, warrior_1),
 and the test factory creates both rows with every battle.
+
+The game row is what `resolve_battle` writes;
+the battle's directional columns are its mirror
+(`mirror_to_battle`, `warriors/battles.py`).
+That makes the columns write-only —
+the state that reduces dropping them to a code change,
+as it did for `lcs_len_*` —
+and leaves the readers below as the only thing keeping them.
 
 Checking that invariant and repairing it stay apart.
 The `verify_games` audit writes nothing
@@ -102,25 +109,7 @@ deleted once a production run leaves nothing to do:
 having written the battle's sha and not the game's.
 A finding nothing explains is a bug to chase, not data to copy over.
 
-### 1. Invert write authority
-
-`resolve_battle` and `_run_llm` currently treat
-the `Game` facade over `Battle` as primary
-and mirror results into the game row.
-Flip it: the game row is the object the resolution task
-loads, mutates, and saves,
-and the battle's directional columns become the mirror.
-The facade's attribute names already match the game row's fields,
-so the resolver body barely changes —
-only which object is authoritative and which is the copy.
-The invariant and the `verify_games` audit survive
-with their direction flipped:
-equality is symmetric, so the comparison is unchanged,
-and only the docstrings' framing of who mirrors whom moves.
-After this step the directional columns are write-only,
-the same state the `lcs_len_*` columns were in before removal.
-
-### 2. Re-key GameScore
+### 1. Re-key GameScore
 
 Add a nullable `game` foreign key to `GameScore`,
 dual-written in `get_or_create_game_score` (`warriors/score.py`);
@@ -132,7 +121,7 @@ instead of constructing the battle facade.
 `direction` and `battle` drop from `GameScore`
 once nothing selects by them.
 
-### 3. Cut the remaining readers over
+### 2. Cut the remaining readers over
 
 In order of blast radius:
 
@@ -161,7 +150,7 @@ In order of blast radius:
   cooldown, opponent exclusion, and `battle_count`
   are pair-level and stay on `Battle`.
 
-### 4. Drop the directional columns
+### 3. Drop the directional columns
 
 Not while `verify_games` still reports a finding:
 after this the game row is the only copy,
@@ -170,7 +159,7 @@ so anything it lacks is lost here.
 Delete the paired columns from `Battle`
 (`input_sha256_*`, `text_unit_*`, `finish_reason_*`,
 `llm_version_*`, `resolved_at_*`, `attempts_*`),
-the step-1 mirror writes,
+the `mirror_to_battle` calls in `resolve_battle`,
 and the facade machinery that mapped suffixed names.
 The command goes with the columns —
 it compares game rows against columns that no longer exist,
@@ -179,9 +168,9 @@ Same shape as the `lcs_len_*` removal.
 The dead `rating_transferred_at` column
 (tracked in `TODO.md`) rides along.
 
-### 5. Rename
+### 4. Rename
 
-With the in-memory `Game` facade deleted in step 4,
+With the in-memory `Game` facade gone with the columns,
 the name is free:
 `DBGame` becomes `Game`.
 The table is already `warriors_game`,
@@ -197,7 +186,7 @@ This plan is one of its independently-shippable tracks
 and orders only its own steps;
 dropping `Battle.arena` can land any time,
 and the ranking-registry work is untouched by it —
-rating reads change *representation* here (step 3),
+rating reads change *representation* in the reader cut-over,
 not which signal feeds them.
 
 ## Open decisions

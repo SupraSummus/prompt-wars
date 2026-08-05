@@ -136,21 +136,21 @@ def test_resolve_battle(arena, battle, monkeypatch):
         'content': battle.warrior_2.body + battle.warrior_1.body,
     }]
 
-    # DB state is correct
-    battle.refresh_from_db()
-    assert len(battle.input_sha256_2_1) == 32
-    assert battle.text_unit_2_1.content == 'Some result'
-    assert battle.finish_reason_2_1 == 'stop'
-    assert battle.resolved_at_2_1 is not None
-    assert battle.llm_version_2_1 == 'gpt-3.5/1234'
+    # the resolution lands on the game row
+    game = battle.games.get(warrior_1=battle.warrior_2)
+    assert len(game.input_sha256) == 32
+    assert game.text_unit.content == 'Some result'
+    assert game.finish_reason == 'stop'
+    assert game.resolved_at is not None
+    assert game.llm_version == 'gpt-3.5/1234'
 
-    # the game row mirrors what the battle's directional columns got
-    db_game = battle.games.get(warrior_1=battle.warrior_2)
-    assert bytes(db_game.input_sha256) == bytes(battle.input_sha256_2_1)
-    assert db_game.text_unit_id == battle.text_unit_2_1_id
-    assert db_game.finish_reason == battle.finish_reason_2_1
-    assert db_game.resolved_at == battle.resolved_at_2_1
-    assert db_game.llm_version == battle.llm_version_2_1
+    # and the battle's directional columns mirror it
+    battle.refresh_from_db()
+    assert bytes(battle.input_sha256_2_1) == bytes(game.input_sha256)
+    assert battle.text_unit_2_1_id == game.text_unit_id
+    assert battle.finish_reason_2_1 == game.finish_reason
+    assert battle.resolved_at_2_1 == game.resolved_at
+    assert battle.llm_version_2_1 == game.llm_version
 
 
 @pytest.mark.django_db
@@ -166,9 +166,9 @@ def test_resolve_battle_service_unavailable(battle, monkeypatch):
     resolve_battle(None, battle.id, '2_1')
 
     # DB state is correct
-    battle.refresh_from_db()
-    assert battle.finish_reason_2_1 == 'error'
-    assert battle.resolved_at_2_1 is not None
+    game = battle.games.get(warrior_1=battle.warrior_2)
+    assert game.finish_reason == 'error'
+    assert game.resolved_at is not None
 
 
 @pytest.mark.django_db
@@ -183,10 +183,12 @@ def test_resolve_battle_rate_limit(battle, monkeypatch):
     ret = resolve_battle(None, battle.id, '2_1')
     assert isinstance(ret, RetryMeLater)
 
-    # DB state is correct
+    # nothing recorded but the attempt, which the battle mirrors too
+    game = battle.games.get(warrior_1=battle.warrior_2)
+    assert game.resolved_at is None
+    assert game.attempts == 1
     battle.refresh_from_db()
-    assert battle.finish_reason_2_1 == ''
-    assert battle.resolved_at_2_1 is None
+    assert battle.attempts_2_1 == game.attempts
 
 
 @pytest.mark.django_db
@@ -215,10 +217,9 @@ def test_resolve_battle_character_limit(battle, monkeypatch):
     resolve_battle(None, battle.id, '1_2')
 
     # DB state is correct
-    battle.refresh_from_db()
-    assert battle.finish_reason_1_2 == 'character_limit'
-    assert battle.resolved_at_1_2 is not None
-    assert len(battle.text_unit_1_2.content) == MAX_WARRIOR_LENGTH
+    game = battle.games.get(warrior_1=battle.warrior_1)
+    assert game.finish_reason == 'character_limit'
+    assert len(game.text_unit.content) == MAX_WARRIOR_LENGTH
 
 
 @pytest.mark.django_db

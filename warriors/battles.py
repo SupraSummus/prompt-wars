@@ -649,6 +649,22 @@ def mirrored_game_fields(battle, direction):
     }
 
 
+def mirror_to_battle(game, battle_mirror, field_names):
+    """
+    Copy a game row onto the battle's directional columns.
+
+    The columns are a write-only copy of the game row,
+    kept for the readers still on them
+    ("Cut the remaining readers over" in docs/game-migration.md).
+    One field list serves both saves
+    because the facade exposes each column
+    under the game row's own field name.
+    """
+    for name in field_names:
+        setattr(battle_mirror, name, getattr(game, name))
+    battle_mirror.save(update_fields=field_names)
+
+
 def as_bytes(value):
     """A bytea column reads back as a memoryview, which is unequal to bytes."""
     return bytes(value) if isinstance(value, memoryview) else value

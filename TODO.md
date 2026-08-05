@@ -96,15 +96,14 @@ They are blank because their battle has no sha either,
 so `backfill_game_input_sha256` has nothing to copy,
 and `verify_games` cannot see them —
 blank on both sides compares equal.
-The fill waits for step 4 to drop the battle columns:
+The fill waits for the battle's directional columns to drop:
 filling only the game side of a live mirror
 reads as a `conflicting input_sha256` finding.
 Next move: once the columns are gone,
 a repair command that recomputes the sha from the warrior bodies
 (the way the root-level `backfill_sha.py` derives it)
 onto blank game rows.
-`backfill_game_input_sha256` goes at step 4
-with the columns it copies from.
+`backfill_game_input_sha256` goes with the columns it copies from.
 
 The `thinking_config` that `call_gemini` sends (`warriors/llms/google.py`)
 buys thinking but does not bound it:
@@ -168,16 +167,19 @@ and map a 429 response to the `RetryMeLater` that
 `voyageai.error.RateLimitError` currently triggers —
 that exception is the only thing the SDK contributes here.
 
-`verify_games` skips a direction the battle has not resolved,
+`verify_games` skips a direction whose game row has no `resolved_at`,
 which leaves `llm` and `scheduled_at` unchecked
 on exactly the rows `resolve_battle`'s asserts act on:
 those two are set when the pair is created, not at resolution,
 so an unresolved direction can hold a drifted copy
 and the audit will not say so.
+The same skip hides a battle column
+that records a resolution its game row lacks —
+the shape the pre-mirror repair left behind.
 Next move: split the comparison —
 the creation-time fields (`llm`, `scheduled_at`, the warrior pair)
 on every direction,
-the resolution fields only once the battle has resolved it.
+the resolution fields once either side records a resolution.
 The skip exists because `attempts` climbs while a direction retries,
 and that is a resolution field.
 
