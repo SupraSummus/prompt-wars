@@ -35,3 +35,15 @@ The system recognizes that:
 3. Only battle results that catch human attention and get adopted become part of the active warrior population
 
 This creates a human-curated evolution where successful battle outputs propagate only when humans find them worthy of becoming new warriors.
+
+## The cheaper alternative: record parentage instead of inferring it
+
+Fuzzy matching is only necessary
+while adoption happens outside the system, by copy-paste.
+Picbreeder (`docs/precedents.md`)
+records parentage at the moment a user branches,
+which is exact and free;
+the adopt-an-output direction in `docs/design-tensions.md`
+is what turns copy-paste into a recorded act.
+Minhashing remains the right tool
+only for warriors already submitted by hand.
