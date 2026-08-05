@@ -240,9 +240,7 @@ class BattleDetailView(DetailView):
 
         warrior_arena = self.get_nav_warrior_arena()
         context['nav_warrior_arena'] = warrior_arena
-        context['previous_battle_url'], context['next_battle_url'] = battle_nav_urls(
-            self.object, warrior_arena, self.request.user,
-        )
+        context.update(battle_nav_context(self.object, warrior_arena, self.request.user))
 
         return context
 
@@ -268,29 +266,48 @@ class BattleDetailView(DetailView):
         return warrior_arena
 
 
-def battle_nav_urls(battle, warrior_arena, user):
+def battle_nav_context(battle, warrior_arena, user):
     """
-    Links to the battles either side of this one in time, older first.
+    Links for the two walks through neighbouring battles in time.
 
-    Given a warrior, they walk that warrior's battles —
-    the list `WarriorDetailView` shows, so the two pages agree on
-    what comes next — and carry the warrior onward.
-    Without one they walk the arena, and the battle URL stands alone.
+    The arena walk is always offered, being all a battle URL supplies on its own;
+    the warrior walk joins it once a warrior is named,
+    stepping through the list `WarriorDetailView` shows.
+    Both carry the warrior onward,
+    so an arena step landing on another of its battles keeps the warrior walk.
     """
+    arena_previous, arena_next = battle_neighbour_urls(
+        Battle.objects.for_user(user).filter(arena__llm=battle.llm),
+        battle, warrior_arena,
+    )
     if warrior_arena is None:
-        battles = Battle.objects.for_user(user).filter(arena__llm=battle.llm)
+        warrior_previous, warrior_next = None, None
     else:
-        battles = Battle.objects.with_warrior_arena(warrior_arena)
+        warrior_previous, warrior_next = battle_neighbour_urls(
+            Battle.objects.with_warrior_arena(warrior_arena),
+            battle, warrior_arena,
+        )
+    return {
+        'arena_previous_battle_url': arena_previous,
+        'arena_next_battle_url': arena_next,
+        'warrior_previous_battle_url': warrior_previous,
+        'warrior_next_battle_url': warrior_next,
+    }
+
+
+def battle_neighbour_urls(battles, battle, warrior_arena):
+    """Links to the battles either side of this one within `battles`, older first."""
     battles = battles.only('id', 'scheduled_at')
     older = battles.filter(scheduled_at__lt=battle.scheduled_at).order_by('-scheduled_at').first()
     newer = battles.filter(scheduled_at__gt=battle.scheduled_at).order_by('scheduled_at').first()
-    return battle_nav_url(older, warrior_arena), battle_nav_url(newer, warrior_arena)
+    return battle_url(older, warrior_arena), battle_url(newer, warrior_arena)
 
 
-def battle_nav_url(neighbour, warrior_arena):
-    if neighbour is None:
+def battle_url(battle, warrior_arena):
+    """A battle link that keeps the warrior whose list it was reached from, if any."""
+    if battle is None:
         return None
-    url = reverse('battle_detail', args=(neighbour.id,))
+    url = reverse('battle_detail', args=(battle.id,))
     if warrior_arena is not None:
         url += '?' + urlencode({'warrior_arena': warrior_arena.id})
     return url

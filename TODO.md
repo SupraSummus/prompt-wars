@@ -227,8 +227,8 @@ its recompute-from-bodies logic moves into
 the game-row sha repair command (see the `input_sha256` entry),
 and the script goes.
 
-The arena-wide half of `battle_nav_urls` (`warriors/views.py`)
-picks its battles two ways the warrior-scoped half does not.
+The arena walk in `battle_nav_context` (`warriors/views.py`)
+picks its battles two ways the warrior walk beside it does not.
 It joins `arena__llm` where `llm` is a column on the battle itself,
 and `Battle.arena` is nullable,
 so a battle with no arena drops out of the walk silently.
@@ -237,6 +237,20 @@ which narrows a signed-in visitor to battles of their own warriors:
 the same page then offers different neighbours to different people,
 and often none at all to someone reading a stranger's battle,
 while an anonymous visitor walks everything.
+Now that the arena walk is the one nav every battle page carries,
+that is the difference between a page with neighbours and a dead end.
 Next move: filter `llm=battle.llm` directly and drop the `for_user` call,
-leaving both halves scoped by nothing but what is being browsed.
+leaving both walks scoped by nothing but what is being browsed.
 Both are behavior changes, so they need sign-off.
+
+The `warrior_arena` query parameter that carries a warrior into a battle page
+is spelled out in three places that must agree:
+`battle_url` builds it (`warriors/views.py`),
+`BattleDetailView.get_nav_warrior_arena` reads it,
+and `warriorarena_detail.html` hand-writes
+`?warrior_arena={{ warrior.id }}` onto four links.
+Rename the parameter and the template links keep pointing at the old name,
+silently losing the warrior walk rather than failing.
+Next move: expose `battle_url` as a template tag
+and call it from those four links,
+leaving the parameter named once on each side of the request.

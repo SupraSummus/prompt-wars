@@ -21,23 +21,37 @@
     </section>
 
     <section>
-      <nav>
-        <ul>
-          <li>
-            {% if previous_battle_url %}
-              <a href="{{ previous_battle_url }}">↶ Older battle</a>
-            {% endif %}
-          </li>
-          {% if nav_warrior_arena %}
+      {% if nav_warrior_arena %}
+        <nav aria-label="Battles of {{ nav_warrior_arena }}">
+          <ul>
+            <li>
+              {% if warrior_previous_battle_url %}
+                <a href="{{ warrior_previous_battle_url }}">↶ Older battle of {{ nav_warrior_arena }}</a>
+              {% endif %}
+            </li>
             <li>
               <a href="{% url 'warrior_detail' nav_warrior_arena.id %}">
                 All battles of {{ nav_warrior_arena }}
               </a>
             </li>
-          {% endif %}
+            <li>
+              {% if warrior_next_battle_url %}
+                <a href="{{ warrior_next_battle_url }}">Newer battle of {{ nav_warrior_arena }} ↷</a>
+              {% endif %}
+            </li>
+          </ul>
+        </nav>
+      {% endif %}
+      <nav aria-label="Battles in this arena">
+        <ul>
           <li>
-            {% if next_battle_url %}
-              <a href="{{ next_battle_url }}">Newer battle ↷</a>
+            {% if arena_previous_battle_url %}
+              <a href="{{ arena_previous_battle_url }}">↶ Older battle in this arena</a>
+            {% endif %}
+          </li>
+          <li>
+            {% if arena_next_battle_url %}
+              <a href="{{ arena_next_battle_url }}">Newer battle in this arena ↷</a>
             {% endif %}
           </li>
         </ul>
