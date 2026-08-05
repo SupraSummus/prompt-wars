@@ -24,13 +24,20 @@
       <nav>
         <ul>
           <li>
-            {% if previous_battle %}
-              <a href="{% url 'battle_detail' previous_battle.id %}">↶ Older battle</a>
+            {% if previous_battle_url %}
+              <a href="{{ previous_battle_url }}">↶ Older battle</a>
             {% endif %}
           </li>
+          {% if nav_warrior_arena %}
+            <li>
+              <a href="{% url 'warrior_detail' nav_warrior_arena.id %}">
+                All battles of {{ nav_warrior_arena }}
+              </a>
+            </li>
+          {% endif %}
           <li>
-            {% if next_battle %}
-              <a href="{% url 'battle_detail' next_battle.id %}">Newer battle ↷</a>
+            {% if next_battle_url %}
+              <a href="{{ next_battle_url }}">Newer battle ↷</a>
             {% endif %}
           </li>
         </ul>
