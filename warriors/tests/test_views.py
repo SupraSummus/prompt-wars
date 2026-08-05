@@ -1,3 +1,6 @@
+import datetime
+import uuid
+
 import pytest
 from django.urls import reverse
 from django.utils import timezone
@@ -210,6 +213,66 @@ def test_battle_details_error(user_client, battle, warrior_user_permission):
     assert response.status_code == 200
     game = response.context['battle'].game_1_2
     assert game.show_secrets_1 or game.show_secrets_2
+
+
+def schedule_in_order(*battles):
+    """Space battles a day apart, oldest first, so nav order is not left to chance."""
+    now = timezone.now()
+    for days, battle in enumerate(reversed(battles), start=1):
+        battle.scheduled_at = now - datetime.timedelta(days=days)
+        battle.save(update_fields=['scheduled_at'])
+
+
+def battle_url(battle, warrior_arena=None):
+    url = reverse('battle_detail', args=(battle.id,))
+    if warrior_arena is not None:
+        url += f'?warrior_arena={warrior_arena.id}'
+    return url
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('scoped', [True, False])
+def test_battle_details_nav(client, arena, warrior_arena, scoped):
+    """The warrior parameter is what keeps a stranger's battle out of the walk."""
+    older, middle, newer = batch_create_battles(arena, warrior_arena, 3)
+    stranger = batch_create_battles(arena, WarriorArenaFactory(arena=arena), 1)[0]
+    schedule_in_order(older, middle, stranger, newer)
+
+    nav_warrior = warrior_arena if scoped else None
+    response = client.get(battle_url(middle, nav_warrior))
+
+    assert response.status_code == 200
+    assert response.context['nav_warrior_arena'] == nav_warrior
+    assert response.context['previous_battle_url'] == battle_url(older, nav_warrior)
+    assert response.context['next_battle_url'] == battle_url(
+        newer if scoped else stranger, nav_warrior,
+    )
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('bad_value', [
+    lambda arena: 'not-a-uuid',
+    lambda arena: str(uuid.uuid4()),
+    lambda arena: str(WarriorArenaFactory(arena=arena).id),
+], ids=['malformed', 'unknown', 'stranger'])
+def test_battle_details_nav_unrecognized_warrior(client, arena, battle, bad_value):
+    response = client.get(
+        reverse('battle_detail', args=(battle.id,)),
+        data={'warrior_arena': bad_value(arena)},
+    )
+    assert response.status_code == 200
+    assert response.context['nav_warrior_arena'] is None
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('battle', [{
+    'resolved_at_1_2': timezone.now(),
+}], indirect=True)
+def test_warrior_details_links_carry_the_warrior(client, warrior_arena, battle):
+    response = client.get(
+        reverse('warrior_detail', args=(warrior_arena.id,))
+    )
+    assert battle_url(battle, warrior_arena) in response.content.decode()
 
 
 @pytest.mark.django_db

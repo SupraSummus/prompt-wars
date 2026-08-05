@@ -67,14 +67,14 @@
         <tbody>
           {% for battle in battles %}
             <tr>
-              <td><a href="{% url 'battle_detail' battle.id %}?{{ request.GET.urlencode }}">
+              <td><a href="{% url 'battle_detail' battle.id %}?warrior_arena={{ warrior.id }}">
                 {% include 'time.html' with time=battle.scheduled_at %}
               </a></td>
-              <td><a href="{% url 'battle_detail' battle.id %}?{{ request.GET.urlencode }}">
+              <td><a href="{% url 'battle_detail' battle.id %}?warrior_arena={{ warrior.id }}">
                 {{ battle.warrior_2 }}
               </a></td>
               <td>
-                <a href="{% url 'battle_detail' battle.id %}?{{ request.GET.urlencode }}#{{ battle.game_1_id }}">
+                <a href="{% url 'battle_detail' battle.id %}?warrior_arena={{ warrior.id }}#{{ battle.game_1_id }}">
                   {% if not battle.resolved_at_1_2 %}
                     <i>pending</i>
                   {% else %}
@@ -83,7 +83,7 @@
                 </a>
               </td>
               <td>
-                <a href="{% url 'battle_detail' battle.id %}?{{ request.GET.urlencode }}#{{ battle.game_2_id }}">
+                <a href="{% url 'battle_detail' battle.id %}?warrior_arena={{ warrior.id }}#{{ battle.game_2_id }}">
                   {% if not battle.resolved_at_2_1 %}
                     <i>pending</i>
                   {% else %}

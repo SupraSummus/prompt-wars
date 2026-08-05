@@ -1,9 +1,13 @@
+import uuid
+
 from django import forms
 from django.contrib.auth.decorators import login_required
 from django.contrib.sites.shortcuts import get_current_site
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
+from django.urls import reverse
+from django.utils.http import urlencode
 from django.views.decorators.http import require_POST
 from django.views.generic.base import ContextMixin
 from django.views.generic.detail import DetailView
@@ -234,18 +238,62 @@ class BattleDetailView(DetailView):
         self.object.game_2_1.show_secrets_2 = show_secrets_1
         self.object.game_2_1.show_battle_results = show_battle_results
 
-        # find prev/next battles
-        battles_qs = Battle.objects.for_user(self.request.user).filter(
-            arena__llm=self.object.llm,
+        warrior_arena = self.get_nav_warrior_arena()
+        context['nav_warrior_arena'] = warrior_arena
+        context['previous_battle_url'], context['next_battle_url'] = battle_nav_urls(
+            self.object, warrior_arena, self.request.user,
         )
-        context['next_battle'] = battles_qs.filter(
-            scheduled_at__gt=self.object.scheduled_at,
-        ).order_by('scheduled_at').only('id', 'scheduled_at').first()
-        context['previous_battle'] = battles_qs.filter(
-            scheduled_at__lt=self.object.scheduled_at,
-        ).order_by('-scheduled_at').only('id', 'scheduled_at').first()
 
         return context
+
+    def get_nav_warrior_arena(self):
+        """
+        The warrior named by the `warrior_arena` query parameter, if it fought here.
+
+        The warrior page puts the parameter on every link into a battle,
+        so that stepping onward from there stays in the list it showed.
+        A value naming no warrior of this battle names no warrior at all.
+        """
+        try:
+            warrior_arena_id = uuid.UUID(self.request.GET.get('warrior_arena', ''))
+        except ValueError:
+            return None
+        warrior_arena = WarriorArena.objects.filter(
+            id=warrior_arena_id,
+        ).select_related('arena').first()
+        if warrior_arena is None:
+            return None
+        if warrior_arena.warrior_id not in (self.object.warrior_1_id, self.object.warrior_2_id):
+            return None
+        return warrior_arena
+
+
+def battle_nav_urls(battle, warrior_arena, user):
+    """
+    Links to the battles either side of this one in time, older first.
+
+    Given a warrior, they walk that warrior's battles —
+    the list `WarriorDetailView` shows, so the two pages agree on
+    what comes next — and carry the warrior onward.
+    Without one they walk the arena, and the battle URL stands alone.
+    """
+    if warrior_arena is None:
+        battles = Battle.objects.for_user(user).filter(arena__llm=battle.llm)
+    else:
+        battles = Battle.objects.with_warrior_arena(warrior_arena)
+    battles = battles.only('id', 'scheduled_at')
+    older = battles.filter(scheduled_at__lt=battle.scheduled_at).order_by('-scheduled_at').first()
+    newer = battles.filter(scheduled_at__gt=battle.scheduled_at).order_by('scheduled_at').first()
+    return battle_nav_url(older, warrior_arena), battle_nav_url(newer, warrior_arena)
+
+
+def battle_nav_url(neighbour, warrior_arena):
+    if neighbour is None:
+        return None
+    url = reverse('battle_detail', args=(neighbour.id,))
+    if warrior_arena is not None:
+        url += '?' + urlencode({'warrior_arena': warrior_arena.id})
+    return url
 
 
 class WarriorLeaderboard(ArenaViewMixin, ListView):

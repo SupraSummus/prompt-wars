@@ -226,3 +226,17 @@ For `backfill_sha.py` the decision is settled:
 its recompute-from-bodies logic moves into
 the game-row sha repair command (see the `input_sha256` entry),
 and the script goes.
+
+The arena-wide half of `battle_nav_urls` (`warriors/views.py`)
+picks its battles two ways the warrior-scoped half does not.
+It joins `arena__llm` where `llm` is a column on the battle itself,
+and `Battle.arena` is nullable,
+so a battle with no arena drops out of the walk silently.
+It also runs the queryset through `for_user`,
+which narrows a signed-in visitor to battles of their own warriors:
+the same page then offers different neighbours to different people,
+and often none at all to someone reading a stranger's battle,
+while an anonymous visitor walks everything.
+Next move: filter `llm=battle.llm` directly and drop the `for_user` call,
+leaving both halves scoped by nothing but what is being browsed.
+Both are behavior changes, so they need sign-off.
