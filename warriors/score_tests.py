@@ -5,7 +5,7 @@ import pytest
 from django_goals.busy_worker import worker
 
 from .score import GameScoreViewpoint, ScoreAlgorithm, get_or_create_game_score
-from .tests.factories import TextUnitFactory
+from .tests.factories import TextUnitFactory, game_of
 
 
 @pytest.mark.django_db
@@ -34,7 +34,7 @@ def test_gamescore_embeddings_integration(battle, direction):
 
     # Create a game score with Embeddings algorithm
     game_score = get_or_create_game_score(
-        battle=battle,
+        game=game_of(battle, direction),
         direction=direction,
         algorithm=ScoreAlgorithm.EMBEDDINGS,
     )
@@ -89,7 +89,7 @@ def test_gamescore_lcs(battle, direction):
 
     # Create a game score with LCS algorithm
     game_score = get_or_create_game_score(
-        battle=battle,
+        game=game_of(battle, direction),
         direction=direction,
         algorithm=ScoreAlgorithm.LCS,
     )

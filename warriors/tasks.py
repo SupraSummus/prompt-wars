@@ -133,8 +133,8 @@ def resolve_battle(goal, battle_id, direction):
             assert game.resolved_at is not None
             return RetryMeLater(message='Ran LLM')
 
-    score_lcs = get_or_create_game_score(battle, direction, ScoreAlgorithm.LCS)
-    score_embedings = get_or_create_game_score(battle, direction, ScoreAlgorithm.EMBEDDINGS)
+    score_lcs = get_or_create_game_score(game, direction, ScoreAlgorithm.LCS)
+    score_embedings = get_or_create_game_score(game, direction, ScoreAlgorithm.EMBEDDINGS)
     missing_scores = [
         score for score in [score_lcs, score_embedings]
         if not score.is_completed
