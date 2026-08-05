@@ -15,8 +15,9 @@ one statement would need a CASE over the swapped warrior pair
 in both the projection and the guard against writing null over null.
 
 Delete this command once a production run leaves nothing to fill —
-it is a one-time repair, like `backfill_game_battles` before it
-(`docs/game-migration.md`, step 1).
+it is a one-time repair,
+and it goes with the columns it copies from
+in the column-drop step of `docs/game-migration.md`.
 """
 from django.core.management.base import BaseCommand
 from django.db import connection, transaction

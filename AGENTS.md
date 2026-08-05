@@ -122,6 +122,18 @@ Keep the subject short: aim for ≤50 characters, hard limit 72.
 Prefer a terse imperative over a full sentence;
 if it doesn't fit, move detail to the body.
 
+A fresh checkout in the Claude Code web environment is shallow,
+and that stays invisible until it matters:
+`git log` stops at the graft point without saying so,
+so digging for when something changed
+reports nothing rather than failing,
+and merging a base branch works only while the common ancestor
+happens to fall inside the clone.
+Run `git fetch --unshallow` before either —
+it takes seconds against this repo —
+and `git rev-parse --is-shallow-repository`
+answers whether it is still needed.
+
 ## Running tests in Claude Code web environment
 
 The web environment has Python 3.11 as the default, but the project requires

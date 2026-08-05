@@ -5,14 +5,17 @@ one command per named cause, alongside this one.
 
 This checks the invariant every step of docs/game-migration.md rests on:
 a battle direction always has its game row,
-faithful to the battle's directional columns
-for as long as the battle is the authoritative writer.
+and the two agree for as long as both copies exist.
+`resolve_battle` writes the game row
+and mirrors it onto the battle's directional columns;
+the audit compares them without caring which side is authoritative,
+because equality is symmetric.
 
 Nothing here is routine backfill.
 `Battle.create_from_warriors` writes a battle and both its games
 in one transaction, so a missing row is a broken invariant, not a gap;
-a blank field means the resolution mirror never reached the row;
-a disagreement means it wrote the two sides differently.
+a blank game field means only the battle column ever got the value;
+a disagreement means the two were written differently.
 Each is a bug to explain rather than data to copy over —
 and the directional columns cannot be dropped while any remain.
 
@@ -66,11 +69,14 @@ class Command(BaseCommand):
             location = f'battle {battle.id} game {direction}'
             if game is None:
                 self.record('missing game row', location)
-            elif fields['resolved_at'] is None:
+            elif game.resolved_at is None:
                 # A direction still in flight is being written as we read:
                 # attempts climbs on every retry, and the battle and its
                 # games arrive in separate queries, so comparing them
-                # invites a finding that is not one. Resolution mirrors it.
+                # invites a finding that is not one. The gate is the game
+                # row's own resolved_at — keyed on the mirrored column, a
+                # resolution the mirror never reached would read as in
+                # flight and never get compared.
                 self.unresolved += 1
             else:
                 self.check_game(game, fields, location)

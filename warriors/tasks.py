@@ -7,7 +7,7 @@ from django.db import transaction
 from django.utils import timezone
 from django_goals.models import AllDone, RetryMeLater, schedule
 
-from .battles import LLM, MATCHMAKING_COOLDOWN, Battle, Game
+from .battles import LLM, MATCHMAKING_COOLDOWN, Battle, Game, mirror_to_battle
 from .llms import anthropic
 from .llms.exceptions import TransientLLMError
 from .llms.google import resolve_battle_google
@@ -108,29 +108,29 @@ def resolve_battle_2_1(goal, battle_id):
 
 def resolve_battle(goal, battle_id, direction):
     now = timezone.now()
-    battle = Battle.objects.filter(id=battle_id).select_related(
-        'warrior_1',
-        'warrior_2',
-    ).get()
-    battle_view = Game(battle, direction)
+    battle = Battle.objects.get(id=battle_id)
+    battle_mirror = Game(battle, direction)
     # Both rows exist for every battle: Battle.create_from_warriors writes
     # them in its transaction, and the verify_games audit reports any
     # battle that lacks one. The lookup keys on the unique
     # (battle, warrior_1) — the direction key of the target schema.
     # processed_goal cannot key it: backfilled rows have none, and goal
     # collection clears the rest (SET_NULL).
-    db_game = battle.games.get(warrior_1_id=battle_view.warrior_1_id)
-    assert db_game.llm == battle.llm
-    assert db_game.warrior_2_id == battle_view.warrior_2_id
-    assert db_game.scheduled_at == battle.scheduled_at
+    game = battle.games.select_related(
+        'warrior_1',
+        'warrior_2',
+    ).get(warrior_1_id=battle_mirror.warrior_1_id)
+    assert game.llm == battle.llm
+    assert game.warrior_2_id == battle_mirror.warrior_2_id
+    assert game.scheduled_at == battle.scheduled_at
 
-    if battle_view.resolved_at is None:
-        r = _run_llm(battle_view, now, db_game)
+    if game.resolved_at is None:
+        r = _run_llm(game, now, battle_mirror)
         if isinstance(r, RetryMeLater):
             return r
         else:
             assert r is None
-            assert battle_view.resolved_at is not None
+            assert game.resolved_at is not None
             return RetryMeLater(message='Ran LLM')
 
     score_lcs = get_or_create_game_score(battle, direction, ScoreAlgorithm.LCS)
@@ -148,12 +148,21 @@ def resolve_battle(goal, battle_id, direction):
     return AllDone()
 
 
-def _run_llm(battle_view, now, db_game):
+RESOLUTION_FIELDS = (
+    'input_sha256',
+    'text_unit',
+    'finish_reason',
+    'llm_version',
+    'resolved_at',
+)
+
+
+def _run_llm(game, now, battle_mirror):
     resolve_battle_function = {
         LLM.OPENAI_GPT: resolve_battle_openai,
         LLM.CLAUDE_3_HAIKU: anthropic.resolve_battle,
         LLM.GOOGLE_GEMINI: resolve_battle_google,
-    }[battle_view.llm]
+    }[game.llm]
 
     try:
         (
@@ -161,19 +170,16 @@ def _run_llm(battle_view, now, db_game):
             finish_reason,
             llm_version,
         ) = resolve_battle_function(
-            battle_view.warrior_1.body,
-            battle_view.warrior_2.body,
+            game.warrior_1.body,
+            game.warrior_2.body,
         )
 
     except TransientLLMError:
-        logger.exception('Transient LLM error %s, %s', battle_view.battle.id, battle_view.direction)
-        attempts = battle_view.attempts
-        battle_view.attempts += 1
-        battle_view.save(update_fields=['attempts'])
-
-        # Update corresponding Game object
-        db_game.attempts = battle_view.attempts
-        db_game.save(update_fields=['attempts'])
+        logger.exception('Transient LLM error, battle %s game %s', game.battle_id, game.id)
+        attempts = game.attempts
+        game.attempts += 1
+        game.save(update_fields=['attempts'])
+        mirror_to_battle(game, battle_mirror, ('attempts',))
 
         if attempts < 6:
             # try again in some time
@@ -181,45 +187,26 @@ def _run_llm(battle_view, now, db_game):
             delay = datetime.timedelta(minutes=5) * 2**exponent
             return RetryMeLater(
                 precondition_date=now + delay,
-                message=f'Attempt {battle_view.attempts} - transient LLM error',
+                message=f'Attempt {game.attempts} - transient LLM error',
             )
         else:
             result = ''
             finish_reason = 'error'
             llm_version = ''
 
-    battle_view.input_sha256 = sha256(
-        (battle_view.warrior_1.body + battle_view.warrior_2.body).encode('utf-8')
+    game.input_sha256 = sha256(
+        (game.warrior_1.body + game.warrior_2.body).encode('utf-8')
     ).digest()
-    battle_view.text_unit = TextUnit.get_or_create_by_content(result[:MAX_WARRIOR_LENGTH], now=now)
-    battle_view.finish_reason = finish_reason
+    game.text_unit = TextUnit.get_or_create_by_content(result[:MAX_WARRIOR_LENGTH], now=now)
+    game.finish_reason = finish_reason
     # but the API finish reason doesn't matter if we cut the response
     if len(result) > MAX_WARRIOR_LENGTH:
-        battle_view.finish_reason = 'character_limit'
-    battle_view.llm_version = llm_version
+        game.finish_reason = 'character_limit'
+    game.llm_version = llm_version
 
-    battle_view.resolved_at = now
-    battle_view.save(update_fields=[
-        'input_sha256',
-        'text_unit',
-        'finish_reason',
-        'llm_version',
-        'resolved_at',
-    ])
-
-    # Update corresponding Game object
-    db_game.input_sha256 = battle_view.input_sha256
-    db_game.text_unit = battle_view.text_unit
-    db_game.finish_reason = battle_view.finish_reason
-    db_game.llm_version = battle_view.llm_version
-    db_game.resolved_at = now
-    db_game.save(update_fields=[
-        'input_sha256',
-        'text_unit',
-        'finish_reason',
-        'llm_version',
-        'resolved_at',
-    ])
+    game.resolved_at = now
+    game.save(update_fields=RESOLUTION_FIELDS)
+    mirror_to_battle(game, battle_mirror, RESOLUTION_FIELDS)
 
 
 def transfer_rating(goal, battle_id):
