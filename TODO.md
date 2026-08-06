@@ -114,6 +114,32 @@ the same condition that lets the column go not-null
 in step 1 of `docs/game-migration.md`,
 so the two land together.
 
+`Game.score_object` (`warriors/battles.py`) finds a score row
+by matching the facade's direction against the row's,
+but a `BattleViewpoint` rewrites field names and not lookup keys,
+so from viewpoint 2 each game reads the other game's score.
+A second error hides it:
+`BattleViewpoint.game_scores_list` wraps each row in a
+`GameScoreViewpoint` carrying the battle-level viewpoint,
+which swaps similarities already stored in game order.
+Composed, they name the right warrior in the wrong game,
+so battle scores, performance, and ratings come out correct
+and only the warrior-arena page's two per-game columns are wrong,
+each showing what belongs to the other one
+(the xfail cases of `test_game_reports_its_own_similarities`).
+Repairing either error alone inverts every viewpoint-2 battle score —
+the unmerged `fix_battle_order` branch repairs the first —
+which `test_battle_score_splits_between_viewpoints`
+and the rating tests catch.
+Next move: select the score by the game row rather than the direction
+and drop the swap in the same change.
+`GameScoreViewpoint` then wraps nothing,
+so its scoring properties move onto `GameScore`
+and `BattleViewpoint.game_scores_list` goes with it.
+No values move and no rating changes, so no sign-off,
+and it clears the last reader selecting on `GameScore.direction` —
+what step 1 of `docs/game-migration.md` waits for.
+
 Every test that builds a `Battle` has to sort the warrior pair first,
 because `BattleFactory` passes its two `SubFactory` warriors through
 in the order given and the `warrior_ordering` check constraint
