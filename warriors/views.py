@@ -1,9 +1,11 @@
 import uuid
+from typing import NamedTuple
 
 from django import forms
 from django.contrib.auth.decorators import login_required
 from django.contrib.sites.shortcuts import get_current_site
 from django.db.models import Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -238,35 +240,36 @@ class BattleDetailView(DetailView):
         self.object.game_2_1.show_secrets_2 = show_secrets_1
         self.object.game_2_1.show_battle_results = show_battle_results
 
-        warrior_arena = self.get_nav_warrior_arena()
+        warrior_arena = get_nav_warrior_arena(self.request, self.object)
         context['nav_warrior_arena'] = warrior_arena
-        context.update(battle_nav_context(self.object, warrior_arena, self.request.user))
+        context.update(battle_nav_context(self.object, warrior_arena))
 
         return context
 
-    def get_nav_warrior_arena(self):
-        """
-        The warrior named by the `warrior_arena` query parameter, if it fought here.
 
-        The warrior page puts the parameter on every link into a battle,
-        so that stepping onward from there stays in the list it showed.
-        A value naming no warrior of this battle names no warrior at all.
-        """
-        try:
-            warrior_arena_id = uuid.UUID(self.request.GET.get('warrior_arena', ''))
-        except ValueError:
-            return None
-        warrior_arena = WarriorArena.objects.filter(
-            id=warrior_arena_id,
-        ).select_related('arena').first()
-        if warrior_arena is None:
-            return None
-        if warrior_arena.warrior_id not in (self.object.warrior_1_id, self.object.warrior_2_id):
-            return None
-        return warrior_arena
+def get_nav_warrior_arena(request, battle):
+    """
+    The warrior named by the `warrior_arena` query parameter, if it fought here.
+
+    The warrior page puts the parameter on every link into a battle,
+    so that stepping onward from there stays in the list it showed.
+    A value naming no warrior of this battle names no warrior at all.
+    """
+    try:
+        warrior_arena_id = uuid.UUID(request.GET.get('warrior_arena', ''))
+    except ValueError:
+        return None
+    warrior_arena = WarriorArena.objects.filter(
+        id=warrior_arena_id,
+    ).select_related('arena').first()
+    if warrior_arena is None:
+        return None
+    if warrior_arena.warrior_id not in (battle.warrior_1_id, battle.warrior_2_id):
+        return None
+    return warrior_arena
 
 
-def battle_nav_context(battle, warrior_arena, user):
+def battle_nav_context(battle, warrior_arena):
     """
     Links for the two walks through neighbouring battles in time.
 
@@ -275,39 +278,85 @@ def battle_nav_context(battle, warrior_arena, user):
     stepping through the list `WarriorDetailView` shows.
     Both carry the warrior onward,
     so an arena step landing on another of its battles keeps the warrior walk.
+
+    Each link addresses `battle_nav`, which is where a step is resolved,
+    so offering four of them costs four `reverse` calls and no query.
     """
-    arena_previous, arena_next = battle_neighbour_urls(
-        Battle.objects.for_user(user).filter(arena__llm=battle.llm),
-        battle, warrior_arena,
-    )
-    if warrior_arena is None:
-        warrior_previous, warrior_next = None, None
-    else:
-        warrior_previous, warrior_next = battle_neighbour_urls(
-            Battle.objects.with_warrior_arena(warrior_arena),
-            battle, warrior_arena,
-        )
-    return {
-        'arena_previous_battle_url': arena_previous,
-        'arena_next_battle_url': arena_next,
-        'warrior_previous_battle_url': warrior_previous,
-        'warrior_next_battle_url': warrior_next,
+    context = {
+        'arena_previous_battle_url': battle_url('previous_arena_battle', battle, warrior_arena),
+        'arena_next_battle_url': battle_url('next_arena_battle', battle, warrior_arena),
+        'warrior_previous_battle_url': None,
+        'warrior_next_battle_url': None,
     }
+    if warrior_arena is not None:
+        context['warrior_previous_battle_url'] = battle_url('previous_warrior_battle', battle, warrior_arena)
+        context['warrior_next_battle_url'] = battle_url('next_warrior_battle', battle, warrior_arena)
+    return context
 
 
-def battle_neighbour_urls(battles, battle, warrior_arena):
-    """Links to the battles either side of this one within `battles`, older first."""
-    battles = battles.only('id', 'scheduled_at')
-    older = battles.filter(scheduled_at__lt=battle.scheduled_at).order_by('-scheduled_at').first()
-    newer = battles.filter(scheduled_at__gt=battle.scheduled_at).order_by('scheduled_at').first()
-    return battle_url(older, warrior_arena), battle_url(newer, warrior_arena)
+class TimeDirection(NamedTuple):
+    """
+    One side of a battle in time: previous is earlier, next is later.
+
+    `side` keeps the battles lying that way,
+    and `nearest_first` orders them so the closest one comes first.
+    """
+    side: str
+    nearest_first: str
 
 
-def battle_url(battle, warrior_arena):
+PREVIOUS = TimeDirection('scheduled_at__lt', '-scheduled_at')
+NEXT = TimeDirection('scheduled_at__gt', 'scheduled_at')
+
+
+def previous_arena_battle(request, pk):
+    return battle_nav(request, pk, PREVIOUS, warrior_walk=False)
+
+
+def next_arena_battle(request, pk):
+    return battle_nav(request, pk, NEXT, warrior_walk=False)
+
+
+def previous_warrior_battle(request, pk):
+    return battle_nav(request, pk, PREVIOUS, warrior_walk=True)
+
+
+def next_warrior_battle(request, pk):
+    return battle_nav(request, pk, NEXT, warrior_walk=True)
+
+
+def battle_nav(request, pk, direction, warrior_walk):
+    """
+    Redirect to the neighbour one step of one walk lands on.
+
+    The battle page links here rather than resolving four neighbours
+    on every render, for steps most of its visitors never take.
+    The price is a link offered before anything looked for its target:
+    a walk out of battles ends in a 404 here, not in an absent link.
+
+    The two walks are the ones `battle_nav_context` offers,
+    and a warrior step is only a step while the warrior is still named —
+    the parameter is what says which list is being walked.
+    """
+    battle = get_object_or_404(Battle, pk=pk)
+    warrior_arena = get_nav_warrior_arena(request, battle)
+    if warrior_walk:
+        if warrior_arena is None:
+            raise Http404('This walk needs a warrior that fought here')
+        battles = Battle.objects.with_warrior_arena(warrior_arena)
+    else:
+        battles = Battle.objects.for_user(request.user).filter(arena__llm=battle.llm)
+    neighbour = battles.only('id', 'scheduled_at').filter(
+        **{direction.side: battle.scheduled_at},
+    ).order_by(direction.nearest_first).first()
+    if neighbour is None:
+        raise Http404('The walk ends here')
+    return redirect(battle_url('battle_detail', neighbour, warrior_arena))
+
+
+def battle_url(url_name, battle, warrior_arena):
     """A battle link that keeps the warrior whose list it was reached from, if any."""
-    if battle is None:
-        return None
-    url = reverse('battle_detail', args=(battle.id,))
+    url = reverse(url_name, args=(battle.id,))
     if warrior_arena is not None:
         url += '?' + urlencode({'warrior_arena': warrior_arena.id})
     return url
