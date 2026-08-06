@@ -36,6 +36,62 @@ def test_battle_score():
     assert battle_viewpoint.performance == pytest.approx(-0.5, abs=0.01)  # it could have been closer to 1 if there was a discrepancy in the ratings
 
 
+MIS_JOIN = pytest.mark.xfail(
+    strict=True,
+    reason="viewpoint 2 reads the other game's score (`Game.score_object` in `TODO.md`)",
+)
+
+
+@pytest.fixture
+def scored_battle():
+    battle = BattleFactory(
+        warrior_1__id=UUID(int=1),
+        warrior_2__id=UUID(int=2),
+    )
+    create_scores(
+        battle,
+        score_1_2_1=0.1, score_1_2_2=0.2,
+        score_2_1_1=0.3, score_2_1_2=0.4,
+    )
+    return battle
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ('viewpoint', 'game_name', 'similarities'),
+    (
+        ('1', 'game_1_2', (0.1, 0.2)),
+        ('1', 'game_2_1', (0.4, 0.3)),
+        pytest.param('2', 'game_1_2', (0.4, 0.3), marks=MIS_JOIN),
+        pytest.param('2', 'game_2_1', (0.1, 0.2), marks=MIS_JOIN),
+    ),
+)
+def test_game_reports_its_own_similarities(scored_battle, viewpoint, game_name, similarities):
+    """
+    A game reports the similarities of its own LLM run,
+    warrior 1 being the one its prompt concatenated first.
+    Both viewpoints see the same two games, in opposite slots.
+    """
+    game = getattr(BattleViewpoint(scored_battle, viewpoint), game_name)
+    assert (
+        game.warrior_1_preserved_ratio,
+        game.warrior_2_preserved_ratio,
+    ) == similarities
+
+
+@pytest.mark.django_db
+def test_battle_score_splits_between_viewpoints(scored_battle):
+    """
+    The two viewpoints of a battle split one outcome between them.
+    The mis-join above preserves this — which is how it stays hidden —
+    and repairing half of it does not.
+    """
+    assert (
+        BattleViewpoint(scored_battle, '1').score +
+        BattleViewpoint(scored_battle, '2').score
+    ) == pytest.approx(1)
+
+
 # transaction=True runs the test in autocommit, like a plain view request;
 # under the default test-wrapping transaction the timestamps would agree
 # even without create_from_warriors' own atomic block.

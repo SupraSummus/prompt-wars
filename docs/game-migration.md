@@ -126,6 +126,14 @@ once nothing selects by them.
 
 ### 2. Cut the remaining readers over
 
+Not before the viewpoint-2 score mis-join is fixed
+(the `Game.score_object` entry in `TODO.md`):
+hydrating a viewpoint from its game rows
+repairs one of two errors that cancel each other,
+and repairing either one alone moves every rating.
+The averaging claim in the rating bullet below
+survives this step only if both go.
+
 In order of blast radius:
 
 - **Rating** (`WarriorArena.update_rating`,
