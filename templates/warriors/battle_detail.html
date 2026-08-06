@@ -25,9 +25,7 @@
         <nav aria-label="Battles of {{ nav_warrior_arena }}">
           <ul>
             <li>
-              {% if warrior_previous_battle_url %}
-                <a href="{{ warrior_previous_battle_url }}">↶ Older battle of {{ nav_warrior_arena }}</a>
-              {% endif %}
+              <a href="{{ warrior_previous_battle_url }}">↶ Older battle of {{ nav_warrior_arena }}</a>
             </li>
             <li>
               <a href="{% url 'warrior_detail' nav_warrior_arena.id %}">
@@ -35,9 +33,7 @@
               </a>
             </li>
             <li>
-              {% if warrior_next_battle_url %}
-                <a href="{{ warrior_next_battle_url }}">Newer battle of {{ nav_warrior_arena }} ↷</a>
-              {% endif %}
+              <a href="{{ warrior_next_battle_url }}">Newer battle of {{ nav_warrior_arena }} ↷</a>
             </li>
           </ul>
         </nav>
@@ -45,14 +41,10 @@
       <nav aria-label="Battles in this arena">
         <ul>
           <li>
-            {% if arena_previous_battle_url %}
-              <a href="{{ arena_previous_battle_url }}">↶ Older battle in this arena</a>
-            {% endif %}
+            <a href="{{ arena_previous_battle_url }}">↶ Older battle in this arena</a>
           </li>
           <li>
-            {% if arena_next_battle_url %}
-              <a href="{{ arena_next_battle_url }}">Newer battle in this arena ↷</a>
-            {% endif %}
+            <a href="{{ arena_next_battle_url }}">Newer battle in this arena ↷</a>
           </li>
         </ul>
       </nav>
