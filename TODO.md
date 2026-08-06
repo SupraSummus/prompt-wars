@@ -140,6 +140,30 @@ No values move and no rating changes, so no sign-off,
 and it clears the last reader selecting on `GameScore.direction` —
 what step 1 of `docs/game-migration.md` waits for.
 
+`GameScore` (`warriors/score.py`) carries two indexes
+that duplicate one already there:
+the `Meta.indexes` entry on (battle, direction, algorithm)
+names exactly the columns `unique_together` indexes,
+and the `game` foreign key's own index
+is a prefix of `unique_game_algorithm`.
+Postgres answers those lookups from the longer index either way,
+so the pair buys nothing,
+while every insert and update on the table
+writes two index entries nobody reads.
+A bulk measurement of the cost:
+dropping the two took a million-row `game_id` backfill
+from 54s to 40s.
+Next move: delete the `Meta.indexes` entry,
+set `db_index=False` on the `game` foreign key,
+and migrate the two indexes away;
+behavior-preserving.
+The `battle` foreign key's index is redundant today for the same reason
+but has to stay:
+the uniqueness covering it drops in step 1
+of `docs/game-migration.md`,
+while `WarriorArena.update_rating` still prefetches `game_scores`
+by battle until the reader cut-over in step 2.
+
 Every test that builds a `Battle` has to sort the warrior pair first,
 because `BattleFactory` passes its two `SubFactory` warriors through
 in the order given and the `warrior_ordering` check constraint
