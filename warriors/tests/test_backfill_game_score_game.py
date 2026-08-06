@@ -16,7 +16,8 @@ def test_backfill_links_each_score_to_its_own_game():
         create_scores(battle, 1, 0.1, 1, 0.1)
     GameScore.objects.update(game=None)
 
-    call_command('backfill_game_score_game', batch_size=1)
+    # no --batch-pages: these scores share a page, so nothing splits them
+    call_command('backfill_game_score_game')
 
     for battle in battles:
         for score in battle.game_scores.all():
