@@ -4,7 +4,11 @@ from django.core.management.base import CommandError
 from django.utils import timezone
 
 from ..battles import LLM
-from .factories import BattleFactory, TextUnitFactory, WarriorFactory
+from ..score import ScoreAlgorithm
+from .factories import (
+    BattleFactory, GameScoreFactory, TextUnitFactory, WarriorFactory, game_of,
+)
+from .fixtures import create_scores
 
 
 @pytest.fixture
@@ -120,6 +124,41 @@ def test_verify_reports_a_resolution_the_mirror_missed(mirrored_battle):
     mirrored_battle.save(update_fields=['resolved_at_1_2'])
 
     with pytest.raises(CommandError, match='conflicting resolved_at: 1'):
+        call_command('verify_games')
+
+
+@pytest.mark.django_db
+def test_verify_accepts_scores_naming_their_own_game(mirrored_battle):
+    create_scores(mirrored_battle, 1, 0.1, 1, 0.1)
+
+    call_command('verify_games')
+
+
+@pytest.mark.django_db
+def test_verify_reports_an_unlinked_score(mirrored_battle):
+    # what backfill_game_score_game repairs — and the report that says
+    # it is done, which the command's own count cannot: it sees only the
+    # rows it linked, never the ones that arrived linked
+    create_scores(mirrored_battle, 1, 0.1, 1, 0.1)
+    mirrored_battle.game_scores.update(game=None)
+
+    with pytest.raises(CommandError, match='score naming no game: 2'):
+        call_command('verify_games')
+
+
+@pytest.mark.django_db
+def test_verify_reports_scores_naming_each_others_game(mirrored_battle):
+    # both rows insert, so the swap is the one mislinking the schema
+    # accepts — every other one meets on a game (game, algorithm) guards
+    for direction, other in (('1_2', '2_1'), ('2_1', '1_2')):
+        GameScoreFactory(
+            battle=mirrored_battle,
+            direction=direction,
+            algorithm=ScoreAlgorithm.LCS,
+            game=game_of(mirrored_battle, other),
+        )
+
+    with pytest.raises(CommandError, match='score naming the wrong game: 2'):
         call_command('verify_games')
 
 
