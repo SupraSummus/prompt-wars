@@ -114,10 +114,13 @@ A finding nothing explains is a bug to chase, not data to copy over.
 `get_or_create_game_score` (`warriors/score.py`)
 names the game on every score it writes,
 and `backfill_game_score_game` links the rows written before it did.
-Once a production run reports nothing left to link,
+Once `verify_games` reports no score-link finding,
 the column goes not-null
 and the lookup and the uniqueness move off (battle, direction)
 onto the (game, algorithm) constraint that already guards the writes.
+The audit is the gate rather than the backfill's own count:
+the count covers the rows that command linked
+and says nothing about the ones that reached it already linked.
 `_ensure_score` then reads the game row directly —
 warriors, result text unit, finish reason —
 instead of constructing the battle facade.

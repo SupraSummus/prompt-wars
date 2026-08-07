@@ -11,6 +11,12 @@ and mirrors it onto the battle's directional columns;
 the audit compares them without caring which side is authoritative,
 because equality is symmetric.
 
+It checks the same key from the score side too:
+that a score names the game it scores
+and not merely the (battle, direction) pair it was keyed on.
+A backfill reports the rows it linked and nothing about the rest,
+so whether a link is right is a question only re-deriving it answers.
+
 Nothing here is routine backfill.
 `Battle.create_from_warriors` writes a battle and both its games
 in one transaction, so a missing row is a broken invariant, not a gap;
@@ -26,7 +32,7 @@ and a page of identical lines is where the single odd one hides.
 Batched by battle id to bound memory, not for locking:
 the audit takes no locks and can be interrupted at any point.
 """
-from collections import Counter
+from collections import Counter, defaultdict
 
 from django.core.management.base import BaseCommand, CommandError
 
@@ -34,7 +40,7 @@ from ...battles import Battle, as_bytes, mirrored_game_fields
 
 
 class Command(BaseCommand):
-    help = 'Report game rows that do not mirror their battle'
+    help = 'Report game rows and score links that disagree with their battle'
 
     def add_arguments(self, parser):
         parser.add_argument('--batch-size', type=int, default=1000)
@@ -49,7 +55,9 @@ class Command(BaseCommand):
             battles = Battle.objects.order_by('id')
             if last_id is not None:
                 battles = battles.filter(id__gt=last_id)
-            battles = list(battles.prefetch_related('games')[:batch_size])
+            battles = list(
+                battles.prefetch_related('games', 'game_scores')[:batch_size]
+            )
             if not battles:
                 break
             last_id = battles[-1].id
@@ -63,13 +71,20 @@ class Command(BaseCommand):
 
     def check_battle(self, battle):
         games = {game.warrior_1_id: game for game in battle.games.all()}
+        scores = defaultdict(list)
+        for score in battle.game_scores.all():
+            scores[score.direction].append(score)
         for direction in ('1_2', '2_1'):
             fields = mirrored_game_fields(battle, direction)
             game = games.pop(fields['warrior_1_id'], None)
             location = f'battle {battle.id} game {direction}'
             if game is None:
+                # with no row there is nothing for its scores to name
                 self.record('missing game row', location)
-            elif game.resolved_at is None:
+                continue
+            # a link never drifts mid-flight, so the gate below misses it
+            self.check_scores(scores[direction], game, location)
+            if game.resolved_at is None:
                 # A direction still in flight is being written as we read:
                 # attempts climbs on every retry, and the battle and its
                 # games arrive in separate queries, so comparing them
@@ -85,6 +100,23 @@ class Command(BaseCommand):
                 'game row outside the battle pair',
                 f'battle {battle.id} warrior {warrior_1_id}',
             )
+
+    def check_scores(self, scores, game, location):
+        """
+        The scores of one direction, against the game they score.
+
+        The pair a score is keyed on names exactly one game row, so the
+        link is re-derivable — and re-deriving is the only thing that
+        checks it: the (game, algorithm) uniqueness rejects two scores
+        meeting on one game, so a battle whose two scores name each
+        other's game satisfies every constraint in the schema.
+        """
+        for score in scores:
+            score_location = f'{location} score {score.algorithm}'
+            if score.game_id is None:
+                self.record('score naming no game', score_location)
+            elif score.game_id != game.id:
+                self.record('score naming the wrong game', score_location)
 
     def check_game(self, game, fields, location):
         for name, expected in fields.items():

@@ -109,7 +109,7 @@ onto blank game rows.
 not an ongoing repair:
 it links the `GameScore` rows written before the `game` column existed
 to the game row their (battle, direction) pair already names.
-Delete it once a production run reports zero still unlinked —
+Delete it once `verify_games` reports no score-link finding —
 the same condition that lets the column go not-null
 in step 1 of `docs/game-migration.md`,
 so the two land together.
