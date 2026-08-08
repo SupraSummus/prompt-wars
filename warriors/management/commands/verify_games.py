@@ -13,9 +13,7 @@ because equality is symmetric.
 
 It checks the same key from the score side too:
 that a score names the game it scores
-and not merely the (battle, direction) pair it was keyed on.
-A backfill reports the rows it linked and nothing about the rest,
-so whether a link is right is a question only re-deriving it answers.
+and not merely the (battle, direction) pair it also carries.
 
 Nothing here is routine backfill.
 `Battle.create_from_warriors` writes a battle and both its games
@@ -105,18 +103,19 @@ class Command(BaseCommand):
         """
         The scores of one direction, against the game they score.
 
-        The pair a score is keyed on names exactly one game row, so the
-        link is re-derivable — and re-deriving is the only thing that
-        checks it: the (game, algorithm) uniqueness rejects two scores
-        meeting on one game, so a battle whose two scores name each
-        other's game satisfies every constraint in the schema.
+        A score carries the (battle, direction) pair besides the game
+        it names, and the pair names exactly one game row, so the link
+        is re-derivable — and re-deriving is the only thing that checks
+        it: the (game, algorithm) uniqueness rejects two scores meeting
+        on one game, so a battle whose two scores name each other's
+        game satisfies every constraint in the schema.
         """
         for score in scores:
-            score_location = f'{location} score {score.algorithm}'
-            if score.game_id is None:
-                self.record('score naming no game', score_location)
-            elif score.game_id != game.id:
-                self.record('score naming the wrong game', score_location)
+            if score.game_id != game.id:
+                self.record(
+                    'score naming the wrong game',
+                    f'{location} score {score.algorithm}',
+                )
 
     def check_game(self, game, fields, location):
         for name, expected in fields.items():

@@ -32,8 +32,6 @@ class GameScore(GoalRelatedMixin, models.Model):
         to='DBGame',
         on_delete=models.CASCADE,
         related_name='scores',
-        null=True,
-        blank=True,
     )
     direction = models.CharField(
         max_length=3,
@@ -63,15 +61,7 @@ class GameScore(GoalRelatedMixin, models.Model):
     )
 
     class Meta:
-        unique_together = [
-            ('battle', 'direction', 'algorithm'),
-        ]
-        indexes = [
-            models.Index(fields=['battle', 'direction', 'algorithm']),
-        ]
         constraints = [
-            # the key that replaces the pair above; rows with no game yet
-            # are exempt until backfill_game_score_game has run
             models.UniqueConstraint(
                 fields=('game', 'algorithm'),
                 name='unique_game_algorithm',
@@ -83,26 +73,21 @@ def get_or_create_game_score(game, direction, algorithm):
     """
     The score of one game under one algorithm.
 
-    The lookup keys on (battle, direction) though the write names the game:
-    a score written before the column existed carries no game,
-    so keying the lookup on it would miss that score
-    and create a duplicate the old uniqueness rejects.
-    `direction` is that key's other half, and drops with it
-    once `backfill_game_score_game` has run (docs/game-migration.md).
+    Keyed on (game, algorithm), the uniqueness the schema guards,
+    so a racing second call loses its insert and reads the row instead.
+    `battle` and `direction` are written and never looked up;
+    they drop once nothing reads them (docs/game-migration.md).
     """
-    game_score = GameScore.objects.filter(
-        battle_id=game.battle_id,
-        direction=direction,
+    game_score, _ = GameScore.objects.get_or_create(
+        game=game,
         algorithm=algorithm,
-    ).first()
-    if game_score is None:
-        game_score = GameScore.objects.create(
-            battle_id=game.battle_id,
-            direction=direction,
-            game=game,
-            algorithm=algorithm,
-            processed_goal=schedule(ensure_score),
-        )
+        defaults={
+            'battle_id': game.battle_id,
+            'direction': direction,
+            # a callable, so a hit leaves no orphan goal behind
+            'processed_goal': lambda: schedule(ensure_score),
+        },
+    )
     return game_score
 
 
@@ -112,8 +97,7 @@ def ensure_score(goal):
 
 
 def _ensure_score(game_score, save=True):
-    from .battles import Game
-    game = Game(game_score.battle, game_score.direction)
+    game = game_score.game
 
     if game.finish_reason == 'error':
         _set_similarity(game_score, None, None, None, save=save)

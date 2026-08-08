@@ -3,9 +3,28 @@ from hashlib import sha256
 import numpy as np
 import pytest
 from django_goals.busy_worker import worker
+from django_goals.models import Goal
 
 from .score import GameScoreViewpoint, ScoreAlgorithm, get_or_create_game_score
 from .tests.factories import TextUnitFactory, game_of
+
+
+@pytest.mark.django_db
+def test_second_score_lookup_schedules_no_goal(battle):
+    """
+    `resolve_battle` asks for the same score on every retry,
+    so the goal in `defaults` has to stay a callable:
+    scheduling one eagerly leaks a goal per call,
+    which nothing downstream notices.
+    """
+    game = game_of(battle, '1_2')
+    first = get_or_create_game_score(game, '1_2', ScoreAlgorithm.LCS)
+    goals = Goal.objects.count()
+
+    again = get_or_create_game_score(game, '1_2', ScoreAlgorithm.LCS)
+
+    assert again == first
+    assert Goal.objects.count() == goals
 
 
 @pytest.mark.django_db
@@ -23,10 +42,11 @@ def test_gamescore_embeddings_integration(battle, direction):
     warrior_2_embedding = [0.1, 0.3, 0.9]
 
     # Set up text unit and warrior embeddings
-    setattr(battle, f'text_unit_{direction}', TextUnitFactory(
+    game = game_of(battle, direction)
+    game.text_unit = TextUnitFactory(
         voyage_3_embedding=result_embedding,
-    ))
-    battle.save(update_fields=[f'text_unit_{direction}'])
+    )
+    game.save(update_fields=['text_unit'])
     battle.warrior_1.voyage_3_embedding = warrior_1_embedding if direction == '1_2' else warrior_2_embedding
     battle.warrior_1.save(update_fields=['voyage_3_embedding'])
     battle.warrior_2.voyage_3_embedding = warrior_2_embedding if direction == '1_2' else warrior_1_embedding
@@ -34,7 +54,7 @@ def test_gamescore_embeddings_integration(battle, direction):
 
     # Create a game score with Embeddings algorithm
     game_score = get_or_create_game_score(
-        game=game_of(battle, direction),
+        game=game,
         direction=direction,
         algorithm=ScoreAlgorithm.EMBEDDINGS,
     )
@@ -74,10 +94,11 @@ def test_gamescore_lcs(battle, direction):
     Test the LCS algorithm for GameScore calculation.
     """
     # Set up text unit and warriors
-    setattr(battle, f'text_unit_{direction}', TextUnitFactory(
+    game = game_of(battle, direction)
+    game.text_unit = TextUnitFactory(
         content='abc',
-    ))
-    battle.save(update_fields=[f'text_unit_{direction}'])
+    )
+    game.save(update_fields=['text_unit'])
     warrior_1 = 'a'
     warrior_2 = 'abxx'
     battle.warrior_1.body = warrior_1 if direction == '1_2' else warrior_2
@@ -89,7 +110,7 @@ def test_gamescore_lcs(battle, direction):
 
     # Create a game score with LCS algorithm
     game_score = get_or_create_game_score(
-        game=game_of(battle, direction),
+        game=game,
         direction=direction,
         algorithm=ScoreAlgorithm.LCS,
     )

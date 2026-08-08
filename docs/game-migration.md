@@ -38,10 +38,10 @@ A game's warriors are in prompt order,
 so comparing `game.warrior_1_id` with `battle.warrior_1_id`
 recovers the direction;
 uniqueness is (battle, warrior_1).
-`GameScore` re-keys from (battle, direction, algorithm)
-to (game, algorithm) —
+`GameScore` keys on (game, algorithm)
+rather than (battle, direction, algorithm) —
 its similarity fields are already in game order,
-so no values move.
+so no values moved.
 
 **Deliberate duplication stays.**
 `llm` and `scheduled_at` live on both `Battle` and `Game`
@@ -109,25 +109,7 @@ deleted once a production run leaves nothing to do:
 having written the battle's sha and not the game's.
 A finding nothing explains is a bug to chase, not data to copy over.
 
-### 1. Re-key GameScore
-
-`get_or_create_game_score` (`warriors/score.py`)
-names the game on every score it writes,
-and `backfill_game_score_game` links the rows written before it did.
-Once `verify_games` reports no score-link finding,
-the column goes not-null
-and the lookup and the uniqueness move off (battle, direction)
-onto the (game, algorithm) constraint that already guards the writes.
-The audit is the gate rather than the backfill's own count:
-the count covers the rows that command linked
-and says nothing about the ones that reached it already linked.
-`_ensure_score` then reads the game row directly —
-warriors, result text unit, finish reason —
-instead of constructing the battle facade.
-`direction` and `battle` drop from `GameScore`
-once nothing selects by them.
-
-### 2. Cut the remaining readers over
+### 1. Cut the remaining readers over
 
 Not before the viewpoint-2 score mis-join is fixed
 (the `Game.score_object` entry in `TODO.md`):
@@ -164,7 +146,7 @@ In order of blast radius:
   cooldown, opponent exclusion, and `battle_count`
   are pair-level and stay on `Battle`.
 
-### 3. Drop the directional columns
+### 2. Drop the directional columns
 
 Not while `verify_games` still reports a finding:
 after this the game row is the only copy,
@@ -182,7 +164,14 @@ Same shape as the `lcs_len_*` removal.
 The dead `rating_transferred_at` column
 (tracked in `TODO.md`) rides along.
 
-### 4. Rename
+`GameScore.battle` and `GameScore.direction` drop here too.
+They carry no key any more —
+the uniqueness and the lookup sit on (game, algorithm) —
+and their last two readers go in this same step:
+`Game.score_object` with the facade,
+and the audit's own re-derivation of the score link with the command.
+
+### 3. Rename
 
 With the in-memory `Game` facade gone with the columns,
 the name is free:
