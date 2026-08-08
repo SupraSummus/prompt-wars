@@ -294,3 +294,16 @@ silently losing the warrior walk rather than failing.
 Next move: expose `battle_url` as a template tag
 and call it from those four links,
 leaving the parameter named once on each side of the request.
+
+The cooperation-score table in `templates/warriors/partials/game.html`
+hand-writes one row per scoring algorithm,
+naming LCS and embeddings in the markup,
+so a third `ScoreAlgorithm` member renders nowhere until someone edits it.
+The duplication has already drifted:
+the embeddings row lost its opening `<tr>` and kept the closing one.
+It renders — the parser opens a row implicitly for the stray `<td>` —
+so nothing looks wrong, which is why it survived.
+Next move: loop over the game's score rows instead,
+which drops both the stray tag and the names
+(`docs/battle-display.md` argues the wider case
+for looping over algorithms rather than naming one).
