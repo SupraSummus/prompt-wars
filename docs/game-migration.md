@@ -111,13 +111,15 @@ A finding nothing explains is a bug to chase, not data to copy over.
 
 ### 1. Cut the remaining readers over
 
-Not before the viewpoint-2 score mis-join is fixed
-(the `Game.score_object` entry in `TODO.md`):
-hydrating a viewpoint from its game rows
-repairs one of two errors that cancel each other,
-and repairing either one alone moves every rating.
-The averaging claim in the rating bullet below
-survives this step only if both go.
+Scores select by the game row
+(`Game.score_object`, `warriors/battles.py`)
+and a viewpoint rewrites nothing on their way out,
+so hydrating one from its game rows
+changes where the values come from, not what they are.
+A direction label is the one key to keep out of that lookup:
+it is battle-relative where a facade's direction is not,
+and nothing cancels the difference,
+so it lands on every rating rather than on two columns of a page.
 
 In order of blast radius:
 
@@ -142,8 +144,7 @@ In order of blast radius:
   instead of naming two directional slots and a default algorithm,
   and select a score by (game, warrior) rather than by direction.
   That is what makes `BattleViewpoint`'s string-rewriting field maps
-  and the `GameScoreViewpoint` swap disappear
-  rather than move.
+  disappear rather than move.
 - **Matchmaking and stats**: no change —
   cooldown, opponent exclusion, and `battle_count`
   are pair-level and stay on `Battle`.
@@ -169,9 +170,8 @@ The dead `rating_transferred_at` column
 `GameScore.battle` and `GameScore.direction` drop here too.
 They carry no key any more —
 the uniqueness and the lookup sit on (game, algorithm) —
-and their last two readers go in this same step:
-`Game.score_object` with the facade,
-and the audit's own re-derivation of the score link with the command.
+and `direction`'s last reader goes in this same step:
+the audit's own re-derivation of the score link, with the command.
 
 ### 3. Rename
 

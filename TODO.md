@@ -105,34 +105,6 @@ a repair command that recomputes the sha from the warrior bodies
 onto blank game rows.
 `backfill_game_input_sha256` goes with the columns it copies from.
 
-`Game.score_object` (`warriors/battles.py`) finds a score row
-by matching the facade's direction against the row's,
-but a `BattleViewpoint` rewrites field names and not lookup keys,
-so from viewpoint 2 each game reads the other game's score.
-A second error hides it:
-`BattleViewpoint.game_scores_list` wraps each row in a
-`GameScoreViewpoint` carrying the battle-level viewpoint,
-which swaps similarities already stored in game order.
-Composed, they name the right warrior in the wrong game,
-so battle scores, performance, and ratings come out correct
-and only the warrior-arena page's two per-game columns are wrong,
-each showing what belongs to the other one
-(the xfail cases of `test_game_reports_its_own_similarities`).
-Repairing either error alone inverts every viewpoint-2 battle score —
-the unmerged `fix_battle_order` branch repairs the first —
-which `test_battle_score_splits_between_viewpoints`
-and the rating tests catch.
-Next move: select the score by the game row rather than the direction
-and drop the swap in the same change.
-`GameScoreViewpoint` then wraps nothing,
-so its scoring properties move onto `GameScore`
-and `BattleViewpoint.game_scores_list` goes with it.
-No values move and no rating changes, so no sign-off,
-and it leaves `GameScore.direction` with one reader —
-the audit's re-derivation of the score link —
-which goes with the directional columns
-in step 2 of `docs/game-migration.md`.
-
 The `game` foreign key on `GameScore` (`warriors/score.py`)
 carries an index nobody reads:
 it is a prefix of `unique_game_algorithm`,
@@ -152,6 +124,20 @@ nothing else covers it,
 and `WarriorArena.update_rating` prefetches `game_scores`
 by battle until the reader cut-over
 in step 1 of `docs/game-migration.md`.
+
+`GameScore.cooperation_score` (`warriors/score.py`) has no test.
+It is the one scoring property nothing exercises directly:
+`score` and `score_rev` are asserted in `score_tests.py`
+and again through the game facade in `battles_tests.py`,
+while this one is only ever rendered
+(`templates/warriors/partials/game.html`).
+It also carries the edge cases the others do not —
+a non-positive larger similarity short-circuiting to 0,
+and the `1 - warriors_similarity` factor
+that is the whole point of the axis
+(`docs/design-tensions.md` owns why it matters).
+Next move: a parametrized test beside the LCS score tests
+covering the zero case, a missing similarity, and one worked pair.
 
 Every test that builds a `Battle` has to sort the warrior pair first,
 because `BattleFactory` passes its two `SubFactory` warriors through

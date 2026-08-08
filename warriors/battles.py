@@ -16,7 +16,7 @@ from django_goals.utils import GoalRelatedMixin
 from .lcs import lcs_ranges
 from .rating import get_expected_game_score
 from .rating_models import M_ELO_K, normalize_playstyle_len
-from .score import GameScoreViewpoint, ScoreAlgorithm
+from .score import ScoreAlgorithm
 from .text_unit import TextUnit
 from .warriors import Warrior
 
@@ -416,6 +416,9 @@ class BattleViewpoint:
             'get_llm_display',
             'scheduled_at',
             'rating_transferred_at',
+            # a viewpoint neither renames nor reorders score rows;
+            # a game picks its own out of the list by its warriors
+            'game_scores_list',
         ):
             return field_name
         if field_name in (
@@ -464,13 +467,6 @@ class BattleViewpoint:
             elif '2_1' in field_name:
                 return field_name.replace('2_1', '1_2')
         assert False
-
-    @cached_property
-    def game_scores_list(self):
-        return tuple(
-            GameScoreViewpoint(gs, self.viewpoint)
-            for gs in self.battle.game_scores_list
-        )
 
     # game_1_id and game_2_id are used for anchor links
     @property
@@ -603,9 +599,17 @@ class Game:
 
     @property
     def score_object(self):
+        """
+        The score row of this game, under this game's algorithm.
+
+        Keyed on the warrior going first, which identifies the game row.
+        A stored `direction` is battle-relative where this facade's is
+        relative to whatever it wraps, so from viewpoint 2 the two spell
+        the same game differently.
+        """
         for game_score in self.battle.game_scores_list:
             if (
-                game_score.direction == self.direction and
+                game_score.game.warrior_1_id == self.warrior_1_id and
                 game_score.algorithm == self.score_algorithm
             ):
                 return game_score

@@ -5,7 +5,7 @@ import pytest
 from django_goals.busy_worker import worker
 from django_goals.models import Goal
 
-from .score import GameScoreViewpoint, ScoreAlgorithm, get_or_create_game_score
+from .score import ScoreAlgorithm, get_or_create_game_score
 from .tests.factories import TextUnitFactory, game_of
 
 
@@ -82,9 +82,8 @@ def test_gamescore_embeddings_integration(battle, direction):
     )
 
     # Since expected_sim_1 > expected_sim_2, warrior_1 should win
-    game_score_viewpoint = GameScoreViewpoint(game_score=game_score, viewpoint='1')
-    assert game_score_viewpoint.score == 1.0
-    assert game_score_viewpoint.score_rev == 0.0
+    assert game_score.score == 1.0
+    assert game_score.score_rev == 0.0
 
 
 @pytest.mark.django_db

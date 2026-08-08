@@ -66,7 +66,8 @@ class RatingMixin(models.Model):
         for b in Battle.objects.with_warrior_arena(self).resolved().order_by(
             '-scheduled_at',
         ).prefetch_related(
-            'game_scores',
+            # a score is selected by its game's warriors, so bring the game
+            'game_scores__game',
         ):
             b = b.get_warrior_viewpoint(self, score_algorithm=self.arena.score_algorithm)
             if b.warrior_2_id in battles:
