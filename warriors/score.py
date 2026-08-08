@@ -1,5 +1,4 @@
 import uuid
-from dataclasses import dataclass
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -16,7 +15,12 @@ class ScoreAlgorithm(models.TextChoices):
 
 class GameScore(GoalRelatedMixin, models.Model):
     """
-    Stores the score for a single game (battle direction) and scoring algorithm.
+    One game's score under one scoring algorithm.
+
+    Similarities are stored in game order,
+    the order a reader of the game sees its warriors in,
+    so the scoring properties read straight off the row
+    with nothing rewriting them on the way out.
     """
     id = models.UUIDField(
         primary_key=True,
@@ -67,6 +71,66 @@ class GameScore(GoalRelatedMixin, models.Model):
                 name='unique_game_algorithm',
             ),
         ]
+
+    @property
+    def score(self):
+        """
+        Score of warrior 1.
+        Score of warrior 2 is `1 - score`.
+        """
+        if self.warrior_1_similarity is None or self.warrior_2_similarity is None:
+            return None
+
+        if self.algorithm == ScoreAlgorithm.LCS:
+            if self.warrior_1_similarity + self.warrior_2_similarity == 0:
+                return 0.5
+            return self.warrior_1_similarity / (self.warrior_1_similarity + self.warrior_2_similarity)
+
+        if self.algorithm == ScoreAlgorithm.EMBEDDINGS:
+            if self.warrior_1_similarity > self.warrior_2_similarity:
+                return 1.0
+            elif self.warrior_1_similarity < self.warrior_2_similarity:
+                return 0.0
+            else:
+                return 0.5
+
+    @property
+    def score_rev(self):
+        """
+        Score of warrior 2.
+        """
+        s = self.score
+        if s is None:
+            return None
+        return 1.0 - s
+
+    @property
+    def cooperation_score(self):
+        """
+        Fusion quality, as opposed to who won:
+        high when both prompts survive into the output in balance
+        (the smaller-to-larger similarity ratio)
+        and are distinct to begin with —
+        the ``1 - warriors_similarity`` factor zeroes out mutual copying,
+        where balanced survival would be trivial.
+        For why this axis matters, see "The central tension"
+        in docs/design-tensions.md.
+        """
+        if (
+            self.warriors_similarity is None or
+            self.warrior_1_similarity is None or
+            self.warrior_2_similarity is None
+        ):
+            return None
+        smaller_similarity, larger_similarity = sorted([
+            self.warrior_1_similarity,
+            self.warrior_2_similarity,
+        ])
+        if larger_similarity <= 0:
+            return 0
+        return (
+            smaller_similarity / larger_similarity
+        ) * (1 - self.warriors_similarity)
 
 
 def get_or_create_game_score(game, direction, algorithm):
@@ -188,86 +252,3 @@ def _set_similarity(
             'warrior_2_similarity',
             'warriors_similarity',
         ])
-
-
-@dataclass(frozen=True)
-class GameScoreViewpoint:
-    game_score: GameScore
-    viewpoint: str  # 1 is normal, 2 is reversed
-
-    def __getattr__(self, key):
-        if key in (
-            'direction',
-            'algorithm',
-        ):
-            return getattr(self.game_score, key)
-
-        w1, w2 = ('1', '2') if self.viewpoint == '1' else ('2', '1')
-        if key == 'warrior_1_similarity':
-            return getattr(self.game_score, f'warrior_{w1}_similarity')
-        if key == 'warrior_2_similarity':
-            return getattr(self.game_score, f'warrior_{w2}_similarity')
-        if key == 'warriors_similarity':
-            return self.game_score.warriors_similarity
-
-        return super().__getattribute__(key)
-
-    @property
-    def score(self):
-        """
-        Score of warrior 1.
-        Score of warrior 2 is `1 - score`.
-        """
-        if self.warrior_1_similarity is None or self.warrior_2_similarity is None:
-            return None
-
-        if self.algorithm == ScoreAlgorithm.LCS:
-            if self.warrior_1_similarity + self.warrior_2_similarity == 0:
-                return 0.5
-            return self.warrior_1_similarity / (self.warrior_1_similarity + self.warrior_2_similarity)
-
-        if self.algorithm == ScoreAlgorithm.EMBEDDINGS:
-            if self.warrior_1_similarity > self.warrior_2_similarity:
-                return 1.0
-            elif self.warrior_1_similarity < self.warrior_2_similarity:
-                return 0.0
-            else:
-                return 0.5
-
-    @property
-    def score_rev(self):
-        """
-        Score of warrior 2.
-        """
-        s = self.score
-        if s is None:
-            return None
-        return 1.0 - s
-
-    @property
-    def cooperation_score(self):
-        """
-        Fusion quality, as opposed to who won:
-        high when both prompts survive into the output in balance
-        (the smaller-to-larger similarity ratio)
-        and are distinct to begin with —
-        the ``1 - warriors_similarity`` factor zeroes out mutual copying,
-        where balanced survival would be trivial.
-        For why this axis matters, see "The central tension"
-        in docs/design-tensions.md.
-        """
-        if (
-            self.warriors_similarity is None or
-            self.warrior_1_similarity is None or
-            self.warrior_2_similarity is None
-        ):
-            return None
-        smaller_similarity, larger_similarity = sorted([
-            self.warrior_1_similarity,
-            self.warrior_2_similarity,
-        ])
-        if larger_similarity <= 0:
-            return 0
-        return (
-            smaller_similarity / larger_similarity
-        ) * (1 - self.warriors_similarity)

@@ -21,7 +21,7 @@ Gameplay decomposes into four independent axes:
    (see `resolve_battle` in `warriors/tasks.py`).
 3. **Winner computation** —
    pure code deriving a score from the similarities,
-   per algorithm (`GameScoreViewpoint.score` in `warriors/score.py`).
+   per algorithm (`GameScore.score` in `warriors/score.py`).
 4. **Leaderboard rating** —
    mELO state on `WarriorArena` (`warriors/rating_models.py`).
 

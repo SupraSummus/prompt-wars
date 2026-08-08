@@ -113,13 +113,14 @@ with the other side derived as the remainder.
 That is mechanism in service of the two symmetries,
 with a payoff of its own:
 the viewpoint machinery
-(`BattleViewpoint`'s field rewriting, the in-memory `Game` facade,
-the `GameScoreViewpoint` swap)
+(`BattleViewpoint`'s field rewriting, the in-memory `Game` facade)
 exists to make "1" mean "the warrior this page is about",
 and per-warrior addressing retires all of it.
-The two canceling errors in the `Game.score_object` entry of `TODO.md`
-are possible only because "which warrior is 1"
-is a rewriting concern applied at two levels instead of a lookup key.
+Rewriting is also what makes "which warrior is 1"
+a property of the read path rather than a key,
+so the same game has more than one spelling
+and a lookup can take the wrong one;
+`Game.score_object` says why its lookup is keyed on the game.
 
 ## What stays asymmetric, deliberately
 
@@ -174,9 +175,9 @@ and no expectation is defined for a wider battle.
 Written against the battle's directional columns,
 a symmetric renderer has to reconstruct games from suffixed field names —
 a second facade beside the one being deleted.
-`GameScore` already keys on (game, algorithm),
-so what is left to wait for is the viewpoint-2 score mis-join
-(the `Game.score_object` entry in `TODO.md`),
-which step 1 of `docs/game-migration.md` gates on for the same reason.
-That makes this the shape of step 1's view and template work,
+`GameScore` already keys on (game, algorithm)
+and is already selected by the game it names,
+so a per-warrior lookup has something to sit on.
+That makes this the shape of step 1's view and template work
+in `docs/game-migration.md`,
 not a separate project after it.

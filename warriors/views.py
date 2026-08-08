@@ -92,7 +92,8 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
         battles_qs = Battle.objects.with_warrior_arena(
             warrior_arena,
         )[:100].prefetch_related(
-            'game_scores',
+            # a score is selected by its game's warriors, so bring the game
+            'game_scores__game',
         )
         battles = list(battles_qs)
         prefetch_warriors(battles)
