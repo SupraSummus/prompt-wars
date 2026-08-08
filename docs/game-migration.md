@@ -137,11 +137,13 @@ In order of blast radius:
   `BattleDetailView`, `RecentBattlesView`,
   and the warrior-detail battle list keep their battle-level shape,
   prefetching games and scores through the battle.
-  Templates already think in per-direction games
-  (`templates/warriors/partials/game.html`),
-  so a thin viewpoint wrapper over (battle, game, game)
-  preserves the template contract
-  while `BattleViewpoint`'s string-rewriting field maps disappear.
+  The target presentation is in `docs/battle-display.md`:
+  loop over a battle's games and over the scoring algorithms
+  instead of naming two directional slots and a default algorithm,
+  and select a score by (game, warrior) rather than by direction.
+  That is what makes `BattleViewpoint`'s string-rewriting field maps
+  and the `GameScoreViewpoint` swap disappear
+  rather than move.
 - **Matchmaking and stats**: no change —
   cooldown, opponent exclusion, and `battle_count`
   are pair-level and stay on `Battle`.
