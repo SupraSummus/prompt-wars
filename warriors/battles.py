@@ -327,6 +327,13 @@ class DBGame(GoalRelatedMixin, models.Model):
             ),
         ]
 
+    @property
+    def result(self):
+        """What the LLM produced, empty until the game resolves."""
+        if self.text_unit is None:
+            return ''
+        return self.text_unit.content
+
 
 @dataclass(frozen=True)
 class BattleViewpoint:

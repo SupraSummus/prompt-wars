@@ -105,15 +105,6 @@ a repair command that recomputes the sha from the warrior bodies
 onto blank game rows.
 `backfill_game_input_sha256` goes with the columns it copies from.
 
-`backfill_game_score_game` is a one-time re-keying,
-not an ongoing repair:
-it links the `GameScore` rows written before the `game` column existed
-to the game row their (battle, direction) pair already names.
-Delete it once `verify_games` reports no score-link finding —
-the same condition that lets the column go not-null
-in step 1 of `docs/game-migration.md`,
-so the two land together.
-
 `Game.score_object` (`warriors/battles.py`) finds a score row
 by matching the facade's direction against the row's,
 but a `BattleViewpoint` rewrites field names and not lookup keys,
@@ -137,32 +128,30 @@ and drop the swap in the same change.
 so its scoring properties move onto `GameScore`
 and `BattleViewpoint.game_scores_list` goes with it.
 No values move and no rating changes, so no sign-off,
-and it clears the last reader selecting on `GameScore.direction` —
-what step 1 of `docs/game-migration.md` waits for.
+and it leaves `GameScore.direction` with one reader —
+the audit's re-derivation of the score link —
+which goes with the directional columns
+in step 2 of `docs/game-migration.md`.
 
-`GameScore` (`warriors/score.py`) carries two indexes
-that duplicate one already there:
-the `Meta.indexes` entry on (battle, direction, algorithm)
-names exactly the columns `unique_together` indexes,
-and the `game` foreign key's own index
-is a prefix of `unique_game_algorithm`.
-Postgres answers those lookups from the longer index either way,
-so the pair buys nothing,
-while every insert and update on the table
-writes two index entries nobody reads.
-A bulk measurement of the cost:
-dropping the two took a million-row `game_id` backfill
+The `game` foreign key on `GameScore` (`warriors/score.py`)
+carries an index nobody reads:
+it is a prefix of `unique_game_algorithm`,
+which Postgres answers the foreign key's own lookups from,
+so every insert and update on the table
+writes a second index entry for nothing.
+The one bulk measurement of the cost covers two indexes,
+this one and the (battle, direction, algorithm) index beside it:
+dropping both took a million-row update over this table
 from 54s to 40s.
-Next move: delete the `Meta.indexes` entry,
-set `db_index=False` on the `game` foreign key,
-and migrate the two indexes away;
+Only this one is left, so the win left to take is part of that.
+Next move: set `db_index=False` on the field
+and migrate the index away;
 behavior-preserving.
-The `battle` foreign key's index is redundant today for the same reason
-but has to stay:
-the uniqueness covering it drops in step 1
-of `docs/game-migration.md`,
-while `WarriorArena.update_rating` still prefetches `game_scores`
-by battle until the reader cut-over in step 2.
+The `battle` foreign key keeps its own index:
+nothing else covers it,
+and `WarriorArena.update_rating` prefetches `game_scores`
+by battle until the reader cut-over
+in step 1 of `docs/game-migration.md`.
 
 Every test that builds a `Battle` has to sort the warrior pair first,
 because `BattleFactory` passes its two `SubFactory` warriors through
@@ -265,8 +254,9 @@ They rot invisibly:
 and it writes `Battle.input_sha256_*` without the matching game rows —
 the blanks `backfill_game_input_sha256` exists to fill.
 `create_game_score.py` and `set_game_score.py` key `GameScore`
-on (battle, direction), which the re-keying in
-`docs/game-migration.md` drops out from under them.
+on (battle, direction), which names no score row any more,
+and the former builds one with no game
+for a `_ensure_score` that reads the game row.
 Next move: for each, decide between
 a management command next to `warriors/management/commands/verify_games.py`
 if the operation is still worth running,
