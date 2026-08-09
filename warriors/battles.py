@@ -47,12 +47,14 @@ class BattleQuerySet(models.QuerySet):
         )
 
     def resolved(self):
-        """Battles that are fully computed"""
-        return self.exclude(
-            resolved_at_1_2=None,
-        ).exclude(
-            resolved_at_2_1=None,
-        )
+        """
+        Battles that are fully computed: every game of theirs is resolved.
+
+        Asks the game rows,
+        which are what `resolve_battle` writes,
+        rather than their mirror on the battle's directional columns.
+        """
+        return self.exclude(games__resolved_at=None)
 
     def for_user(self, user):
         if not user.is_authenticated:

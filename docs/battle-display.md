@@ -29,10 +29,15 @@ Where the display is already per game
 it takes that in stride —
 the game partial branches on its own game's `resolved_at` —
 and where the pair is named,
-`warriorarena_detail.html` spells the state out per direction
-three times in one table row.
+`warriorarena_detail.html` reads the state off the battle's
+directional columns, once per named slot.
 The difference is the whole argument in miniature:
-looping is what makes the partial-resolution case ordinary.
+addressing a game by its own warriors, rather than by a slot name,
+is what makes the partial-resolution case ordinary.
+The battle page reaches that by looping;
+the list reaches it by asking each cell's game row directly
+("The battle lists keep a score column per game", under "Decisions"),
+and both stop asking the battle.
 
 That the count could exceed two is a bonus rather than the case:
 nothing in the domain fixes it at two,
@@ -138,37 +143,77 @@ it is a score minus a rating-model expectation for two warriors
 (`BattleViewpoint.performance`),
 and no expectation is defined for a wider battle.
 
-## Decisions to settle before coding
+## Decisions
 
-- **What the battle lists show.**
-  A battle page has room for every game and every algorithm;
-  a list row has room for neither.
-  The warrior-arena list is arena-scoped,
-  so it has an owner to ask for an algorithm —
-  the one place where naming one is legitimate.
-  Its fixed pair of per-direction score columns is the harder half:
-  either keep two columns while every battle has two games,
-  or collapse to the warrior's battle score
-  and leave per-game detail to the battle page.
-- **Battle score with a game missing.**
-  Mean over resolved games, or "pending" until all are in?
-  Display can reasonably show the partial mean with a count;
-  rating must not — its resolved-battle filter
-  stays "every game of this battle is resolved"
-  (the `BattleQuerySet.resolved()` change
-  in step 1 of `docs/game-migration.md`).
-  The two coincide by accident, and the split should be deliberate.
-- **Anchors.**
-  Per-game anchors are direction strings linked from the battle list.
-  With N games the stable name is the game's own id,
-  and the accepted cost is that old fragment links
-  land at the top of the right battle page;
-  the battle URL itself is unchanged.
-- **Whether a warrior's battle score under an algorithm
-  becomes a named thing in code** that rating also calls,
-  rather than a display-only computation.
-  Rating's averaging semantics are unchanged either way;
-  the question is whether one definition serves both.
+**A warrior's score is named once, and rating calls it.**
+Two definitions, in dependency order:
+a score row's value *for a named warrior* —
+the row's fields are already in game order and the row names its game,
+so it is a choice between the two of them —
+and, on the battle,
+a warrior's score under an algorithm:
+the mean over the battle's games,
+undefined until every game is resolved.
+The second is what `WarriorArena.update_rating` already computes
+through `BattleViewpoint.score`,
+so rating calls it rather than keeping its own copy.
+The rejected alternative — a display-only computation —
+leaves two spellings of one number free to drift,
+which is the failure this migration exists to remove;
+it also leaves the viewpoint machinery something to port
+instead of something to delete.
+This is the mechanism the other three decisions rest on:
+the summary matrix's cells, the list's score columns,
+and rating are all one call.
+
+**The battle lists keep a score column per game.**
+A battle page has room for every game and every algorithm;
+a list row has room for neither,
+and the warrior-arena list is arena-scoped,
+so it has an owner to ask for an algorithm —
+the one place where naming one is legitimate.
+Its per-order score columns stay:
+prompt order is the variable playing both directions controls for,
+and a warrior's history is read for exactly that asymmetry,
+so the columns report data
+the way "what stays asymmetric, deliberately" describes.
+What changes is how a cell finds its number —
+by the game whose first warrior is this row's warrior,
+each cell branching on that game's own `resolved_at` —
+so no cell names a direction or reads a battle column.
+The rejected alternative —
+collapsing to the warrior's battle score
+and leaving per-game detail to the battle page —
+buys a row whose numbers are all battle-level
+at the price of the one signal the list is scanned for.
+The accepted cost is a column count fixed at two:
+a battle with a third game would need this decision reopened,
+and nothing proposes one.
+
+**A battle score is pending until every game resolves.**
+Rating requires it —
+`BattleQuerySet.resolved()` admits a battle
+only once every game of it is resolved —
+and display follows,
+so the number a reader sees is the number rating fits against.
+The rejected alternative,
+a partial mean with a count of games in it,
+invites comparing a one-game mean with a two-game mean
+as though they measured the same thing.
+Partial resolution stays ordinary one level down:
+each game block shows its own score as it lands.
+The two definitions coincide by intent, then, rather than by accident.
+
+**A game's anchor is its id.**
+Per-game anchors are direction strings
+linked from the battle list, which keeps those links,
+so the anchor stays an inbound target rather than a bare label.
+With N games the stable name is the game's own id,
+and the cell building the link already holds the game row.
+The accepted cost is that fragment links made before the change —
+bookmarks and pasted URLs, no longer anything in the tree —
+land at the top of the right battle page;
+the battle URL itself is unchanged.
 
 ## Sequencing
 

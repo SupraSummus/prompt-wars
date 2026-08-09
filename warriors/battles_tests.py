@@ -3,9 +3,12 @@ from uuid import UUID
 import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
 
 from .battles import Battle, BattleViewpoint
-from .tests.factories import BattleFactory, WarriorArenaFactory, WarriorFactory
+from .tests.factories import (
+    BattleFactory, WarriorArenaFactory, WarriorFactory, game_of,
+)
 from .tests.fixtures import create_scores
 from .text_unit import TextUnit
 
@@ -132,3 +135,40 @@ def test_create_from_warriors_scheduled_at_consistent(warrior_arena, other_warri
     db_game_2_1.refresh_from_db()
     assert db_game_1_2.scheduled_at == battle.scheduled_at
     assert db_game_2_1.scheduled_at == battle.scheduled_at
+
+
+def resolve_game(battle, direction, resolved_at):
+    game = game_of(battle, direction)
+    game.resolved_at = resolved_at
+    game.save(update_fields=['resolved_at'])
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ('resolved_directions', 'is_resolved'),
+    (
+        (('1_2', '2_1'), True),
+        (('1_2',), False),
+        (('2_1',), False),
+        ((), False),
+    ),
+)
+def test_resolved_needs_every_game(resolved_directions, is_resolved):
+    battle = BattleFactory()
+    for direction in resolved_directions:
+        resolve_game(battle, direction, timezone.now())
+    assert (battle in Battle.objects.resolved()) is is_resolved
+
+
+@pytest.mark.django_db
+def test_resolved_reads_the_games_not_the_columns():
+    """
+    The game row is the record and the battle's column is its mirror,
+    so a stale column does not make a battle resolved.
+    """
+    battle = BattleFactory(
+        resolved_at_1_2=timezone.now(),
+        resolved_at_2_1=timezone.now(),
+    )
+    resolve_game(battle, '2_1', None)
+    assert battle not in Battle.objects.resolved()

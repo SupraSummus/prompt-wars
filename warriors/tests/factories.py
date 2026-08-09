@@ -55,6 +55,27 @@ class BattleFactory(factory.django.DjangoModelFactory):
     warrior_1 = factory.SubFactory(WarriorFactory)
     warrior_2 = factory.SubFactory(WarriorFactory)
 
+    @classmethod
+    def _adjust_kwargs(cls, **kwargs):
+        """
+        Put the warrior pair in the battle's canonical order.
+
+        The `warrior_ordering` check constraint wants the smaller id first,
+        which a caller building a pair cannot arrange in advance —
+        the ids come from the factory.
+        Directional kwargs are read after the swap,
+        so they name the canonical direction.
+
+        This rebinds nothing for the caller:
+        a test that names its warriors and then asserts per name
+        has to sort them itself, or read the order back off the battle.
+        """
+        if kwargs['warrior_1'].id > kwargs['warrior_2'].id:
+            kwargs['warrior_1'], kwargs['warrior_2'] = (
+                kwargs['warrior_2'], kwargs['warrior_1'],
+            )
+        return kwargs
+
     @factory.post_generation
     def games(battle, create, extracted, **kwargs):
         """
@@ -76,15 +97,11 @@ def batch_create_battles(arena, warrior_arena, n):
     battles = []
     for _ in range(n):
         other_warrior_arena = WarriorArenaFactory(arena=arena)
-        battle_warrior_1 = warrior_arena.warrior
-        battle_warrior_2 = other_warrior_arena.warrior
-        if battle_warrior_1.id > battle_warrior_2.id:
-            battle_warrior_1, battle_warrior_2 = battle_warrior_2, battle_warrior_1
         battle = BattleFactory(
             arena=arena,
             llm=arena.llm,
-            warrior_1=battle_warrior_1,
-            warrior_2=battle_warrior_2,
+            warrior_1=warrior_arena.warrior,
+            warrior_2=other_warrior_arena.warrior,
             resolved_at_1_2=timezone.now(),
             text_unit_1_2=TextUnitFactory(),
             resolved_at_2_1=timezone.now(),

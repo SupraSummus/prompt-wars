@@ -139,19 +139,6 @@ that is the whole point of the axis
 Next move: a parametrized test beside the LCS score tests
 covering the zero case, a missing similarity, and one worked pair.
 
-Every test that builds a `Battle` has to sort the warrior pair first,
-because `BattleFactory` passes its two `SubFactory` warriors through
-in the order given and the `warrior_ordering` check constraint
-demands the smaller id first —
-so a bare `BattleFactory()` fails about half the time,
-and five call sites
-(`warriors/tests/fixtures.py` twice, `batch_create_battles`,
-`create_mirrored_battle`, and the rating tests)
-repeat the same three-line swap.
-Next move: swap the pair in a `_adjust_kwargs` classmethod on the factory
-and delete the swaps at the call sites;
-behavior-preserving for every test that already sorts.
-
 The `thinking_config` that `call_gemini` sends (`warriors/llms/google.py`)
 buys thinking but does not bound it:
 `gemini-flash-lite-latest` resolves to a Gemini 3 model,

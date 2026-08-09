@@ -48,10 +48,13 @@ def test_update_rating_takes_newer_battles(battle, warrior_arena, other_warrior_
 @pytest.mark.django_db
 def test_rating_is_isolated_for_each_arena():
     now = timezone.now()
-    warrior_1 = WarriorFactory()
-    warrior_2 = WarriorFactory()
-    if warrior_1.id > warrior_2.id:
-        warrior_1, warrior_2 = warrior_2, warrior_1
+    # sorted here, not left to the factory:
+    # the assertions below name these warriors,
+    # and create_scores scores them by the battle's order
+    warrior_1, warrior_2 = sorted(
+        WarriorFactory.create_batch(2),
+        key=lambda warrior: warrior.id,
+    )
 
     arena_1 = ArenaFactory(llm='model1')
     warrior_1_arena_1 = WarriorArenaFactory(warrior=warrior_1, arena=arena_1)

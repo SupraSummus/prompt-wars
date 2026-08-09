@@ -18,11 +18,7 @@ def mirrored_battle():
 
 def create_mirrored_battle():
     now = timezone.now()
-    # the warrior_ordering check constraint wants the canonical pair order
-    warrior_1, warrior_2 = sorted(
-        WarriorFactory.create_batch(2),
-        key=lambda warrior: warrior.id,
-    )
+    warrior_1, warrior_2 = WarriorFactory.create_batch(2)
     return BattleFactory(
         llm=LLM.OPENAI_GPT,
         warrior_1=warrior_1,
