@@ -69,8 +69,6 @@ def battle(
     request, arena,
     warrior, other_warrior,
 ):
-    if warrior.id > other_warrior.id:
-        warrior, other_warrior = other_warrior, warrior
     return BattleFactory(
         llm=arena.llm,
         warrior_1=warrior,
@@ -84,8 +82,6 @@ def resolved_battle(
     request, arena,
     warrior, other_warrior,
 ):
-    if warrior.id > other_warrior.id:
-        warrior, other_warrior = other_warrior, warrior
     now = timezone.now()
     battle = BattleFactory(
         llm=arena.llm,

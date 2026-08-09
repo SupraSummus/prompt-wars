@@ -125,23 +125,21 @@ In order of blast radius:
 
 - **Rating** (`WarriorArena.update_rating`,
   `warriors/rating_models.py`):
-  iterate battles as today,
-  but hydrate each viewpoint from the battle's two game rows
-  and their (game, algorithm) scores,
-  instead of the directional columns and direction-keyed scores.
-  The score-averaging semantics are unchanged.
-  This includes `BattleQuerySet.resolved()`,
-  which `update_rating` filters by:
-  it reads `resolved_at_1_2`/`_2_1` directly
-  and must come to mean
-  "both game rows have `resolved_at` set".
+  reads nothing directional.
+  It iterates battles as before,
+  but each viewpoint's scores come from the (game, algorithm) rows
+  and `BattleQuerySet.resolved()` asks the game rows,
+  leaving it on the pair-level columns
+  — llm, scheduled time, the warrior pair —
+  which are staying.
+  The score-averaging semantics are unchanged throughout.
 - **Views and templates**:
   `BattleDetailView`, `RecentBattlesView`,
   and the warrior-detail battle list keep their battle-level shape,
   prefetching games and scores through the battle.
-  The target presentation is in `docs/battle-display.md`:
-  loop over a battle's games and over the scoring algorithms
-  instead of naming two directional slots and a default algorithm,
+  The target presentation is in `docs/battle-display.md`,
+  whose "Decisions" section settles how far each surface goes:
+  address a game by its own warriors rather than by a slot name,
   and select a score by (game, warrior) rather than by direction.
   That is what makes `BattleViewpoint`'s string-rewriting field maps
   disappear rather than move.
@@ -163,6 +161,8 @@ and the facade machinery that mapped suffixed names.
 The command goes with the columns —
 it compares game rows against columns that no longer exist,
 and `mirrored_game_fields` has nothing left to map.
+`BattleFactory`'s game hook mirrors through that same function,
+so it builds its two rows directly from then on.
 Same shape as the `lcs_len_*` removal.
 The dead `rating_transferred_at` column
 (tracked in `TODO.md`) rides along.
