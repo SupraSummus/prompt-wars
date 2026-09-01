@@ -80,6 +80,10 @@ urlpatterns = (
     ),
     path('challenge/<uuid:pk>/', ChallengeWarriorView.as_view(), name='challenge_warrior'),
     path('battle/<uuid:pk>/', BattleDetailView.as_view(), name='battle_detail'),
+    path('battle/<uuid:pk>/arena/previous/', warriors.views.previous_arena_battle, name='previous_arena_battle'),
+    path('battle/<uuid:pk>/arena/next/', warriors.views.next_arena_battle, name='next_arena_battle'),
+    path('battle/<uuid:pk>/warrior/previous/', warriors.views.previous_warrior_battle, name='previous_warrior_battle'),
+    path('battle/<uuid:pk>/warrior/next/', warriors.views.next_warrior_battle, name='next_warrior_battle'),
 
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),

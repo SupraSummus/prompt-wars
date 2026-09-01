@@ -223,46 +223,72 @@ def schedule_in_order(*battles):
         battle.save(update_fields=['scheduled_at'])
 
 
-def battle_url(battle, warrior_arena=None):
-    url = reverse('battle_detail', args=(battle.id,))
+def battle_url(url_name, battle, warrior_arena=None):
+    url = reverse(url_name, args=(battle.id,))
     if warrior_arena is not None:
         url += f'?warrior_arena={warrior_arena.id}'
     return url
 
 
 @pytest.mark.django_db
-def test_battle_details_nav_walks_both(client, arena, warrior_arena):
+@pytest.mark.parametrize('scoped', [True, False])
+def test_battle_details_nav_links(client, arena, warrior_arena, scoped):
+    """
+    The page links its walks without walking them.
+
+    This battle has no neighbour either way,
+    and the links are there anyway;
+    the warrior walk appears only once a warrior is named.
+    """
+    battle, = batch_create_battles(arena, warrior_arena, 1)
+    nav_warrior = warrior_arena if scoped else None
+
+    response = client.get(battle_url('battle_detail', battle, nav_warrior))
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert battle_url('previous_arena_battle', battle, nav_warrior) in content
+    assert battle_url('next_arena_battle', battle, nav_warrior) in content
+    assert (battle_url('previous_warrior_battle', battle, nav_warrior) in content) is scoped
+    assert (battle_url('next_warrior_battle', battle, nav_warrior) in content) is scoped
+
+
+@pytest.mark.django_db
+def test_battle_nav_walks_both(client, arena, warrior_arena):
     """A battle of other warriors is the arena's next one and not the warrior's."""
     older, middle, newer = batch_create_battles(arena, warrior_arena, 3)
     stranger = batch_create_battles(arena, WarriorArenaFactory(arena=arena), 1)[0]
     schedule_in_order(older, middle, stranger, newer)
 
-    response = client.get(battle_url(middle, warrior_arena))
+    def step(url_name):
+        return client.get(battle_url(url_name, middle, warrior_arena))['Location']
 
-    assert response.status_code == 200
-    assert response.context['arena_previous_battle_url'] == battle_url(older, warrior_arena)
-    assert response.context['arena_next_battle_url'] == battle_url(stranger, warrior_arena)
-    assert response.context['warrior_previous_battle_url'] == battle_url(older, warrior_arena)
-    assert response.context['warrior_next_battle_url'] == battle_url(newer, warrior_arena)
-    # both walks reach the page, not just the context
-    content = response.content.decode()
-    assert battle_url(stranger, warrior_arena) in content
-    assert battle_url(newer, warrior_arena) in content
+    assert step('previous_arena_battle') == battle_url('battle_detail', older, warrior_arena)
+    assert step('next_arena_battle') == battle_url('battle_detail', stranger, warrior_arena)
+    assert step('previous_warrior_battle') == battle_url('battle_detail', older, warrior_arena)
+    assert step('next_warrior_battle') == battle_url('battle_detail', newer, warrior_arena)
 
 
 @pytest.mark.django_db
-def test_battle_details_nav_without_a_warrior(client, arena, warrior_arena):
-    """Naming no warrior leaves the arena walk, so the battle URL stands alone."""
+def test_battle_nav_without_a_warrior(client, arena, warrior_arena):
+    """Naming no warrior leaves the arena walk, and leaves the warrior walk nothing to step through."""
     older, middle, newer = batch_create_battles(arena, warrior_arena, 3)
     schedule_in_order(older, middle, newer)
 
-    response = client.get(battle_url(middle))
+    response = client.get(battle_url('previous_arena_battle', middle))
+    assert response['Location'] == battle_url('battle_detail', older)
 
-    assert response.status_code == 200
-    assert response.context['arena_previous_battle_url'] == battle_url(older)
-    assert response.context['arena_next_battle_url'] == battle_url(newer)
-    assert response.context['warrior_previous_battle_url'] is None
-    assert response.context['warrior_next_battle_url'] is None
+    response = client.get(battle_url('previous_warrior_battle', middle))
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('url_name', ['previous_arena_battle', 'next_warrior_battle'])
+def test_battle_nav_end_of_walk(client, arena, warrior_arena, url_name):
+    """A walk with nowhere left to go ends here, since the link could not say so."""
+    battle, = batch_create_battles(arena, warrior_arena, 1)
+    response = client.get(battle_url(url_name, battle, warrior_arena))
+    assert response.status_code == 404
 
 
 @pytest.mark.django_db
@@ -288,7 +314,7 @@ def test_warrior_details_links_carry_the_warrior(client, warrior_arena, battle):
     response = client.get(
         reverse('warrior_detail', args=(warrior_arena.id,))
     )
-    assert battle_url(battle, warrior_arena) in response.content.decode()
+    assert battle_url('battle_detail', battle, warrior_arena) in response.content.decode()
 
 
 @pytest.mark.django_db
