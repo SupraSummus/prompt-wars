@@ -280,3 +280,17 @@ Next move: loop over the game's score rows instead,
 which drops both the stray tag and the names
 (`docs/battle-display.md` argues the wider case
 for looping over algorithms rather than naming one).
+
+The `django_scheduler` app is an in-tree copy of the standalone package
+django-ticks (https://github.com/EE/django-ticks),
+which carries the same `register_job`/`run` API under `django_ticks.models`
+and a `tick` management command.
+Once django-ticks is on PyPI, replace the copy:
+add the dependency, swap `django_scheduler` for `django_ticks`
+in `INSTALLED_APPS`, `LOGGING`, `warriors/scheduler.py`, `users/models.py`
+and the `worker` command, then delete the app.
+The table renames from `django_scheduler_job` to `django_ticks_job`,
+so carry the rows over with a data migration
+copying `key` and `last_run` before the old app is dropped;
+without it every job fires once right after the deploy,
+which is harmless for the current jobs but should be a choice, not a surprise.
