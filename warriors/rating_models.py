@@ -62,32 +62,40 @@ class RatingMixin(models.Model):
 
         # collect relevant battles
         old_battle_treshold = now - MATCHMAKING_COOLDOWN
-        battles = {}  # opponent warrior id -> our BattleViewpoint
+        battles = {}  # opponent warrior id -> our score in that battle
         for b in Battle.objects.with_warrior_arena(self).resolved().order_by(
             '-scheduled_at',
         ).prefetch_related(
-            # a score is selected by its game's warriors, so bring the game
+            # a battle score is the mean over its games, and a score row is
+            # selected by the game it names
+            'games',
             'game_scores__game',
         ):
-            b = b.get_warrior_viewpoint(self, score_algorithm=self.arena.score_algorithm)
-            if b.warrior_2_id in battles:
+            opponent_id = (
+                b.warrior_2_id if b.warrior_1_id == self.warrior_id
+                else b.warrior_1_id
+            )
+            if opponent_id in battles:
                 continue  # we already have a more recent battle with this opponent
-            if b.score is None:
+            # the display calls this same number, so the two cannot drift
+            # ("A warrior's score is named once" in docs/battle-display.md)
+            score = b.warrior_score(self.warrior_id, self.arena.score_algorithm)
+            if score is None:
                 continue
             if b.scheduled_at < old_battle_treshold and len(battles) >= MAX_OLD_BATTLES:
                 break  # all the remaining battles are old and we have enough to calculate rating
-            battles[b.warrior_2_id] = b
+            battles[opponent_id] = score
 
         k = min(M_ELO_K, len(battles) // 2)
 
         # collect scores
         scores = {}  # opponent warrior_arena id -> GameScore(score, opponent_rating, opponent_playstyle)
         warrior_arenas = get_or_create_warrior_arenas(self.arena, battles.keys())
-        for b in battles.values():
-            opponent = warrior_arenas[b.warrior_2_id]
+        for opponent_id, score in battles.items():
+            opponent = warrior_arenas[opponent_id]
             normalize_playstyle_len(opponent.rating_playstyle, k)
             scores[opponent.id] = GameScore(
-                score=b.score,
+                score=score,
                 opponent_rating=opponent.rating,
                 opponent_playstyle=opponent.rating_playstyle,
             )

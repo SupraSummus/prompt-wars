@@ -83,9 +83,8 @@ in `rating_tests.py::test_get_performance_rating` tighten back.
 `Battle.rating_transferred_at` is a dead column:
 nothing writes or reads it —
 only a "not used anymore" comment in `warriors/battles.py`
-and a passthrough entry in `BattleViewpoint.map_field_name`
-keep it in the code.
-Next move: drop the field, the comment, and the mapping entry,
+keeps it in the code.
+Next move: drop the field and the comment,
 same shape as the `lcs_len_*` column removal;
 implies a schema migration but no behavior change.
 
@@ -121,14 +120,13 @@ and migrate the index away;
 behavior-preserving.
 The `battle` foreign key keeps its own index:
 nothing else covers it,
-and `WarriorArena.update_rating` prefetches `game_scores`
-by battle until the reader cut-over
-in step 1 of `docs/game-migration.md`.
+and `WarriorArena.update_rating` prefetches `game_scores` by battle,
+which is what that index answers.
 
 `GameScore.cooperation_score` (`warriors/score.py`) has no test.
 It is the one scoring property nothing exercises directly:
 `score` and `score_rev` are asserted in `score_tests.py`
-and again through the game facade in `battles_tests.py`,
+and again through `score_for` in `battles_tests.py`,
 while this one is only ever rendered
 (`templates/warriors/partials/game.html`).
 It also carries the edge cases the others do not —
@@ -255,28 +253,3 @@ that is the difference between a page with neighbours and a dead end.
 Next move: filter `llm=battle.llm` directly and drop the `for_user` call,
 leaving both walks scoped by nothing but what is being browsed.
 Both are behavior changes, so they need sign-off.
-
-The `warrior_arena` query parameter that carries a warrior into a battle page
-is spelled out in three places that must agree:
-`battle_url` builds it (`warriors/views.py`),
-`BattleDetailView.get_nav_warrior_arena` reads it,
-and `warriorarena_detail.html` hand-writes
-`?warrior_arena={{ warrior.id }}` onto four links.
-Rename the parameter and the template links keep pointing at the old name,
-silently losing the warrior walk rather than failing.
-Next move: expose `battle_url` as a template tag
-and call it from those four links,
-leaving the parameter named once on each side of the request.
-
-The cooperation-score table in `templates/warriors/partials/game.html`
-hand-writes one row per scoring algorithm,
-naming LCS and embeddings in the markup,
-so a third `ScoreAlgorithm` member renders nowhere until someone edits it.
-The duplication has already drifted:
-the embeddings row lost its opening `<tr>` and kept the closing one.
-It renders — the parser opens a row implicitly for the stray `<td>` —
-so nothing looks wrong, which is why it survived.
-Next move: loop over the game's score rows instead,
-which drops both the stray tag and the names
-(`docs/battle-display.md` argues the wider case
-for looping over algorithms rather than naming one).

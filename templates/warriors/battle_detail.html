@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load percentage %}
 
 {% block content %}
   <main class="container">
@@ -13,9 +14,38 @@
         </p>
       </hgroup>
 
+      {% for summary in score_summaries %}
+        <table>
+          <thead>
+            <tr>
+              <th>{{ summary.algorithm }}</th>
+              {% for game in summary.games %}
+                <th><a href="#game-{{ game.id }}">{{ game.warrior_1 }} first</a></th>
+              {% endfor %}
+              <th>Battle score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in summary.rows %}
+              <tr>
+                <th><a href="{% url 'warrior:get' row.warrior.id %}">{{ row.warrior }}</a></th>
+                {% for score in row.scores %}
+                  <td>{% include 'warriors/partials/score.html' with score=score %}</td>
+                {% endfor %}
+                <td>{% include 'warriors/partials/score.html' with score=row.battle_score %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p>
+          <small>Warriors similarity: {{ summary.warriors_similarity|percentage }}</small>
+        </p>
+      {% endfor %}
+
       <div class="grid">
-        {% include 'warriors/partials/game.html' with heading="Game 1" id="1_2" game=battle.game_1_2 %}
-        {% include 'warriors/partials/game.html' with heading="Game 2" id="2_1" game=battle.game_2_1 %}
+        {% for block in game_blocks %}
+          {% include 'warriors/partials/game.html' with block=block %}
+        {% endfor %}
       </div>
 
     </section>

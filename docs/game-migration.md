@@ -13,8 +13,8 @@ this doc is about the order of the moves and why that order.
 
 **`Battle` survives as a matchup header.**
 The pair of games is a real domain object, not an artifact:
-a battle's score averages the two directions
-(`BattleViewpoint.score`),
+a battle's score averages its games
+(`Battle.warrior_score`),
 the matchmaking cooldown and opponent-exclusion queries
 operate on the warrior *pair*
 (`BattleQuerySet.with_warrior_arena`, `recent`),
@@ -78,9 +78,8 @@ and is old-code-compatible for one release:
 a writer starts writing a field at least one release
 before any reader depends on it,
 and a column is dropped at least one release
-after the last reader leaves.
-While a dual-write holds,
-rolling back a reader flip is a code revert with no data repair.
+after the last reader leaves —
+so the readers having moved is not yet licence to drop.
 
 Every step rests on one invariant:
 a battle direction always has its game row,
@@ -94,10 +93,13 @@ and the test factory creates both rows with every battle.
 The game row is what `resolve_battle` writes;
 the battle's directional columns are its mirror
 (`mirror_to_battle`, `warriors/battles.py`).
-That makes the columns write-only —
-the state that reduces dropping them to a code change,
-as it did for `lcs_len_*` —
-and leaves the readers below as the only thing keeping them.
+Nothing reads them any more —
+rating, the battle page, and the battle lists
+all ask the game rows and the (game, algorithm) score rows —
+so what is left holding them is the mirror that writes them
+and the audit that compares them,
+which is the state that reduces dropping them to a code change,
+as it did for `lcs_len_*`.
 
 Checking that invariant and repairing it stay apart.
 The `verify_games` audit writes nothing
@@ -109,45 +111,7 @@ deleted once a production run leaves nothing to do:
 having written the battle's sha and not the game's.
 A finding nothing explains is a bug to chase, not data to copy over.
 
-### 1. Cut the remaining readers over
-
-Scores select by the game row
-(`Game.score_object`, `warriors/battles.py`)
-and a viewpoint rewrites nothing on their way out,
-so hydrating one from its game rows
-changes where the values come from, not what they are.
-A direction label is the one key to keep out of that lookup:
-it is battle-relative where a facade's direction is not,
-and nothing cancels the difference,
-so it lands on every rating rather than on two columns of a page.
-
-In order of blast radius:
-
-- **Rating** (`WarriorArena.update_rating`,
-  `warriors/rating_models.py`):
-  reads nothing directional.
-  It iterates battles as before,
-  but each viewpoint's scores come from the (game, algorithm) rows
-  and `BattleQuerySet.resolved()` asks the game rows,
-  leaving it on the pair-level columns
-  — llm, scheduled time, the warrior pair —
-  which are staying.
-  The score-averaging semantics are unchanged throughout.
-- **Views and templates**:
-  `BattleDetailView`, `RecentBattlesView`,
-  and the warrior-detail battle list keep their battle-level shape,
-  prefetching games and scores through the battle.
-  The target presentation is in `docs/battle-display.md`,
-  whose "Decisions" section settles how far each surface goes:
-  address a game by its own warriors rather than by a slot name,
-  and select a score by (game, warrior) rather than by direction.
-  That is what makes `BattleViewpoint`'s string-rewriting field maps
-  disappear rather than move.
-- **Matchmaking and stats**: no change —
-  cooldown, opponent exclusion, and `battle_count`
-  are pair-level and stay on `Battle`.
-
-### 2. Drop the directional columns
+### 1. Drop the directional columns
 
 Not while `verify_games` still reports a finding:
 after this the game row is the only copy,
@@ -172,8 +136,14 @@ They carry no key any more —
 the uniqueness and the lookup sit on (game, algorithm) —
 and `direction`'s last reader goes in this same step:
 the audit's own re-derivation of the score link, with the command.
+`battle` has one live reader to move first:
+every page prefetches score rows as `game_scores__game`
+and `Battle.score_object` picks out of that list,
+so the read path becomes `games__scores`,
+and `GameScore.score_for` — which asks its own `game`
+for the warrior order — is reached from the game that holds it.
 
-### 3. Rename
+### 2. Rename
 
 With the in-memory `Game` facade gone with the columns,
 the name is free:
@@ -191,8 +161,8 @@ This plan is one of its independently-shippable tracks
 and orders only its own steps;
 dropping `Battle.arena` can land any time,
 and the ranking-registry work is untouched by it —
-rating reads change *representation* in the reader cut-over,
-not which signal feeds them.
+rating reads a different *representation* of the same signal,
+not a different signal.
 
 ## Open decisions
 

@@ -1,6 +1,5 @@
 import datetime
 import uuid
-from dataclasses import dataclass
 from functools import cached_property
 
 from django.contrib.postgres.functions import TransactionNow
@@ -245,18 +244,85 @@ class Battle(models.Model):
     def get_absolute_url(self):
         return reverse('battle_detail', args=[str(self.id)])
 
-    def get_warrior_viewpoint(self, warrior_arena, score_algorithm=ScoreAlgorithm.LCS):
-        """Return Battle viewpoint such that warrior_arena_1 == warrior_arena"""
-        if warrior_arena.warrior_id == self.warrior_1_id:
-            return BattleViewpoint(self, '1', score_algorithm=score_algorithm)
-        elif warrior_arena.warrior_id == self.warrior_2_id:
-            return BattleViewpoint(self, '2', score_algorithm=score_algorithm)
-        else:
-            raise ValueError('warrior not in battle')
-
     @cached_property
     def game_scores_list(self):
         return tuple(self.game_scores.all())
+
+    @cached_property
+    def games_list(self):
+        """
+        The battle's games, the one its first warrior leads first.
+
+        The canonical pair is the one game order
+        that does not depend on who is looking.
+        """
+        return tuple(sorted(
+            self.games.all(),
+            key=lambda game: game.warrior_1_id != self.warrior_1_id,
+        ))
+
+    def score_object(self, game, algorithm):
+        """
+        One game's score row under one algorithm, out of the battle's rows.
+
+        Keyed on the game the row names,
+        which is the one spelling of a game
+        that does not depend on which warrior is asking.
+        """
+        for game_score in self.game_scores_list:
+            if game_score.game_id == game.id and game_score.algorithm == algorithm:
+                return game_score
+        return None
+
+    def warrior_score(self, warrior_id, algorithm=ScoreAlgorithm.LCS):
+        """
+        One warrior's score in this battle: the mean over its games.
+
+        Pending until every game is scored,
+        so the number a reader sees is the number rating fits against
+        ("A battle score is pending until every game resolves"
+        in docs/battle-display.md).
+        Scores of the two warriors sum to 1.
+        """
+        scores = []
+        for game in self.games_list:
+            score_object = self.score_object(game, algorithm)
+            if score_object is None:
+                return None
+            score = score_object.score_for(warrior_id)
+            if score is None:
+                return None
+            scores.append(score)
+        if not scores:
+            return None
+        return sum(scores) / len(scores)
+
+    def warrior_performance(self, warrior_arena, opponent_arena, algorithm=ScoreAlgorithm.LCS):
+        """
+        How well a warrior did here, adjusted for the strength of both.
+
+        Pairwise by construction: the expectation it subtracts
+        is defined for two warriors and for no wider battle.
+        """
+        score = self.warrior_score(warrior_arena.warrior_id, algorithm)
+        if score is None:
+            return None
+        normalize_playstyle_len(warrior_arena.rating_playstyle)
+        normalize_playstyle_len(opponent_arena.rating_playstyle)
+        return score - get_expected_game_score(
+            warrior_arena.rating,
+            warrior_arena.rating_playstyle,
+            opponent_arena.rating,
+            opponent_arena.rating_playstyle,
+            k=M_ELO_K,
+        )
+
+    @property
+    def public_battle_results(self):
+        return (
+            self.warrior_1.public_battle_results or
+            self.warrior_2.public_battle_results
+        )
 
 
 # TODO: rename to Game once the facade below is gone (docs/game-migration.md)
@@ -336,152 +402,24 @@ class DBGame(GoalRelatedMixin, models.Model):
             return ''
         return self.text_unit.content
 
-
-@dataclass(frozen=True)
-class BattleViewpoint:
-    """
-    Battle presented from the viewpoint of one of the warriors.
-    Viewpoint 1 is same as original Battle. Viewpoint 2 is "backwards".
-    """
-    battle: Battle
-    viewpoint: str
-    score_algorithm: str = ScoreAlgorithm.LCS
-
-    @property
-    def score(self):
-        '''
-        Score of warrior 1
-        Score of warrior 2 is `1 - score`
-        '''
-        game_1_2_score = self.game_1_2.score
-        game_2_1_score = self.game_2_1.score_rev
-        if game_1_2_score is None or game_2_1_score is None:
-            return None
-        return (game_1_2_score + game_2_1_score) / 2
-
-    @property
-    def performance(self):
-        '''
-        How well warrior 1 performed in this battle adjusted the strength of both warriors.
-        '''
-        score = self.score
-        if score is None:
-            return None
-        normalize_playstyle_len(self.warrior_arena_1.rating_playstyle)
-        normalize_playstyle_len(self.warrior_arena_2.rating_playstyle)
-        return score - get_expected_game_score(
-            self.warrior_arena_1.rating,
-            self.warrior_arena_1.rating_playstyle,
-            self.warrior_arena_2.rating,
-            self.warrior_arena_2.rating_playstyle,
-            k=M_ELO_K,
-        )
-
-    @property
-    def performance_str(self):
-        performance = self.performance
-        if performance is None:
-            return 'none'
-        return f'{performance:+.2f}'
-
-    @cached_property
-    def game_1_2(self):
-        return Game(self, '1_2', score_algorithm=self.score_algorithm)
-
-    @cached_property
-    def game_2_1(self):
-        return Game(self, '2_1', score_algorithm=self.score_algorithm)
-
-    @property
-    def public_battle_results(self):
-        return (
-            self.warrior_1.public_battle_results or
-            self.warrior_2.public_battle_results
-        )
-
-    def __getattr__(self, field_name):
-        mapped_name = self.map_field_name(field_name)
-        if mapped_name is not None:
-            return getattr(
-                self.battle,
-                mapped_name,
-            )
-        else:
-            return super().__getattribute__(field_name)
-
-    def map_field_name(self, field_name):
-        if field_name in (
-            'id',
-            'arena',
-            'arena_id',
-            'llm',
-            'get_llm_display',
-            'scheduled_at',
-            'rating_transferred_at',
-            # a viewpoint neither renames nor reorders score rows;
-            # a game picks its own out of the list by its warriors
-            'game_scores_list',
-        ):
-            return field_name
-        if field_name in (
-            'warrior_1',
-            'warrior_1_id',
-            'warrior_2',
-            'warrior_2_id',
-            'warrior_arena_1',
-            'warrior_arena_2',
-        ):
-            return self.map_field_name_x(field_name)
-        if field_name in (
-            'input_sha256_1_2',
-            'input_sha256_2_1',
-            'text_unit_1_2',
-            'text_unit_1_2_id',
-            'text_unit_2_1',
-            'text_unit_2_1_id',
-            'finish_reason_1_2',
-            'finish_reason_2_1',
-            'llm_version_1_2',
-            'llm_version_2_1',
-            'resolved_at_1_2',
-            'resolved_at_2_1',
-            'attempts_1_2',
-            'attempts_2_1',
-        ):
-            return self.map_field_name_x_x(field_name)
-
-    def map_field_name_x(self, field_name):
-        if self.viewpoint == '1':
-            return field_name
-        elif self.viewpoint == '2':
-            if '1' in field_name:
-                return field_name.replace('1', '2')
-            elif '2' in field_name:
-                return field_name.replace('2', '1')
-        assert False
-
-    def map_field_name_x_x(self, field_name):
-        if self.viewpoint == '1':
-            return field_name
-        elif self.viewpoint == '2':
-            if '1_2' in field_name:
-                return field_name.replace('1_2', '2_1')
-            elif '2_1' in field_name:
-                return field_name.replace('2_1', '1_2')
-        assert False
-
-    # game_1_id and game_2_id are used for anchor links
-    @property
-    def game_1_id(self):
-        return '1_2' if self.viewpoint == '1' else '2_1'
-
-    @property
-    def game_2_id(self):
-        return '2_1' if self.viewpoint == '1' else '1_2'
+    def result_marked_for(self, warrior):
+        """The result with the subsequence it shares with one warrior marked."""
+        return lcs_mark(self.result, warrior.body)
 
 
 class Game:
-    def __init__(self, battle, direction, score_algorithm=ScoreAlgorithm.LCS):
+    """
+    One battle direction spelled in the game row's field names.
+
+    All that is left of what was a read facade:
+    the mirror writer and the audit reach the battle's directional columns
+    through it, so the suffixed-column mapping is written down once.
+    It goes with the columns
+    in the "Drop the directional columns" step of docs/game-migration.md;
+    readers ask the game row itself.
+    """
+
+    def __init__(self, battle, direction):
         '''
         :param battle: Battle
         :param direction: str '1_2' or '2_1'
@@ -490,7 +428,6 @@ class Game:
         self.battle = battle
         self.direction = direction
         self.direction_from, self.direction_to = direction.split('_')
-        self.score_algorithm = score_algorithm
 
     def __getattr__(self, field_name):
         mapped_name = self.map_field_name(field_name)
@@ -538,96 +475,10 @@ class Game:
             return f'warrior_{self.direction_from}_id'
         elif field_name == 'warrior_2_id':
             return f'warrior_{self.direction_to}_id'
-        elif field_name == 'warrior_arena_1':
-            return f'warrior_arena_{self.direction_from}'
-        elif field_name == 'warrior_arena_2':
-            return f'warrior_arena_{self.direction_to}'
         elif field_name in ('arena', 'llm', 'scheduled_at'):
             return field_name
         else:
             return None
-
-    @property
-    def result(self):
-        if self.text_unit is None:
-            return ''
-        return self.text_unit.content
-
-    @property
-    def warrior_1_preserved_ratio(self):
-        score_object = self.score_object
-        if score_object is None:
-            return None
-        return score_object.warrior_1_similarity
-
-    @property
-    def warrior_2_preserved_ratio(self):
-        score_object = self.score_object
-        if score_object is None:
-            return None
-        return score_object.warrior_2_similarity
-
-    @property
-    def score(self):
-        '''
-        Score of warrior 1
-        Score of warrior 2 is `1 - score`
-        '''
-        score_object = self.score_object
-        if score_object is None:
-            return None
-        return score_object.score
-
-    @property
-    def score_rev(self):
-        score_object = self.score_object
-        if score_object is None:
-            return None
-        return score_object.score_rev
-
-    @property
-    def warriors_similarity(self):
-        score_object = self.score_object
-        if score_object is None:
-            return None
-        return score_object.warriors_similarity
-
-    @property
-    def cooperation_score(self):
-        score_object = self.score_object
-        if score_object is None:
-            return None
-        return score_object.cooperation_score
-
-    @property
-    def score_object(self):
-        """
-        The score row of this game, under this game's algorithm.
-
-        Keyed on the warrior going first, which identifies the game row.
-        A stored `direction` is battle-relative where this facade's is
-        relative to whatever it wraps, so from viewpoint 2 the two spell
-        the same game differently.
-        """
-        for game_score in self.battle.game_scores_list:
-            if (
-                game_score.game.warrior_1_id == self.warrior_1_id and
-                game_score.algorithm == self.score_algorithm
-            ):
-                return game_score
-        return None
-
-    @cached_property
-    def result_marked_for_1(self):
-        return lcs_mark(self.result, self.warrior_1.body)
-
-    @cached_property
-    def result_marked_for_2(self):
-        return lcs_mark(self.result, self.warrior_2.body)
-
-    @property
-    def embedding_scoring(self):
-        return Game(self.battle, self.direction, score_algorithm='embeddings')
 
 
 MIRRORED_GAME_FIELDS = (
