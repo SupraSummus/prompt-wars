@@ -245,10 +245,6 @@ class Battle(models.Model):
         return reverse('battle_detail', args=[str(self.id)])
 
     @cached_property
-    def game_scores_list(self):
-        return tuple(self.game_scores.all())
-
-    @cached_property
     def games_list(self):
         """
         The battle's games, the one its first warrior leads first.
@@ -260,19 +256,6 @@ class Battle(models.Model):
             self.games.all(),
             key=lambda game: game.warrior_1_id != self.warrior_1_id,
         ))
-
-    def score_object(self, game, algorithm):
-        """
-        One game's score row under one algorithm, out of the battle's rows.
-
-        Keyed on the game the row names,
-        which is the one spelling of a game
-        that does not depend on which warrior is asking.
-        """
-        for game_score in self.game_scores_list:
-            if game_score.game_id == game.id and game_score.algorithm == algorithm:
-                return game_score
-        return None
 
     def warrior_score(self, warrior_id, algorithm=ScoreAlgorithm.LCS):
         """
@@ -286,7 +269,7 @@ class Battle(models.Model):
         """
         scores = []
         for game in self.games_list:
-            score_object = self.score_object(game, algorithm)
+            score_object = game.score_object(algorithm)
             if score_object is None:
                 return None
             score = score_object.score_for(warrior_id)
@@ -405,6 +388,17 @@ class DBGame(GoalRelatedMixin, models.Model):
     def result_marked_for(self, warrior):
         """The result with the subsequence it shares with one warrior marked."""
         return lcs_mark(self.result, warrior.body)
+
+    @cached_property
+    def scores_list(self):
+        return tuple(self.scores.all())
+
+    def score_object(self, algorithm):
+        """This game's score row under one algorithm, or None if unscored."""
+        for score in self.scores_list:
+            if score.algorithm == algorithm:
+                return score
+        return None
 
 
 class Game:

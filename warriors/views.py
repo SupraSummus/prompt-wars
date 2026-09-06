@@ -93,10 +93,9 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
         battles_qs = Battle.objects.with_warrior_arena(
             warrior_arena,
         )[:100].prefetch_related(
-            # a battle score is the mean over its games, and a score row is
-            # selected by the game it names
-            'games',
-            'game_scores__game',
+            # a battle score is the mean over its games,
+            # and a game's score rows hang off the game they name
+            'games__scores',
         )
         battles = list(battles_qs)
         prefetch_warriors(battles)
@@ -186,7 +185,7 @@ def warrior_battle_row(battle, warrior_arena):
         'games': [
             {
                 'game': game,
-                'score': score_for(battle.score_object(game, algorithm), warrior_id),
+                'score': score_for(game.score_object(algorithm), warrior_id),
             }
             for game in games
         ],
@@ -268,7 +267,7 @@ class BattleDetailView(DetailView):
         ).prefetch_related(
             'games__warrior_1',
             'games__warrior_2',
-            'game_scores__game',
+            'games__scores',
         )
 
     def get_context_data(self, **kwargs):
@@ -299,7 +298,7 @@ class BattleDetailView(DetailView):
             for algorithm in ScoreAlgorithm
         ]
         context['game_blocks'] = [
-            game_block(battle, game, visible_warrior_ids, show_battle_results)
+            game_block(game, visible_warrior_ids, show_battle_results)
             for game in battle.games_list
         ]
 
@@ -342,7 +341,7 @@ def battle_score_summary(battle, algorithm):
     so it sits beside the matrix rather than in a cell.
     """
     games = battle.games_list
-    score_objects = [battle.score_object(game, algorithm) for game in games]
+    score_objects = [game.score_object(algorithm) for game in games]
     return {
         'algorithm': ScoreAlgorithm(algorithm).label,
         'games': games,
@@ -368,7 +367,7 @@ def battle_score_summary(battle, algorithm):
     }
 
 
-def game_block(battle, game, visible_warrior_ids, show_battle_results):
+def game_block(game, visible_warrior_ids, show_battle_results):
     """
     One game as its own block: what the LLM produced, and how it scored.
 
@@ -382,7 +381,7 @@ def game_block(battle, game, visible_warrior_ids, show_battle_results):
         'scorings': [
             game_scoring(game, score_object, visible_warrior_ids)
             for score_object in (
-                battle.score_object(game, algorithm)
+                game.score_object(algorithm)
                 for algorithm in ScoreAlgorithm
             )
             if score_object is not None

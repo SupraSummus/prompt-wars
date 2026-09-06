@@ -118,10 +118,10 @@ Only this one is left, so the win left to take is part of that.
 Next move: set `db_index=False` on the field
 and migrate the index away;
 behavior-preserving.
-The `battle` foreign key keeps its own index:
-nothing else covers it,
-and `WarriorArena.update_rating` prefetches `game_scores` by battle,
-which is what that index answers.
+The `battle` foreign key needs no decision of its own:
+the `verify_games` audit is the last thing that looks a score up by battle,
+and column, index and audit all go
+in the "Drop the directional columns" step of `docs/game-migration.md`.
 
 `GameScore.cooperation_score` (`warriors/score.py`) has no test.
 It is the one scoring property nothing exercises directly:
