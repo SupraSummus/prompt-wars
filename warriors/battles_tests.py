@@ -29,12 +29,12 @@ def test_battle_score():
     game_1_2, game_2_1 = battle.games_list
 
     # lets consider a single game there - the one where propmt is warrior_1 || warrior_2
-    score = battle.score_object(game_1_2, ScoreAlgorithm.LCS)
+    score = game_1_2.score_object(ScoreAlgorithm.LCS)
     # this means that warrior_1 was totaly erased, and warrior_2 totally preserved
     assert score.score_for(battle.warrior_1_id) == 0
 
     # second game - warrior_2 || warrior_1
-    assert battle.score_object(game_2_1, ScoreAlgorithm.LCS).score_for(battle.warrior_2_id) == 1
+    assert game_2_1.score_object(ScoreAlgorithm.LCS).score_for(battle.warrior_2_id) == 1
 
     assert battle.warrior_score(battle.warrior_1_id) == 0
 
@@ -75,7 +75,7 @@ def test_a_score_names_the_warrior_it_measures(scored_battle, warrior_slot, simi
     """
     warrior_id = getattr(scored_battle, f'{warrior_slot}_id')
     assert tuple(
-        scored_battle.score_object(game, ScoreAlgorithm.LCS).similarity_for(warrior_id)
+        game.score_object(ScoreAlgorithm.LCS).similarity_for(warrior_id)
         for game in scored_battle.games_list
     ) == similarities
 
@@ -115,9 +115,9 @@ def test_battle_score_pends_until_every_game_is_scored():
 @pytest.mark.django_db
 def test_reading_scores_costs_no_query_per_battle():
     """
-    A game reaches its score through the game row the score names,
-    so a read path fetching battles without their games
-    pays one query per score row.
+    A game's score rows hang off the game,
+    so a read path that fetches battles without `games__scores`
+    pays a query per game.
     The scores come out right either way,
     which leaves the query count as the only thing that shows it.
     """
@@ -133,7 +133,7 @@ def test_reading_scores_costs_no_query_per_battle():
 
     def queries_to_score_every_battle():
         with CaptureQueriesContext(connection) as queries:
-            for battle in Battle.objects.prefetch_related('games', 'game_scores__game'):
+            for battle in Battle.objects.prefetch_related('games__scores'):
                 battle.warrior_score(warrior.id)
         return len(queries)
 

@@ -110,7 +110,6 @@ that makes "which warrior is 1" a property of the read path
 rather than a key,
 gives the same game more than one spelling,
 and leaves a lookup free to take the wrong one.
-`Battle.score_object` says why its lookup is keyed on the game.
 
 ## What stays asymmetric, deliberately
 

@@ -66,10 +66,9 @@ class RatingMixin(models.Model):
         for b in Battle.objects.with_warrior_arena(self).resolved().order_by(
             '-scheduled_at',
         ).prefetch_related(
-            # a battle score is the mean over its games, and a score row is
-            # selected by the game it names
-            'games',
-            'game_scores__game',
+            # a battle score is the mean over its games,
+            # and a game's score rows hang off the game they name
+            'games__scores',
         ):
             opponent_id = (
                 b.warrior_2_id if b.warrior_1_id == self.warrior_id

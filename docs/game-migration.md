@@ -132,16 +132,13 @@ The dead `rating_transferred_at` column
 (tracked in `TODO.md`) rides along.
 
 `GameScore.battle` and `GameScore.direction` drop here too.
-They carry no key any more —
-the uniqueness and the lookup sit on (game, algorithm) —
-and `direction`'s last reader goes in this same step:
-the audit's own re-derivation of the score link, with the command.
-`battle` has one live reader to move first:
-every page prefetches score rows as `game_scores__game`
-and `Battle.score_object` picks out of that list,
-so the read path becomes `games__scores`,
-and `GameScore.score_for` — which asks its own `game`
-for the warrior order — is reached from the game that holds it.
+Neither carries a key:
+uniqueness and lookup sit on (game, algorithm),
+the pages prefetch `games__scores`
+and read a score off `DBGame.score_object`,
+and `direction`'s only remaining reader —
+the audit's own re-derivation of the score link —
+goes with the command.
 
 ### 2. Rename
 
