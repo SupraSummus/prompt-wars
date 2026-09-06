@@ -1,121 +1,78 @@
 {% load percentage %}
 
-<div id="{{ id }}">
-  <h2>{{ heading }}</h2>
+<div id="game-{{ block.game.id }}">
+  <h2>{{ block.game.warrior_1 }} goes first</h2>
   <dl>
 
-    <dt>First warrior</dt>
+    <dt>Prompt order</dt>
     <dd>
-      <a href="{% url 'warrior:get' game.warrior_1.id %}">{{ game.warrior_1 }}</a>
-      {% if game.resolved_at %}
-        {% include 'warriors/partials/score.html' with score=game.score %}
-      {% endif %}
+      <a href="{% url 'warrior:get' block.game.warrior_1.id %}">{{ block.game.warrior_1 }}</a>
+      then
+      <a href="{% url 'warrior:get' block.game.warrior_2.id %}">{{ block.game.warrior_2 }}</a>
     </dd>
 
-    <dt>Second warrior</dt>
-    <dd>
-      <a href="{% url 'warrior:get' game.warrior_2.id %}">{{ game.warrior_2 }}</a>
-      {% if game.resolved_at %}
-        {% include 'warriors/partials/score.html' with score=game.score_rev %}
-      {% endif %}
-    </dd>
-
-    {% if game.finish_reason %}
+    {% if block.game.finish_reason %}
       <dt>Finish reason</dt>
-      <dd>{{ game.finish_reason }}</dd>
+      <dd>{{ block.game.finish_reason }}</dd>
     {% endif %}
 
-    {% if game.llm_version %}
+    {% if block.game.llm_version %}
       <dt>LLM version</dt>
-      <dd>{{ game.llm_version }}</dd>
+      <dd>{{ block.game.llm_version }}</dd>
     {% endif %}
 
   </dl>
 
   <details>
     <summary role="button" class="outline">Result</summary>
-    {% if not game.resolved_at %}
-      <i>Battle is not resolved yet</i>
-    {% elif game.show_battle_results %}
-      {% include 'exact_text.html' with text=game.result %}
+    {% if not block.game.resolved_at %}
+      <i>Game is not resolved yet</i>
+    {% elif block.result_visible %}
+      {% include 'exact_text.html' with text=block.game.result %}
     {% else %}
       <i>Hidden. Only the warriors' authors can see it.</i>
     {% endif %}
   </details>
 
-  {% if game.resolved_at %}
-    <details>
-      <summary role="button" class="outline">
-        Result common with warrior 1 &mdash; {{ game.warrior_1_preserved_ratio|percentage }}
-        (relative {{ game.score|percentage }})
-      </summary>
-      {% if game.show_secrets_1 %}
-        {% include 'exact_text.html' with text=game.result_marked_for_1 %}
-      {% else %}
-        <i>Hidden. Only the warrior's author can see it.</i>
-      {% endif %}
-    </details>
-  {% endif %}
-
-  {% if game.resolved_at %}
-    <details>
-      <summary role="button" class="outline">
-        Result common with warrior 2 &mdash; {{ game.warrior_2_preserved_ratio|percentage }}
-        (relative {{ game.score_rev|percentage }})
-      </summary>
-      {% if game.show_secrets_2 %}
-        {% include 'exact_text.html' with text=game.result_marked_for_2 %}
-      {% else %}
-        <i>Hidden. Only the warrior's author can see it.</i>
-      {% endif %}
-    </details>
-  {% endif %}
-
-  <details>
-    <summary>Winner by embedding (experimental)</summary>
+  {% for scoring in block.scorings %}
     <table>
       <thead>
         <tr>
-          <th></th>
+          <th>{{ scoring.algorithm }}</th>
           <th>Result similarity</th>
           <th>Relative (100% sum)</th>
         </tr>
       </thead>
-      <tr>
-        <td>Warrior 1</td>
-        <td>{{ game.embedding_scoring.warrior_1_preserved_ratio|percentage }}</td>
-        <td>{{ game.embedding_scoring.score|percentage }}</td>
-      </tr>
-      <tr>
-        <td>Warrior 2</td>
-        <td>{{ game.embedding_scoring.warrior_2_preserved_ratio|percentage }}</td>
-        <td>{{ game.embedding_scoring.score_rev|percentage }}</td>
-      </tr>
-    </table>
-  </details>
-
-  <details>
-    <summary>Cooperation score (experimental)</summary>
-    <table>
-      <thead>
-        <tr>
-          <th>Scoring method</th>
-          <th>Warriors similarity</th>
-          <th>Cooperation score</th>
-        </tr>
-      </thead>
       <tbody>
+        {% for warrior_scoring in scoring.warriors %}
+          <tr>
+            <td>{{ warrior_scoring.warrior }}</td>
+            <td>{{ warrior_scoring.similarity|percentage }}</td>
+            <td>{% include 'warriors/partials/score.html' with score=warrior_scoring.score %}</td>
+          </tr>
+        {% endfor %}
         <tr>
-          <td>LCS</td>
-          <td>{{ game.warriors_similarity|percentage }}</td>
-          <td>{{ game.cooperation_score|percentage }}</td>
-        </tr>
-          <td>Embeddings</td>
-          <td>{{ game.embedding_scoring.warriors_similarity|percentage }}</td>
-          <td>{{ game.embedding_scoring.cooperation_score|percentage }}</td>
+          <td>Cooperation score</td>
+          <td colspan="2">{{ scoring.cooperation_score|percentage }}</td>
         </tr>
       </tbody>
     </table>
-  </details>
+
+    {% if scoring.marks_result and block.game.resolved_at %}
+      {% for warrior_scoring in scoring.warriors %}
+        <details>
+          <summary role="button" class="outline">
+            Result common with {{ warrior_scoring.warrior }} &mdash;
+            {{ warrior_scoring.similarity|percentage }}
+          </summary>
+          {% if warrior_scoring.marked_result %}
+            {% include 'exact_text.html' with text=warrior_scoring.marked_result %}
+          {% else %}
+            <i>Hidden. Only the warrior's author can see it.</i>
+          {% endif %}
+        </details>
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
 
 </div>

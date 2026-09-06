@@ -40,7 +40,7 @@ def validate_scores(direction, sample_size=100):
     for gs in game_scores:
         checked += 1
         battle = gs.battle
-        game = Game(battle, direction, score_algorithm=ScoreAlgorithm.EMBEDDINGS)
+        game = Game(battle, direction)
         battle_value_1 = _warrior_similarity(game.text_unit, game.warrior_1)
         battle_value_2 = _warrior_similarity(game.text_unit, game.warrior_2)
 

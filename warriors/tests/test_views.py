@@ -8,10 +8,13 @@ from django.utils import timezone
 from users.tests.factories import UserFactory
 
 from ..battles import Battle
+from ..score import ScoreAlgorithm
 from ..text_unit import TextUnit
 from .factories import (
-    GameScoreFactory, WarriorArenaFactory, batch_create_battles,
+    BattleFactory, GameScoreFactory, WarriorArenaFactory, batch_create_battles,
+    game_of,
 )
+from .fixtures import create_scores
 
 
 @pytest.mark.django_db
@@ -36,7 +39,44 @@ def test_warrior_details(client, warrior_arena, battle):
         reverse('warrior_detail', args=(warrior_arena.id,))
     )
     assert response.status_code == 200
-    assert battle.get_warrior_viewpoint(warrior_arena) in response.context['battles']
+    assert battle in [row['battle'] for row in response.context['battles']]
+
+
+@pytest.mark.django_db
+def test_warrior_details_scores_belong_to_the_page_warrior(client, arena):
+    """
+    The page's warrior leads one game and follows in the other,
+    and both cells report that warrior's own score.
+    Reaching for the battle's first warrior instead
+    gives every number to the opponent, and nothing else looks wrong.
+    """
+    now = timezone.now()
+    battle = BattleFactory(
+        llm=arena.llm,
+        warrior_1__id=uuid.UUID(int=1),
+        warrior_2__id=uuid.UUID(int=2),
+        resolved_at_1_2=now,
+        resolved_at_2_1=now,
+    )
+    create_scores(
+        battle,
+        score_1_2_1=0.1, score_1_2_2=0.2,
+        score_2_1_1=0.3, score_2_1_2=0.4,
+    )
+    warrior_arena = WarriorArenaFactory(arena=arena, warrior=battle.warrior_2)
+
+    response = client.get(
+        reverse('warrior_detail', args=(warrior_arena.id,))
+    )
+
+    row, = response.context['battles']
+    assert [cell['game'].warrior_1_id for cell in row['games']] == [
+        battle.warrior_2_id, battle.warrior_1_id,
+    ]
+    assert [cell['score'] for cell in row['games']] == [
+        pytest.approx(0.4 / 0.7),  # leading, its own similarity is the larger
+        pytest.approx(0.2 / 0.3),  # following, and still the larger
+    ]
 
 
 @pytest.mark.django_db
@@ -168,6 +208,7 @@ def test_battle_details(client, battle):
 
 @pytest.mark.django_db
 def test_battle_details_with_score(client, battle):
+    """A game reports the algorithms that scored it, and nothing it lacks."""
     GameScoreFactory(
         battle=battle,
         direction='1_2',
@@ -180,6 +221,11 @@ def test_battle_details_with_score(client, battle):
         reverse('battle_detail', args=(battle.id,))
     )
     assert response.status_code == 200
+    scored, unscored = response.context['game_blocks']
+    assert [scoring['algorithm'] for scoring in scored['scorings']] == [
+        ScoreAlgorithm.LCS.label,
+    ]
+    assert unscored['scorings'] == []
 
 
 @pytest.mark.django_db
@@ -191,8 +237,9 @@ def test_battle_details_with_score(client, battle):
     'resolved_at_1_2': timezone.now(),
 }], indirect=True)
 def test_battle_details_public(client, battle, warrior_arena):
-    battle.text_unit_1_2 = TextUnit.get_or_create_by_content('asdf1234')
-    battle.save()
+    game = game_of(battle, '1_2')
+    game.text_unit = TextUnit.get_or_create_by_content('asdf1234')
+    game.save(update_fields=['text_unit'])
     response = client.get(
         reverse('battle_detail', args=(battle.id,))
     )
@@ -206,13 +253,15 @@ def test_battle_details_public(client, battle, warrior_arena):
     'finish_reason_1_2': 'error',
 }], indirect=True)
 def test_battle_details_error(user_client, battle, warrior_user_permission):
-    assert battle.text_unit_1_2 is None
+    """An errored game has no result text, and its author still gets the page."""
+    assert game_of(battle, '1_2').text_unit is None
     response = user_client.get(
         reverse('battle_detail', args=(battle.id,))
     )
     assert response.status_code == 200
-    game = response.context['battle'].game_1_2
-    assert game.show_secrets_1 or game.show_secrets_2
+    block = response.context['game_blocks'][0]
+    assert block['game'].finish_reason == 'error'
+    assert block['result_visible']
 
 
 def schedule_in_order(*battles):

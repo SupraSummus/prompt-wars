@@ -104,6 +104,27 @@ class GameScore(GoalRelatedMixin, models.Model):
             return None
         return 1.0 - s
 
+    def score_for(self, warrior_id):
+        """
+        This score from one named warrior's side.
+
+        The row's fields are in game order and it names its game,
+        so a warrior's number is a choice between the two of them
+        rather than a rewrite
+        ("A warrior's score is named once" in docs/battle-display.md).
+        """
+        if warrior_id == self.game.warrior_1_id:
+            return self.score
+        assert warrior_id == self.game.warrior_2_id
+        return self.score_rev
+
+    def similarity_for(self, warrior_id):
+        """How much of one named warrior's prompt survived into the result."""
+        if warrior_id == self.game.warrior_1_id:
+            return self.warrior_1_similarity
+        assert warrior_id == self.game.warrior_2_id
+        return self.warrior_2_similarity
+
     @property
     def cooperation_score(self):
         """

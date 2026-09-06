@@ -1,40 +1,33 @@
 # Battle result display: symmetric in games, symmetric in algorithms
 
-A proposal, not shipped code.
-It owns the target shape of the battle result presentation
-for the reader cut-over in `docs/game-migration.md`,
-where the templates change anyway.
+This doc owns why the battle result presentation is shaped as it is:
+`BattleDetailView` and the warrior's battle list (`warriors/views.py`),
+`templates/warriors/battle_detail.html`
+and the game partial beside it.
 
-The present display privileges one member
-of each of two sets the data treats as peers:
-one game of the two, and one scoring algorithm of the two.
-Neither privilege comes from the game;
-both come from how the values were once stored and once computed.
-The display that stops asserting them
+The data treats two sets as peers —
+the games of a battle, and the scoring algorithms —
+and the page says so.
+Privileging one member of either
+asserts something no game supports,
+and the display that stops asserting it
 is also the display that stops caring
 how many games and how many algorithms exist.
 
 ## Symmetric in games
 
-The battle page has two named slots
-(`battle_detail.html` renders `game_1_2` and `game_2_1`
-under fixed headings and fixed anchors),
-and the accessors that feed them are named for directions.
-
 The grounded argument is not a hypothetical third game
 but the pair itself:
 the two games resolve independently,
 so for a while a battle has one resolved game and one pending.
-Where the display is already per game
-it takes that in stride —
-the game partial branches on its own game's `resolved_at` —
-and where the pair is named,
-`warriorarena_detail.html` reads the state off the battle's
-directional columns, once per named slot.
-The difference is the whole argument in miniature:
+A display that is per game takes that in stride —
+each block branches on its own game's `resolved_at` —
+where one built out of two named slots
+reads the state off the battle instead, once per slot.
+That difference is the whole argument in miniature:
 addressing a game by its own warriors, rather than by a slot name,
 is what makes the partial-resolution case ordinary.
-The battle page reaches that by looping;
+The battle page reaches that by looping over the battle's games;
 the list reaches it by asking each cell's game row directly
 ("The battle lists keep a score column per game", under "Decisions"),
 and both stop asking the battle.
@@ -43,25 +36,17 @@ That the count could exceed two is a bonus rather than the case:
 nothing in the domain fixes it at two,
 and reruns after a model version change,
 or a matchup replayed against a second LLM,
-would each want a row where today there is a named slot.
-Neither exists, and this proposal does not argue for them.
+would each want a row of their own.
+Neither exists, and nothing here argues for them.
 
 ## Symmetric in scoring algorithms
 
 Every resolved game is scored by every algorithm:
 `resolve_battle` (`warriors/tasks.py`) writes an LCS score
-and an embeddings score unconditionally.
-The storage is symmetric; the display is not.
-LCS supplies the page's unqualified numbers —
-the meters, the preserved ratios, the battle score —
-while embeddings is reached through a special-cased property
-(`Game.embedding_scoring`, which builds a second facade
-with the algorithm name written into it)
-and rendered under an "experimental" heading.
-`BattleViewpoint` carries a `score_algorithm` defaulting to LCS,
-so `BattleDetailView`, which names no algorithm, gets LCS by omission.
+and an embeddings score unconditionally,
+so the storage is symmetric and the display follows it.
 
-That default has no owner.
+An unqualified default would have no owner.
 Which algorithm is authoritative is a property of a *ranking*,
 not of a battle:
 today `Arena.score_algorithm`,
@@ -73,14 +58,13 @@ it is the record of what happened —
 which leaves it no basis for calling one column the score
 and the other experimental.
 
-The display should loop over the algorithms
+So the display loops over the algorithms
 the way it loops over the games.
 The test is mechanical:
-a third member of `ScoreAlgorithm` should reach the battle page
+a third member of `ScoreAlgorithm` reaches the battle page
 without a template edit.
-Today each algorithm is a hand-written block,
-and hand-written per-algorithm blocks drift —
-`TODO.md` carries the instance.
+The alternative, a hand-written block per algorithm,
+drifts between blocks that nothing forces to agree.
 
 Symmetric does not mean identical.
 LCS can mark the surviving subsequence inside the result text
@@ -103,10 +87,14 @@ and a margin column holding the mean, which is the battle score.
 Every column sums to one, the margin column included,
 so a reader can check the arithmetic by eye —
 the practical test of a symmetric presentation.
-Warrior similarity and the cooperation score built from it
-are per battle and per algorithm, not per game,
-so they sit beside that algorithm's matrix
+Warrior similarity is per battle and per algorithm —
+it compares the two prompts and no result —
+so it sits beside that algorithm's matrix
 instead of being repeated in every game block.
+The cooperation score built from it does not follow it up there:
+it weighs how much of each prompt survived into *one* result,
+so the two games earn different numbers
+and each stays in its own block.
 
 Each game then gets its own block:
 the result text, and its scores by algorithm and by warrior.
@@ -115,17 +103,14 @@ For a cell to be addressable at all,
 a game's score has to be askable *for a named warrior*,
 rather than as a positional `score`
 with the other side derived as the remainder.
-That is mechanism in service of the two symmetries,
-with a payoff of its own:
-the viewpoint machinery
-(`BattleViewpoint`'s field rewriting, the in-memory `Game` facade)
-exists to make "1" mean "the warrior this page is about",
-and per-warrior addressing retires all of it.
-Rewriting is also what makes "which warrior is 1"
-a property of the read path rather than a key,
-so the same game has more than one spelling
-and a lookup can take the wrong one;
-`Game.score_object` says why its lookup is keyed on the game.
+`GameScore.score_for` is that question.
+The alternative is a facade that rewrites field names
+so that "1" means "the warrior this page is about":
+that makes "which warrior is 1" a property of the read path
+rather than a key,
+gives the same game more than one spelling,
+and leaves a lookup free to take the wrong one.
+`Battle.score_object` says why its lookup is keyed on the game.
 
 ## What stays asymmetric, deliberately
 
@@ -140,7 +125,7 @@ is data the page reports,
 not structure baked into slot names, field names, and defaults.
 Performance stays pairwise:
 it is a score minus a rating-model expectation for two warriors
-(`BattleViewpoint.performance`),
+(`Battle.warrior_performance`),
 and no expectation is defined for a wider battle.
 
 ## Decisions
@@ -154,13 +139,13 @@ and, on the battle,
 a warrior's score under an algorithm:
 the mean over the battle's games,
 undefined until every game is resolved.
-The second is what `WarriorArena.update_rating` already computes
-through `BattleViewpoint.score`,
-so rating calls it rather than keeping its own copy.
+`GameScore.score_for` and `Battle.warrior_score` are those two names,
+and `WarriorArena.update_rating` calls the second
+rather than keeping its own copy.
 The rejected alternative — a display-only computation —
 leaves two spellings of one number free to drift,
 which is the failure this migration exists to remove;
-it also leaves the viewpoint machinery something to port
+it would also have given the viewpoint machinery something to port
 instead of something to delete.
 This is the mechanism the other three decisions rest on:
 the summary matrix's cells, the list's score columns,
@@ -205,24 +190,14 @@ each game block shows its own score as it lands.
 The two definitions coincide by intent, then, rather than by accident.
 
 **A game's anchor is its id.**
-Per-game anchors are direction strings
-linked from the battle list, which keeps those links,
-so the anchor stays an inbound target rather than a bare label.
+An anchor here is an inbound target, not a label:
+the warrior's battle list links each score cell
+straight at the game it reports.
 With N games the stable name is the game's own id,
-and the cell building the link already holds the game row.
-The accepted cost is that fragment links made before the change —
+and the cell building the link already holds the game row,
+where a direction string would name a slot again.
+The accepted cost is that fragment links made
+when the anchors were direction strings —
 bookmarks and pasted URLs, no longer anything in the tree —
 land at the top of the right battle page;
 the battle URL itself is unchanged.
-
-## Sequencing
-
-Written against the battle's directional columns,
-a symmetric renderer has to reconstruct games from suffixed field names —
-a second facade beside the one being deleted.
-`GameScore` already keys on (game, algorithm)
-and is already selected by the game it names,
-so a per-warrior lookup has something to sit on.
-That makes this the shape of step 1's view and template work
-in `docs/game-migration.md`,
-not a separate project after it.

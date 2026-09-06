@@ -65,37 +65,24 @@
           </tr>
         </thead>
         <tbody>
-          {% for battle in battles %}
+          {% for row in battles %}
             <tr>
-              <td><a href="{% url 'battle_detail' battle.id %}?warrior_arena={{ warrior.id }}">
-                {% include 'time.html' with time=battle.scheduled_at %}
+              <td><a href="{{ row.url }}">
+                {% include 'time.html' with time=row.battle.scheduled_at %}
               </a></td>
-              <td><a href="{% url 'battle_detail' battle.id %}?warrior_arena={{ warrior.id }}">
-                {{ battle.warrior_2 }}
-              </a></td>
-              <td>
-                <a href="{% url 'battle_detail' battle.id %}?warrior_arena={{ warrior.id }}#{{ battle.game_1_id }}">
-                  {% if not battle.resolved_at_1_2 %}
-                    <i>pending</i>
-                  {% else %}
-                    {% include 'warriors/partials/score.html' with score=battle.game_1_2.score %}
-                  {% endif %}
-                </a>
-              </td>
-              <td>
-                <a href="{% url 'battle_detail' battle.id %}?warrior_arena={{ warrior.id }}#{{ battle.game_2_id }}">
-                  {% if not battle.resolved_at_2_1 %}
-                    <i>pending</i>
-                  {% else %}
-                    {% include 'warriors/partials/score.html' with score=battle.game_2_1.score_rev %}
-                  {% endif %}
-                </a>
-              </td>
-              <td>
-                {% if not battle.resolved_at_1_2 or not battle.resolved_at_2_1 %}
-                  <i>pending</i>
-                {% else %}{{ battle.performance_str }}{% endif %}
-              </td>
+              <td><a href="{{ row.url }}">{{ row.opponent }}</a></td>
+              {% for cell in row.games %}
+                <td>
+                  <a href="{{ row.url }}#game-{{ cell.game.id }}">
+                    {% if not cell.game.resolved_at %}
+                      <i>pending</i>
+                    {% else %}
+                      {% include 'warriors/partials/score.html' with score=cell.score %}
+                    {% endif %}
+                  </a>
+                </td>
+              {% endfor %}
+              <td>{{ row.performance }}</td>
             </tr>
           {% empty %}
             <tr>

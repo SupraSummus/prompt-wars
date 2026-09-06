@@ -14,11 +14,12 @@ from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormView
 from django.views.generic.list import ListView
 
-from .battles import Battle, BattleViewpoint
+from .battles import Battle
 from .forms import ChallengeWarriorForm
 from .models import (
     Arena, WarriorArena, WarriorUserPermission, get_or_create_warrior_arenas,
 )
+from .score import ScoreAlgorithm
 from .stats import ArenaStats
 from .warriors import Warrior
 
@@ -92,14 +93,16 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
         battles_qs = Battle.objects.with_warrior_arena(
             warrior_arena,
         )[:100].prefetch_related(
-            # a score is selected by its game's warriors, so bring the game
+            # a battle score is the mean over its games, and a score row is
+            # selected by the game it names
+            'games',
             'game_scores__game',
         )
         battles = list(battles_qs)
         prefetch_warriors(battles)
         prefetch_warrior_arenas(warrior_arena.arena, battles)
         context['battles'] = [
-            battle.get_warrior_viewpoint(warrior_arena, score_algorithm=warrior_arena.arena.score_algorithm)
+            warrior_battle_row(battle, warrior_arena)
             for battle in battles
         ]
 
@@ -147,6 +150,57 @@ def prefetch_warrior_arenas(arena, battles):
     for battle in battles:
         battle.warrior_arena_1 = warrior_arenas[battle.warrior_1_id]
         battle.warrior_arena_2 = warrior_arenas[battle.warrior_2_id]
+
+
+def warrior_battle_row(battle, warrior_arena):
+    """
+    One battle as the warrior's own list shows it: a score column per game.
+
+    The games come this warrior-first,
+    prompt order being the asymmetry the list is scanned for,
+    and every number is that warrior's own
+    ("The battle lists keep a score column per game"
+    in docs/battle-display.md).
+    The arena names the algorithm, being the one reader that has one.
+    """
+    warrior_id = warrior_arena.warrior_id
+    algorithm = warrior_arena.arena.score_algorithm
+    if battle.warrior_1_id == warrior_id:
+        opponent, opponent_arena = battle.warrior_2, battle.warrior_arena_2
+    else:
+        opponent, opponent_arena = battle.warrior_1, battle.warrior_arena_1
+    games = sorted(
+        battle.games_list,
+        key=lambda game: game.warrior_1_id != warrior_id,
+    )
+    if any(game.resolved_at is None for game in games):
+        performance = 'pending'
+    else:
+        performance = format_performance(battle.warrior_performance(
+            warrior_arena, opponent_arena, algorithm,
+        ))
+    return {
+        'battle': battle,
+        'url': battle_url(battle, warrior_arena),
+        'opponent': opponent,
+        'games': [
+            {
+                'game': game,
+                'score': score_for(battle.score_object(game, algorithm), warrior_id),
+            }
+            for game in games
+        ],
+        'performance': performance,
+    }
+
+
+def score_for(score_object, warrior_id):
+    """One warrior's score, or nothing where the game is not scored yet."""
+    return None if score_object is None else score_object.score_for(warrior_id)
+
+
+def format_performance(performance):
+    return 'none' if performance is None else f'{performance:+.2f}'
 
 
 class PublicBattleResutsForm(forms.Form):
@@ -207,37 +261,47 @@ class BattleDetailView(DetailView):
     model = Battle
     context_object_name = 'battle'
 
-    def get_object(self):
-        battle = super().get_object()
-        return BattleViewpoint(battle, '1')
+    def get_queryset(self):
+        return super().get_queryset().select_related(
+            'warrior_1',
+            'warrior_2',
+        ).prefetch_related(
+            'games__warrior_1',
+            'games__warrior_2',
+            'game_scores__game',
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        battle = self.object
 
-        show_secrets_1 = is_request_authorized(self.object.warrior_1, self.request)
-        show_secrets_2 = is_request_authorized(self.object.warrior_2, self.request)
-        show_battle_results = (
-            show_secrets_1 or show_secrets_2 or  # noqa: W504
-            self.object.public_battle_results
-        )
+        # a warrior body, and the result read against it, are its author's
+        visible_warrior_ids = {
+            warrior.id
+            for warrior in (battle.warrior_1, battle.warrior_2)
+            if is_request_authorized(warrior, self.request)
+        }
+        show_battle_results = bool(visible_warrior_ids) or battle.public_battle_results
 
         # Add meta title
         context['meta_title'] = (
-            f"Prompt Wars Battle: {self.object.warrior_1} vs {self.object.warrior_2}"
+            f"Prompt Wars Battle: {battle.warrior_1} vs {battle.warrior_2}"
         )
 
         # Add meta description
         context['meta_description'] = (
-            f"AI battle between '{self.object.warrior_1}' and '{self.object.warrior_2}'. "
+            f"AI battle between '{battle.warrior_1}' and '{battle.warrior_2}'. "
             "View the results of this AI prompt engineering duel."
         )
 
-        self.object.game_1_2.show_secrets_1 = show_secrets_1
-        self.object.game_1_2.show_secrets_2 = show_secrets_2
-        self.object.game_1_2.show_battle_results = show_battle_results
-        self.object.game_2_1.show_secrets_1 = show_secrets_2
-        self.object.game_2_1.show_secrets_2 = show_secrets_1
-        self.object.game_2_1.show_battle_results = show_battle_results
+        context['score_summaries'] = [
+            battle_score_summary(battle, algorithm)
+            for algorithm in ScoreAlgorithm
+        ]
+        context['game_blocks'] = [
+            game_block(battle, game, visible_warrior_ids, show_battle_results)
+            for game in battle.games_list
+        ]
 
         warrior_arena = self.get_nav_warrior_arena()
         context['nav_warrior_arena'] = warrior_arena
@@ -265,6 +329,94 @@ class BattleDetailView(DetailView):
         if warrior_arena.warrior_id not in (self.object.warrior_1_id, self.object.warrior_2_id):
             return None
         return warrior_arena
+
+
+def battle_score_summary(battle, algorithm):
+    """
+    One algorithm's scores as a matrix: a warrior per row, a game per column.
+
+    Every column sums to 1, the battle-score margin included,
+    which is what a reader checks a symmetric presentation by
+    (docs/battle-display.md, "The shape").
+    Warrior similarity is per battle and per algorithm,
+    so it sits beside the matrix rather than in a cell.
+    """
+    games = battle.games_list
+    score_objects = [battle.score_object(game, algorithm) for game in games]
+    return {
+        'algorithm': ScoreAlgorithm(algorithm).label,
+        'games': games,
+        'rows': [
+            {
+                'warrior': warrior,
+                'scores': [
+                    score_for(score_object, warrior.id)
+                    for score_object in score_objects
+                ],
+                'battle_score': battle.warrior_score(warrior.id, algorithm),
+            }
+            for warrior in (battle.warrior_1, battle.warrior_2)
+        ],
+        'warriors_similarity': next(
+            (
+                score_object.warriors_similarity
+                for score_object in score_objects
+                if score_object is not None
+            ),
+            None,
+        ),
+    }
+
+
+def game_block(battle, game, visible_warrior_ids, show_battle_results):
+    """
+    One game as its own block: what the LLM produced, and how it scored.
+
+    A game shows the algorithms that have scored it, each reporting itself,
+    so a further member of `ScoreAlgorithm`
+    reaches the page without a template edit (docs/battle-display.md).
+    """
+    return {
+        'game': game,
+        'result_visible': show_battle_results,
+        'scorings': [
+            game_scoring(game, score_object, visible_warrior_ids)
+            for score_object in (
+                battle.score_object(game, algorithm)
+                for algorithm in ScoreAlgorithm
+            )
+            if score_object is not None
+        ],
+    }
+
+
+def game_scoring(game, score_object, visible_warrior_ids):
+    """
+    One algorithm's reading of one game.
+
+    Marking the surviving text is LCS's own extra —
+    an embedding similarity has nothing to mark —
+    so it hangs off this block rather than the game's.
+    """
+    marks_result = score_object.algorithm == ScoreAlgorithm.LCS
+    return {
+        'algorithm': ScoreAlgorithm(score_object.algorithm).label,
+        'marks_result': marks_result,
+        'warriors': [
+            {
+                'warrior': warrior,
+                'similarity': score_object.similarity_for(warrior.id),
+                'score': score_object.score_for(warrior.id),
+                'marked_result': (
+                    game.result_marked_for(warrior)
+                    if marks_result and warrior.id in visible_warrior_ids
+                    else None
+                ),
+            }
+            for warrior in (game.warrior_1, game.warrior_2)
+        ],
+        'cooperation_score': score_object.cooperation_score,
+    }
 
 
 def battle_nav_context(battle, warrior_arena, user):
