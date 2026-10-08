@@ -216,8 +216,8 @@ puts a warrior on opposite sides of two adjacent game blocks,
 and the colors then contradict the positions.
 
 **Color and graphics only repeat the text.**
-The page targets WCAG 2.2 AA,
-so nothing on it is told by color or shape alone:
+Both pages target WCAG 2.2 AA,
+so nothing on them is told by color or shape alone:
 every colored dot or bar sits beside a name and a number,
 the bars are hidden from screen readers,
 and highlighted text is underlined as well as tinted.
