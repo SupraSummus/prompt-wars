@@ -82,14 +82,12 @@ class Command(BaseCommand):
                 continue
             # a link never drifts mid-flight, so the gate below misses it
             self.check_scores(scores[direction], game, location)
-            if game.resolved_at is None:
+            if game.resolved_at is None and fields['resolved_at'] is None:
                 # A direction still in flight is being written as we read:
                 # attempts climbs on every retry, and the battle and its
                 # games arrive in separate queries, so comparing them
-                # invites a finding that is not one. The gate is the game
-                # row's own resolved_at — keyed on the mirrored column, a
-                # resolution the mirror never reached would read as in
-                # flight and never get compared.
+                # invites a finding that is not one. Both sides have to
+                # say so: a result only one side holds is the drift.
                 self.unresolved += 1
             else:
                 self.check_game(game, fields, location)
