@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from users.tests.factories import UserFactory
 
-from ..battles import Battle, DBGame, mirrored_game_fields
+from ..battles import Battle, DBGame
 from ..models import LLM, Arena, WarriorArena, WarriorUserPermission
 from ..score import GameScore
 from ..text_unit import TextUnit
@@ -47,6 +47,14 @@ class WarriorUserPermissionFactory(factory.django.DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
 
 
+class DBGameFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = DBGame
+
+    llm = factory.SelfAttribute('battle.llm')
+    scheduled_at = factory.SelfAttribute('battle.scheduled_at')
+
+
 class BattleFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Battle
@@ -63,8 +71,8 @@ class BattleFactory(factory.django.DjangoModelFactory):
         The `warrior_ordering` check constraint wants the smaller id first,
         which a caller building a pair cannot arrange in advance —
         the ids come from the factory.
-        Directional kwargs are read after the swap,
-        so they name the canonical direction.
+        The games are built after the swap,
+        so `game_1_2` is the one the canonical first warrior leads.
 
         This rebinds nothing for the caller:
         a test that names its warriors and then asserts per name
@@ -76,20 +84,19 @@ class BattleFactory(factory.django.DjangoModelFactory):
             )
         return kwargs
 
-    @factory.post_generation
-    def games(battle, create, extracted, **kwargs):
-        """
-        Hold the invariant `resolve_battle` relies on:
-        a battle comes with its two game rows,
-        mirroring whichever directional fields the caller set.
-        """
-        if not create:
-            return
-        for direction in ('1_2', '2_1'):
-            DBGame.objects.create(
-                battle=battle,
-                **mirrored_game_fields(battle, direction),
-            )
+    # Hold the invariant `resolve_battle` relies on:
+    # a battle comes with its two game rows.
+    # `game_1_2__resolved_at=...` sets a field on one of them.
+    game_1_2 = factory.RelatedFactory(
+        DBGameFactory, 'battle',
+        warrior_1=factory.SelfAttribute('battle.warrior_1'),
+        warrior_2=factory.SelfAttribute('battle.warrior_2'),
+    )
+    game_2_1 = factory.RelatedFactory(
+        DBGameFactory, 'battle',
+        warrior_1=factory.SelfAttribute('battle.warrior_2'),
+        warrior_2=factory.SelfAttribute('battle.warrior_1'),
+    )
 
 
 def batch_create_battles(arena, warrior_arena, n):
@@ -102,10 +109,10 @@ def batch_create_battles(arena, warrior_arena, n):
             llm=arena.llm,
             warrior_1=warrior_arena.warrior,
             warrior_2=other_warrior_arena.warrior,
-            resolved_at_1_2=timezone.now(),
-            text_unit_1_2=TextUnitFactory(),
-            resolved_at_2_1=timezone.now(),
-            text_unit_2_1=TextUnitFactory(),
+            game_1_2__resolved_at=timezone.now(),
+            game_1_2__text_unit=TextUnitFactory(),
+            game_2_1__resolved_at=timezone.now(),
+            game_2_1__text_unit=TextUnitFactory(),
         )
         battles.append(battle)
     return battles
@@ -134,7 +141,3 @@ def game_of(battle, direction):
 class GameScoreFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = GameScore
-
-    # what get_or_create_game_score writes: the pair and the game row it
-    # names, so a test row is shaped like a production one
-    game = factory.LazyAttribute(lambda score: game_of(score.battle, score.direction))

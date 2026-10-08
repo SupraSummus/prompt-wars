@@ -18,9 +18,8 @@ def test_update_rating_takes_newer_battles(battle, warrior_arena, other_warrior_
     then = timezone.now() - datetime.timedelta(days=10)
     # warrior_2 won the first battle
     battle.scheduled_at = then
-    battle.resolved_at_1_2 = then
-    battle.resolved_at_2_1 = then
     battle.save()
+    battle.games.update(scheduled_at=then, resolved_at=then)
     create_scores(battle, 0, 1, 0, 1)
 
     # warrior_1 won the second battle
@@ -31,8 +30,8 @@ def test_update_rating_takes_newer_battles(battle, warrior_arena, other_warrior_
         warrior_1=battle.warrior_1,
         warrior_2=battle.warrior_2,
         scheduled_at=new_then,
-        resolved_at_1_2=new_then,
-        resolved_at_2_1=new_then,
+        game_1_2__resolved_at=new_then,
+        game_2_1__resolved_at=new_then,
     )
     create_scores(new_battle, 1, 0, 1, 0)
     warrior_arena_1 = WarriorArena.objects.get(warrior=battle.warrior_1, arena=arena)
@@ -64,8 +63,8 @@ def test_rating_is_isolated_for_each_arena():
         llm=arena_1.llm,
         warrior_1=warrior_1,
         warrior_2=warrior_2,
-        resolved_at_1_2=now,
-        resolved_at_2_1=now,
+        game_1_2__resolved_at=now,
+        game_2_1__resolved_at=now,
     )
     create_scores(battle_1, 1, 0.1, 1, 0.1)
 
@@ -77,8 +76,8 @@ def test_rating_is_isolated_for_each_arena():
         llm=arena_2.llm,
         warrior_1=warrior_1,
         warrior_2=warrior_2,
-        resolved_at_1_2=now,
-        resolved_at_2_1=now,
+        game_1_2__resolved_at=now,
+        game_2_1__resolved_at=now,
     )
     create_scores(battle_2, 0.1, 1, 0.1, 1)
 
@@ -105,8 +104,8 @@ def test_rating_is_isolated_for_each_arena():
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('battle', [{
-    'resolved_at_1_2': timezone.now(),
-    'resolved_at_2_1': timezone.now(),
+    'game_1_2__resolved_at': timezone.now(),
+    'game_2_1__resolved_at': timezone.now(),
 }], indirect=True)
 @pytest.mark.parametrize('warrior_arena', [{
     'rating_playstyle': [0, 0],

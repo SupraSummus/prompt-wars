@@ -144,17 +144,9 @@ def test_resolve_battle(arena, battle, monkeypatch):
     assert game.resolved_at is not None
     assert game.llm_version == 'gpt-3.5/1234'
 
-    # and the battle's directional columns mirror it
-    battle.refresh_from_db()
-    assert bytes(battle.input_sha256_2_1) == bytes(game.input_sha256)
-    assert battle.text_unit_2_1_id == game.text_unit_id
-    assert battle.finish_reason_2_1 == game.finish_reason
-    assert battle.resolved_at_2_1 == game.resolved_at
-    assert battle.llm_version_2_1 == game.llm_version
-
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('battle', [{'attempts_2_1': 10}], indirect=True)
+@pytest.mark.parametrize('battle', [{'game_2_1__attempts': 10}], indirect=True)
 def test_resolve_battle_service_unavailable(battle, monkeypatch):
     create_mock = mock.Mock(side_effect=openai.APIStatusError(
         'not now',
@@ -183,12 +175,10 @@ def test_resolve_battle_rate_limit(battle, monkeypatch):
     ret = resolve_battle(None, battle.id, '2_1')
     assert isinstance(ret, RetryMeLater)
 
-    # nothing recorded but the attempt, which the battle mirrors too
+    # nothing recorded but the attempt
     game = battle.games.get(warrior_1=battle.warrior_2)
     assert game.resolved_at is None
     assert game.attempts == 1
-    battle.refresh_from_db()
-    assert battle.attempts_2_1 == game.attempts
 
 
 @pytest.mark.django_db
@@ -224,8 +214,8 @@ def test_resolve_battle_character_limit(battle, monkeypatch):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('battle', [{
-    'resolved_at_1_2': timezone.now(),
-    'resolved_at_2_1': timezone.now(),
+    'game_1_2__resolved_at': timezone.now(),
+    'game_2_1__resolved_at': timezone.now(),
 }], indirect=True)
 def test_transfer_rating(battle):
     transfer_rating(None, battle.id)

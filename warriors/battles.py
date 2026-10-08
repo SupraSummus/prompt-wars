@@ -46,13 +46,7 @@ class BattleQuerySet(models.QuerySet):
         )
 
     def resolved(self):
-        """
-        Battles that are fully computed: every game of theirs is resolved.
-
-        Asks the game rows,
-        which are what `resolve_battle` writes,
-        rather than their mirror on the battle's directional columns.
-        """
+        """Battles that are fully computed: every game of theirs is resolved."""
         return self.exclude(games__resolved_at=None)
 
     def for_user(self, user):
@@ -103,68 +97,6 @@ class Battle(models.Model):
         to=Warrior,
         on_delete=models.PROTECT,
         related_name='+',
-    )
-
-    input_sha256_1_2 = models.BinaryField(
-        max_length=32,
-        null=True,
-        blank=True,
-    )
-    text_unit_1_2 = models.ForeignKey(
-        to=TextUnit,
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name='+',
-    )
-    finish_reason_1_2 = models.CharField(
-        max_length=20,
-        blank=True,
-    )
-    llm_version_1_2 = models.CharField(
-        max_length=100,
-        blank=True,
-    )
-    resolved_at_1_2 = models.DateTimeField(
-        null=True,
-        blank=True,
-    )
-    attempts_1_2 = models.PositiveSmallIntegerField(
-        default=0,
-    )
-
-    input_sha256_2_1 = models.BinaryField(
-        max_length=32,
-        null=True,
-        blank=True,
-    )
-    text_unit_2_1 = models.ForeignKey(
-        to=TextUnit,
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name='+',
-    )
-    finish_reason_2_1 = models.CharField(
-        max_length=20,
-        blank=True,
-    )
-    llm_version_2_1 = models.CharField(
-        max_length=100,
-        blank=True,
-    )
-    resolved_at_2_1 = models.DateTimeField(
-        null=True,
-        blank=True,
-    )
-    attempts_2_1 = models.PositiveSmallIntegerField(
-        default=0,
-    )
-
-    # rating_transferred_at is not used anymore
-    rating_transferred_at = models.DateTimeField(
-        null=True,
-        blank=True,
     )
 
     objects = BattleQuerySet.as_manager()
@@ -308,7 +240,7 @@ class Battle(models.Model):
         )
 
 
-# TODO: rename to Game once the facade below is gone (docs/game-migration.md)
+# TODO: rename to Game, the "Rename" step of docs/game-migration.md
 class DBGame(GoalRelatedMixin, models.Model):
     id = models.UUIDField(
         primary_key=True,
@@ -399,133 +331,6 @@ class DBGame(GoalRelatedMixin, models.Model):
             if score.algorithm == algorithm:
                 return score
         return None
-
-
-class Game:
-    """
-    One battle direction spelled in the game row's field names.
-
-    All that is left of what was a read facade:
-    the mirror writer and the audit reach the battle's directional columns
-    through it, so the suffixed-column mapping is written down once.
-    It goes with the columns
-    in the "Drop the directional columns" step of docs/game-migration.md;
-    readers ask the game row itself.
-    """
-
-    def __init__(self, battle, direction):
-        '''
-        :param battle: Battle
-        :param direction: str '1_2' or '2_1'
-        '''
-        assert direction in ('1_2', '2_1')
-        self.battle = battle
-        self.direction = direction
-        self.direction_from, self.direction_to = direction.split('_')
-
-    def __getattr__(self, field_name):
-        mapped_name = self.map_field_name(field_name)
-        if mapped_name is not None:
-            return getattr(
-                self.battle,
-                mapped_name,
-            )
-        else:
-            return super().__getattribute__(field_name)
-
-    def __setattr__(self, field_name, value):
-        mapped_name = self.map_field_name(field_name)
-        if mapped_name is not None:
-            setattr(
-                self.battle,
-                mapped_name,
-                value,
-            )
-        else:
-            super().__setattr__(field_name, value)
-
-    def save(self, update_fields):
-        self.battle.save(update_fields=[
-            self.map_field_name(f) for f in update_fields
-        ])
-
-    def map_field_name(self, field_name):
-        if field_name in (
-            'input_sha256',
-            'text_unit',
-            'finish_reason',
-            'llm_version',
-            'resolved_at',
-            'attempts',
-        ):
-            return f'{field_name}_{self.direction}'
-        elif field_name == 'text_unit_id':
-            return f'text_unit_{self.direction}_id'
-        elif field_name == 'warrior_1':
-            return f'warrior_{self.direction_from}'
-        elif field_name == 'warrior_2':
-            return f'warrior_{self.direction_to}'
-        elif field_name == 'warrior_1_id':
-            return f'warrior_{self.direction_from}_id'
-        elif field_name == 'warrior_2_id':
-            return f'warrior_{self.direction_to}_id'
-        elif field_name in ('arena', 'llm', 'scheduled_at'):
-            return field_name
-        else:
-            return None
-
-
-MIRRORED_GAME_FIELDS = (
-    'llm',
-    'scheduled_at',
-    'warrior_1_id',
-    'warrior_2_id',
-    'input_sha256',
-    'text_unit_id',
-    'finish_reason',
-    'llm_version',
-    'resolved_at',
-    'attempts',
-)
-
-
-def mirrored_game_fields(battle, direction):
-    """
-    One battle direction expressed as game-row field values.
-
-    `Game.map_field_name` owns the suffixed-column mapping,
-    so callers read the correspondence through the facade
-    instead of re-deriving column names.
-    Both go away with the facade
-    in the "Drop the directional columns" step
-    of docs/game-migration.md.
-    """
-    game = Game(battle, direction)
-    return {
-        name: as_bytes(getattr(game, name))
-        for name in MIRRORED_GAME_FIELDS
-    }
-
-
-def mirror_to_battle(game, battle_mirror, field_names):
-    """
-    Copy a game row onto the battle's directional columns.
-
-    The columns are a write-only copy of the game row,
-    kept for the readers still on them
-    ("Cut the remaining readers over" in docs/game-migration.md).
-    One field list serves both saves
-    because the facade exposes each column
-    under the game row's own field name.
-    """
-    for name in field_names:
-        setattr(battle_mirror, name, getattr(game, name))
-    battle_mirror.save(update_fields=field_names)
-
-
-def as_bytes(value):
-    """A bytea column reads back as a memoryview, which is unequal to bytes."""
-    return bytes(value) if isinstance(value, memoryview) else value
 
 
 def lcs_mark(result, warrior_body):

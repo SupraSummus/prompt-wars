@@ -22,8 +22,8 @@ def test_battle_score():
         warrior_1__body='asdf',
         warrior_2__id=UUID(int=2),
         warrior_2__body='qwerty',
-        text_unit_1_2=TextUnit.get_or_create_by_content('qwerty'),
-        text_unit_2_1=TextUnit.get_or_create_by_content('qwerty'),
+        game_1_2__text_unit=TextUnit.get_or_create_by_content('qwerty'),
+        game_2_1__text_unit=TextUnit.get_or_create_by_content('qwerty'),
     )
     create_scores(battle, 0, 1, 0, 1)
     game_1_2, game_2_1 = battle.games_list
@@ -103,8 +103,7 @@ def test_battle_score_pends_until_every_game_is_scored():
     """
     battle = BattleFactory()
     GameScoreFactory(
-        battle=battle,
-        direction='1_2',
+        game=game_of(battle, '1_2'),
         algorithm=ScoreAlgorithm.LCS,
         warrior_1_similarity=0.1,
         warrior_2_similarity=0.2,
@@ -178,17 +177,3 @@ def test_resolved_needs_every_game(resolved_directions, is_resolved):
     for direction in resolved_directions:
         resolve_game(battle, direction, timezone.now())
     assert (battle in Battle.objects.resolved()) is is_resolved
-
-
-@pytest.mark.django_db
-def test_resolved_reads_the_games_not_the_columns():
-    """
-    The game row is the record and the battle's column is its mirror,
-    so a stale column does not make a battle resolved.
-    """
-    battle = BattleFactory(
-        resolved_at_1_2=timezone.now(),
-        resolved_at_2_1=timezone.now(),
-    )
-    resolve_game(battle, '2_1', None)
-    assert battle not in Battle.objects.resolved()

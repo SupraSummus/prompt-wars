@@ -27,22 +27,10 @@ class GameScore(GoalRelatedMixin, models.Model):
         default=uuid.uuid4,
         editable=False
     )
-    battle = models.ForeignKey(
-        to='Battle',
-        on_delete=models.CASCADE,
-        related_name='game_scores',
-    )
     game = models.ForeignKey(
         to='DBGame',
         on_delete=models.CASCADE,
         related_name='scores',
-    )
-    direction = models.CharField(
-        max_length=3,
-        choices=[
-            ('1_2', _('1→2')),
-            ('2_1', _('2→1')),
-        ],
     )
     algorithm = models.CharField(
         max_length=20,
@@ -154,21 +142,17 @@ class GameScore(GoalRelatedMixin, models.Model):
         ) * (1 - self.warriors_similarity)
 
 
-def get_or_create_game_score(game, direction, algorithm):
+def get_or_create_game_score(game, algorithm):
     """
     The score of one game under one algorithm.
 
     Keyed on (game, algorithm), the uniqueness the schema guards,
     so a racing second call loses its insert and reads the row instead.
-    `battle` and `direction` are written and never looked up;
-    they drop once nothing reads them (docs/game-migration.md).
     """
     game_score, _ = GameScore.objects.get_or_create(
         game=game,
         algorithm=algorithm,
         defaults={
-            'battle_id': game.battle_id,
-            'direction': direction,
             # a callable, so a hit leaves no orphan goal behind
             'processed_goal': lambda: schedule(ensure_score),
         },

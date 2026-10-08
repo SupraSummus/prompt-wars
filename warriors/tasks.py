@@ -7,7 +7,7 @@ from django.db import transaction
 from django.utils import timezone
 from django_goals.models import AllDone, RetryMeLater, schedule
 
-from .battles import LLM, MATCHMAKING_COOLDOWN, Battle, Game, mirror_to_battle
+from .battles import LLM, MATCHMAKING_COOLDOWN, Battle
 from .llms import anthropic
 from .llms.exceptions import TransientLLMError
 from .llms.google import resolve_battle_google
@@ -109,23 +109,23 @@ def resolve_battle_2_1(goal, battle_id):
 def resolve_battle(goal, battle_id, direction):
     now = timezone.now()
     battle = Battle.objects.get(id=battle_id)
-    battle_mirror = Game(battle, direction)
-    # Both rows exist for every battle: Battle.create_from_warriors writes
-    # them in its transaction, and the verify_games audit reports any
-    # battle that lacks one. The lookup keys on the unique
-    # (battle, warrior_1) — the direction key of the target schema.
-    # processed_goal cannot key it: backfilled rows have none, and goal
-    # collection clears the rest (SET_NULL).
+    # A direction names the warrior that leads the prompt, and
+    # Battle.create_from_warriors writes both games with the battle, so the
+    # unique (battle, warrior_1) finds this one. processed_goal cannot:
+    # backfilled rows have none, and goal collection clears the rest.
+    leader_id, follower_id = battle.warrior_1_id, battle.warrior_2_id
+    if direction == '2_1':
+        leader_id, follower_id = follower_id, leader_id
     game = battle.games.select_related(
         'warrior_1',
         'warrior_2',
-    ).get(warrior_1_id=battle_mirror.warrior_1_id)
+    ).get(warrior_1_id=leader_id)
     assert game.llm == battle.llm
-    assert game.warrior_2_id == battle_mirror.warrior_2_id
+    assert game.warrior_2_id == follower_id
     assert game.scheduled_at == battle.scheduled_at
 
     if game.resolved_at is None:
-        r = _run_llm(game, now, battle_mirror)
+        r = _run_llm(game, now)
         if isinstance(r, RetryMeLater):
             return r
         else:
@@ -133,8 +133,8 @@ def resolve_battle(goal, battle_id, direction):
             assert game.resolved_at is not None
             return RetryMeLater(message='Ran LLM')
 
-    score_lcs = get_or_create_game_score(game, direction, ScoreAlgorithm.LCS)
-    score_embedings = get_or_create_game_score(game, direction, ScoreAlgorithm.EMBEDDINGS)
+    score_lcs = get_or_create_game_score(game, ScoreAlgorithm.LCS)
+    score_embedings = get_or_create_game_score(game, ScoreAlgorithm.EMBEDDINGS)
     missing_scores = [
         score for score in [score_lcs, score_embedings]
         if not score.is_completed
@@ -148,16 +148,7 @@ def resolve_battle(goal, battle_id, direction):
     return AllDone()
 
 
-RESOLUTION_FIELDS = (
-    'input_sha256',
-    'text_unit',
-    'finish_reason',
-    'llm_version',
-    'resolved_at',
-)
-
-
-def _run_llm(game, now, battle_mirror):
+def _run_llm(game, now):
     resolve_battle_function = {
         LLM.OPENAI_GPT: resolve_battle_openai,
         LLM.CLAUDE_3_HAIKU: anthropic.resolve_battle,
@@ -179,7 +170,6 @@ def _run_llm(game, now, battle_mirror):
         attempts = game.attempts
         game.attempts += 1
         game.save(update_fields=['attempts'])
-        mirror_to_battle(game, battle_mirror, ('attempts',))
 
         if attempts < 6:
             # try again in some time
@@ -205,8 +195,13 @@ def _run_llm(game, now, battle_mirror):
     game.llm_version = llm_version
 
     game.resolved_at = now
-    game.save(update_fields=RESOLUTION_FIELDS)
-    mirror_to_battle(game, battle_mirror, RESOLUTION_FIELDS)
+    game.save(update_fields=[
+        'input_sha256',
+        'text_unit',
+        'finish_reason',
+        'llm_version',
+        'resolved_at',
+    ])
 
 
 def transfer_rating(goal, battle_id):

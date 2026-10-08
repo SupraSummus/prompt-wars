@@ -2,12 +2,12 @@
 
 This doc owns the plan for the `DBGame`-direction migration
 named in the "Target shape" section of `docs/data-model.md`:
-retiring `Battle`'s paired directional columns
-in favor of the per-direction `DBGame` row
-(`warriors/battles.py`, table `warriors_game`),
-which then takes the plain name `Game`.
+the per-direction `DBGame` row
+(`warriors/battles.py`, table `warriors_game`)
+is the one record of a battle direction,
+and takes the plain name `Game`.
 Current mechanics live in code;
-this doc is about the order of the moves and why that order.
+this doc is about where the design lands and the moves that get there.
 
 ## Where the design lands
 
@@ -38,10 +38,8 @@ A game's warriors are in prompt order,
 so comparing `game.warrior_1_id` with `battle.warrior_1_id`
 recovers the direction;
 uniqueness is (battle, warrior_1).
-`GameScore` keys on (game, algorithm)
-rather than (battle, direction, algorithm) —
-its similarity fields are already in game order,
-so no values moved.
+`GameScore` keys on (game, algorithm),
+its similarity fields in game order.
 
 **Deliberate duplication stays.**
 `llm` and `scheduled_at` live on both `Battle` and `Game`
@@ -62,89 +60,17 @@ The rejected alternative — dropping it as derivable —
 misses that derivability is what makes the check possible:
 a value that is only ever recomputed
 can never disagree with anything.
-The battle's directional pair carries no extra information
-and drops with the other paired columns.
+The battle holds no sha of its own:
+a pair-level copy would add nothing the two game rows lack.
 The blank game rows (tracked in `TODO.md`)
-become worth filling by that same recomputation —
-but only once those columns are gone:
-filling one side of a live mirror
-reads as a `verify_games` finding,
-and filling both sides writes columns that are about to drop.
+are worth filling by that same recomputation.
 
 ## Steps
 
-Each step ships independently
-and is old-code-compatible for one release:
-a writer starts writing a field at least one release
-before any reader depends on it,
-and a column is dropped at least one release
-after the last reader leaves —
-so the readers having moved is not yet licence to drop.
+### Rename
 
-Every step rests on one invariant:
-a battle direction always has its game row,
-and the two agree while both copies exist.
-`Battle.create_from_warriors` writes battle and both games
-in one transaction,
-`resolve_battle` loads the row unconditionally
-by the unique (battle, warrior_1),
-and the test factory creates both rows with every battle.
-
-The game row is what `resolve_battle` writes;
-the battle's directional columns are its mirror
-(`mirror_to_battle`, `warriors/battles.py`).
-Nothing reads them any more —
-rating, the battle page, and the battle lists
-all ask the game rows and the (game, algorithm) score rows —
-so what is left holding them is the mirror that writes them
-and the audit that compares them,
-which is the state that reduces dropping them to a code change,
-as it did for `lcs_len_*`.
-
-Checking that invariant and repairing it stay apart.
-The `verify_games` audit writes nothing
-and reports by category rather than by row
-(its docstring says why).
-Each repair is its own command, named for what it repairs,
-deleted once a production run leaves nothing to do:
-`backfill_game_input_sha256` for `backfill_sha.py`
-having written the battle's sha and not the game's.
-A finding nothing explains is a bug to chase, not data to copy over.
-
-### 1. Drop the directional columns
-
-Not while `verify_games` still reports a finding:
-after this the game row is the only copy,
-so anything it lacks is lost here.
-
-Delete the paired columns from `Battle`
-(`input_sha256_*`, `text_unit_*`, `finish_reason_*`,
-`llm_version_*`, `resolved_at_*`, `attempts_*`),
-the `mirror_to_battle` calls in `resolve_battle`,
-and the facade machinery that mapped suffixed names.
-The command goes with the columns —
-it compares game rows against columns that no longer exist,
-and `mirrored_game_fields` has nothing left to map.
-`BattleFactory`'s game hook mirrors through that same function,
-so it builds its two rows directly from then on.
-Same shape as the `lcs_len_*` removal.
-The dead `rating_transferred_at` column
-(tracked in `TODO.md`) rides along.
-
-`GameScore.battle` and `GameScore.direction` drop here too.
-Neither carries a key:
-uniqueness and lookup sit on (game, algorithm),
-the pages prefetch `games__scores`
-and read a score off `DBGame.score_object`,
-and `direction`'s only remaining reader —
-the audit's own re-derivation of the score link —
-goes with the command.
-
-### 2. Rename
-
-With the in-memory `Game` facade gone with the columns,
-the name is free:
-`DBGame` becomes `Game`.
+`DBGame` becomes `Game`;
+nothing else in the code holds that name.
 The table is already `warriors_game`,
 so the migration is state-only — no DDL.
 This closes the "rename to Game" TODO in `warriors/battles.py`.

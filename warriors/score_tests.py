@@ -18,10 +18,10 @@ def test_second_score_lookup_schedules_no_goal(battle):
     which nothing downstream notices.
     """
     game = game_of(battle, '1_2')
-    first = get_or_create_game_score(game, '1_2', ScoreAlgorithm.LCS)
+    first = get_or_create_game_score(game, ScoreAlgorithm.LCS)
     goals = Goal.objects.count()
 
-    again = get_or_create_game_score(game, '1_2', ScoreAlgorithm.LCS)
+    again = get_or_create_game_score(game, ScoreAlgorithm.LCS)
 
     assert again == first
     assert Goal.objects.count() == goals
@@ -55,7 +55,6 @@ def test_gamescore_embeddings_integration(battle, direction):
     # Create a game score with Embeddings algorithm
     game_score = get_or_create_game_score(
         game=game,
-        direction=direction,
         algorithm=ScoreAlgorithm.EMBEDDINGS,
     )
 
@@ -110,7 +109,6 @@ def test_gamescore_lcs(battle, direction):
     # Create a game score with LCS algorithm
     game_score = get_or_create_game_score(
         game=game,
-        direction=direction,
         algorithm=ScoreAlgorithm.LCS,
     )
 

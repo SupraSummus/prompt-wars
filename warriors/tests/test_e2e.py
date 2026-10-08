@@ -11,6 +11,7 @@ from ..battles import Battle
 from ..llms.exceptions import RateLimitError
 from ..models import WarriorArena
 from ..tasks import openai_client, resolve_battle_1_2
+from .factories import game_of
 
 
 @pytest.mark.django_db
@@ -63,8 +64,6 @@ def test_battle_from_warriors_e2e(monkeypatch, warrior_arena, other_warrior_aren
 
     battle, db_game_1_2, db_game_2_1 = Battle.create_from_warriors(warrior_arena, other_warrior_arena)
     battle.refresh_from_db()
-    assert battle.resolved_at_1_2 is None
-    assert battle.resolved_at_2_1 is None
 
     # Verify DBGame objects were created
     db_game_1_2.refresh_from_db()
@@ -118,9 +117,9 @@ def test_battle_retry(battle, monkeypatch):
     )
     worker_turn(now)  # run async tasks
 
-    # battle still not resolved
-    battle.refresh_from_db()
-    assert battle.resolved_at_1_2 is None
+    # the rate limit leaves the game unresolved
+    game = game_of(battle, '1_2')
+    assert game.resolved_at is None
 
     # the task will be executed 10 minutes later
     monkeypatch.setattr(
@@ -129,6 +128,6 @@ def test_battle_retry(battle, monkeypatch):
     )
     worker_turn(now + timezone.timedelta(minutes=10))
 
-    # now battle is resolved
-    battle.refresh_from_db()
-    assert battle.resolved_at_1_2 is not None
+    # and the retry resolves it
+    game.refresh_from_db()
+    assert game.resolved_at is not None
