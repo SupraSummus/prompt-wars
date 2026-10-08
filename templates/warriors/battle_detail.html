@@ -1,90 +1,420 @@
 {% extends 'base.html' %}
 {% load percentage %}
 
+{% block head %}
+  <style>
+    /*
+      Warrior colors, see battle_sides.
+      Each holds 4.5:1 contrast on every background of the page;
+      Pico's muted gray does not on a dark card, hence its own.
+    */
+    :root {
+      --pw-side-1-color: #1a5fc8;
+      --pw-side-2-color: #b93f0a;
+      --pw-muted-color: var(--pico-muted-color);
+    }
+    @media only screen and (prefers-color-scheme: dark) {
+      :root {
+        --pw-side-1-color: #74aaff;
+        --pw-side-2-color: #ff8f4d;
+        --pw-muted-color: #8891a4;
+      }
+    }
+    .pw-side-1 { --pw-side: var(--pw-side-1-color); }
+    .pw-side-2 { --pw-side: var(--pw-side-2-color); }
+
+    .pw-sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .pw-muted {
+      color: var(--pw-muted-color);
+    }
+    .pw-dot {
+      display: inline-block;
+      flex-shrink: 0;
+      width: 0.6em;
+      height: 0.6em;
+      margin-right: 0.4em;
+      border-radius: 50%;
+      background: var(--pw-side);
+    }
+    /* keeps the dot beside the name when a long name wraps */
+    .pw-name {
+      display: inline-flex;
+      align-items: baseline;
+      overflow-wrap: break-word;
+    }
+
+    .pw-versus {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+      font-size: clamp(1.5rem, 6vw, 2rem);
+    }
+    .pw-fighter {
+      overflow-wrap: break-word;
+      padding-bottom: 0.25rem;
+      border-bottom: 0.25rem solid var(--pw-side);
+      color: var(--pw-side);
+      text-decoration: none;
+    }
+    .pw-fighter:first-child {
+      text-align: right;
+    }
+    .pw-fighter:hover {
+      text-decoration: underline;
+    }
+    .pw-fighter:focus-visible {
+      outline: 2px solid var(--pw-side);
+      outline-offset: 0.25rem;
+      box-shadow: none;
+    }
+    .pw-vs {
+      color: var(--pw-muted-color);
+      font-size: 0.6em;
+      font-weight: normal;
+      text-transform: uppercase;
+    }
+    .pw-battle-meta {
+      text-align: center;
+      color: var(--pw-muted-color);
+    }
+
+    .pw-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+      column-gap: var(--pico-grid-column-gap);
+      align-items: start;
+    }
+    .pw-card-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0 1rem;
+    }
+    .pw-card-header h2 {
+      margin: 0;
+      font-size: 1rem;
+    }
+    .pw-card-header small {
+      color: var(--pw-muted-color);
+    }
+
+    .pw-matrix {
+      margin-bottom: 0;
+    }
+    .pw-matrix th, .pw-matrix td {
+      padding-inline: 0.5rem;
+      background: transparent;
+      vertical-align: top;
+    }
+    .pw-matrix thead th {
+      font-size: 0.875em;
+      font-weight: normal;
+      color: var(--pw-muted-color);
+    }
+    .pw-matrix tbody tr:last-child > * {
+      border-bottom: none;
+    }
+    .pw-matrix .pw-total {
+      font-weight: bold;
+    }
+
+    .pw-score {
+      display: block;
+      min-width: 3rem;
+    }
+    .pw-bar {
+      display: block;
+      height: 0.375rem;
+      margin-top: 0.25rem;
+      border-radius: 0.25rem;
+      background: var(--pico-muted-border-color);
+      overflow: hidden;
+    }
+    .pw-bar > span {
+      display: block;
+      height: 100%;
+      background: var(--pw-side);
+    }
+
+    .pw-explainer {
+      margin-bottom: var(--pico-block-spacing-vertical);
+      font-size: 0.875em;
+    }
+    .pw-explainer dt {
+      font-weight: bold;
+    }
+    .pw-explainer dd {
+      margin-bottom: 0.5rem;
+    }
+
+    .pw-game > header hgroup {
+      margin-bottom: 0.5rem;
+    }
+    .pw-game h2 {
+      font-size: 1.375rem;
+    }
+    .pw-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+      margin: 0;
+      padding: 0;
+      font-size: 0.75rem;
+    }
+    .pw-chips li {
+      list-style: none;
+      margin: 0;
+      padding: 0.125rem 0.5rem;
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: 1rem;
+    }
+    .pw-game details summary {
+      font-weight: bold;
+    }
+    .pw-game pre {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      padding: 0.75rem 1rem;
+      border-radius: var(--pico-border-radius);
+    }
+    /* an underline as well as a tint, so marked text is not told by color alone */
+    .pw-game pre mark {
+      background: color-mix(in srgb, var(--pw-side) 25%, transparent);
+      color: var(--pico-color);
+      text-decoration: underline;
+      text-decoration-color: var(--pw-side);
+      text-decoration-thickness: 2px;
+      text-underline-offset: 0.2em;
+    }
+    .pw-note {
+      padding: 0.75rem 1rem;
+      border: 1px dashed var(--pico-muted-border-color);
+      border-radius: var(--pico-border-radius);
+      color: var(--pw-muted-color);
+      font-size: 0.875em;
+    }
+
+    .pw-scoring {
+      margin-bottom: var(--pico-spacing);
+      padding-top: var(--pico-spacing);
+      border-top: 1px solid var(--pico-muted-border-color);
+    }
+    .pw-scoring h3 {
+      color: var(--pw-muted-color);
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .pw-split-sides {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      margin: 0;
+      padding: 0;
+    }
+    .pw-split-sides > li {
+      list-style: none;
+      margin: 0;
+    }
+    .pw-split-sides > li:last-child {
+      text-align: right;
+    }
+    .pw-split-score {
+      display: block;
+      color: var(--pw-side);
+      font-size: 1.5rem;
+      font-weight: bold;
+      line-height: 1.2;
+    }
+    .pw-split-bar {
+      display: flex;
+      height: 0.75rem;
+      margin: 0.5rem 0;
+      border-radius: 0.375rem;
+      background: var(--pico-muted-border-color);
+      overflow: hidden;
+    }
+    .pw-split-bar > span {
+      background: var(--pw-side);
+    }
+    .pw-split-bar > span + span {
+      border-left: 2px solid var(--pico-card-background-color);
+    }
+    .pw-scoring small {
+      color: var(--pw-muted-color);
+    }
+    .pw-scoring details {
+      margin: 0.5rem 0 0;
+    }
+
+    .pw-walk {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .pw-walk > :nth-child(2) {
+      text-align: center;
+    }
+    .pw-walk > :last-child {
+      text-align: right;
+    }
+    .pw-walk [role=button] {
+      white-space: nowrap;
+    }
+  </style>
+{% endblock %}
+
 {% block content %}
   <main class="container">
 
-    <section>
+    {% if battle.arena %}
+      <nav aria-label="breadcrumb">
+        <ul>
+          <li><a href="{% url 'arena_list' %}">Arenas</a></li>
+          <li><a href="{% url 'arena_detail' battle.arena.id %}">{{ battle.arena }}</a></li>
+          <li aria-current="page">Battle</li>
+        </ul>
+      </nav>
+    {% endif %}
 
-      <hgroup>
-        <h1>{{ meta_title }}</h1>
-        <p>
-          LLM: {{ battle.get_llm_display }}<br>
+    <header>
+      <h1 class="pw-versus">
+        <a class="pw-fighter pw-side-1" href="{% url 'warrior:get' battle.warrior_1.id %}">{{ battle.warrior_1 }}</a>
+        <span class="pw-vs">vs</span>
+        <a class="pw-fighter pw-side-2" href="{% url 'warrior:get' battle.warrior_2.id %}">{{ battle.warrior_2 }}</a>
+      </h1>
+      <p class="pw-battle-meta">
+        <small>
+          {{ battle.get_llm_display }}
+          &middot;
           scheduled at {% include 'time.html' with time=battle.scheduled_at %}
-        </p>
-      </hgroup>
+        </small>
+      </p>
+    </header>
 
+    <section class="pw-cards" aria-label="Scores">
       {% for summary in score_summaries %}
-        <table>
-          <thead>
-            <tr>
-              <th>{{ summary.algorithm }}</th>
-              {% for game in summary.games %}
-                <th><a href="#game-{{ game.id }}">{{ game.warrior_1 }} first</a></th>
-              {% endfor %}
-              <th>Battle score</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in summary.rows %}
+        <article>
+          <header class="pw-card-header">
+            <h2 id="scores-{{ forloop.counter }}">
+              {{ summary.algorithm }}<span class="pw-sr-only"> scores</span>
+            </h2>
+            {% if summary.warriors_similarity is not None %}
+              <small>Warriors similarity {{ summary.warriors_similarity|percentage }}</small>
+            {% endif %}
+          </header>
+          {# a data table may scroll sideways on a narrow screen; the region makes that reachable by keyboard #}
+          <div class="overflow-auto" role="region" tabindex="0" aria-labelledby="scores-{{ forloop.counter }}">
+          <table class="pw-matrix" aria-labelledby="scores-{{ forloop.counter }}">
+            <thead>
               <tr>
-                <th><a href="{% url 'warrior:get' row.warrior.id %}">{{ row.warrior }}</a></th>
-                {% for score in row.scores %}
-                  <td>{% include 'warriors/partials/score.html' with score=score %}</td>
+                <th scope="col">Warrior</th>
+                {% for column in summary.games %}
+                  <th scope="col">
+                    <a href="#game-{{ column.game.id }}" class="pw-name pw-side-{{ column.side }}"><span class="pw-dot" aria-hidden="true"></span>{{ column.game.warrior_1 }} first</a>
+                  </th>
                 {% endfor %}
-                <td>{% include 'warriors/partials/score.html' with score=row.battle_score %}</td>
+                <th scope="col">Battle score</th>
               </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        <p>
-          <small>Warriors similarity: {{ summary.warriors_similarity|percentage }}</small>
-        </p>
+            </thead>
+            <tbody>
+              {% for row in summary.rows %}
+                <tr class="pw-side-{{ row.side }}">
+                  <th scope="row">
+                    <a href="{% url 'warrior:get' row.warrior.id %}" class="pw-name"><span class="pw-dot" aria-hidden="true"></span>{{ row.warrior }}</a>
+                  </th>
+                  {% for score in row.scores %}
+                    <td>{% include 'warriors/partials/score_bar.html' with score=score %}</td>
+                  {% endfor %}
+                  <td class="pw-total">{% include 'warriors/partials/score_bar.html' with score=row.battle_score %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </div>
+        </article>
       {% endfor %}
+    </section>
 
-      <div class="grid">
-        {% for block in game_blocks %}
-          {% include 'warriors/partials/game.html' with block=block %}
-        {% endfor %}
-      </div>
+    <details class="pw-explainer">
+      <summary>How to read the scores</summary>
+      <dl>
+        <dt>Score</dt>
+        <dd>
+          A warrior's share of one game.
+          The two warriors' shares in a game add up to 100%.
+        </dd>
+        <dt>Battle score</dt>
+        <dd>The mean of a warrior's scores over the games, once every game is resolved.</dd>
+        <dt>Result similarity</dt>
+        <dd>How closely the LLM's result resembles a warrior's prompt.</dd>
+        <dt>Warriors similarity</dt>
+        <dd>How alike the two warriors are to begin with.</dd>
+        <dt>Cooperation score</dt>
+        <dd>High when both prompts survive into the result in balance, and the prompts are distinct.</dd>
+      </dl>
+      <p>Each algorithm scores the same games its own way.</p>
+    </details>
 
+    <section class="pw-cards" aria-label="Games">
+      {% for block in game_blocks %}
+        {% include 'warriors/partials/game.html' with block=block %}
+      {% endfor %}
     </section>
 
     <section>
       {% if nav_warrior_arena %}
-        <nav aria-label="Battles of {{ nav_warrior_arena }}">
-          <ul>
-            <li>
-              {% if warrior_previous_battle_url %}
-                <a href="{{ warrior_previous_battle_url }}">↶ Older battle of {{ nav_warrior_arena }}</a>
-              {% endif %}
-            </li>
-            <li>
-              <a href="{% url 'warrior_detail' nav_warrior_arena.id %}">
-                All battles of {{ nav_warrior_arena }}
+        <nav class="pw-walk" aria-label="Battles of {{ nav_warrior_arena }}">
+          <div>
+            {% if warrior_previous_battle_url %}
+              <a href="{{ warrior_previous_battle_url }}" role="button" class="secondary outline">
+                <span aria-hidden="true">←</span> Older<span class="pw-sr-only"> battle of {{ nav_warrior_arena }}</span>
               </a>
-            </li>
-            <li>
-              {% if warrior_next_battle_url %}
-                <a href="{{ warrior_next_battle_url }}">Newer battle of {{ nav_warrior_arena }} ↷</a>
-              {% endif %}
-            </li>
-          </ul>
+            {% endif %}
+          </div>
+          <div>
+            <a href="{% url 'warrior_detail' nav_warrior_arena.id %}">All battles of {{ nav_warrior_arena }}</a>
+          </div>
+          <div>
+            {% if warrior_next_battle_url %}
+              <a href="{{ warrior_next_battle_url }}" role="button" class="secondary outline">
+                Newer<span class="pw-sr-only"> battle of {{ nav_warrior_arena }}</span> <span aria-hidden="true">→</span>
+              </a>
+            {% endif %}
+          </div>
         </nav>
       {% endif %}
-      <nav aria-label="Battles in this arena">
-        <ul>
-          <li>
-            {% if arena_previous_battle_url %}
-              <a href="{{ arena_previous_battle_url }}">↶ Older battle in this arena</a>
-            {% endif %}
-          </li>
-          <li>
-            {% if arena_next_battle_url %}
-              <a href="{{ arena_next_battle_url }}">Newer battle in this arena ↷</a>
-            {% endif %}
-          </li>
-        </ul>
+      <nav class="pw-walk" aria-label="Battles in this arena">
+        <div>
+          {% if arena_previous_battle_url %}
+            <a href="{{ arena_previous_battle_url }}" role="button" class="secondary outline">
+              <span aria-hidden="true">←</span> Older<span class="pw-sr-only"> battle in this arena</span>
+            </a>
+          {% endif %}
+        </div>
+        <div class="pw-muted" aria-hidden="true">Battles in this arena</div>
+        <div>
+          {% if arena_next_battle_url %}
+            <a href="{{ arena_next_battle_url }}" role="button" class="secondary outline">
+              Newer<span class="pw-sr-only"> battle in this arena</span> <span aria-hidden="true">→</span>
+            </a>
+          {% endif %}
+        </div>
       </nav>
     </section>
 

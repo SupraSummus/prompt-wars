@@ -1,78 +1,88 @@
 {% load percentage %}
 
-<div id="game-{{ block.game.id }}">
-  <h2>{{ block.game.warrior_1 }} goes first</h2>
-  <dl>
-
-    <dt>Prompt order</dt>
-    <dd>
-      <a href="{% url 'warrior:get' block.game.warrior_1.id %}">{{ block.game.warrior_1 }}</a>
-      then
-      <a href="{% url 'warrior:get' block.game.warrior_2.id %}">{{ block.game.warrior_2 }}</a>
-    </dd>
-
-    {% if block.game.finish_reason %}
-      <dt>Finish reason</dt>
-      <dd>{{ block.game.finish_reason }}</dd>
+<article class="pw-game" id="game-{{ block.game.id }}" aria-labelledby="game-{{ block.game.id }}-title">
+  <header>
+    <hgroup>
+      <h2 id="game-{{ block.game.id }}-title">{{ block.game.warrior_1 }} goes first</h2>
+      <p>
+        <span class="pw-sr-only">Prompt order:</span>
+        {% for entry in block.prompt_order %}
+          <a href="{% url 'warrior:get' entry.warrior.id %}" class="pw-name pw-side-{{ entry.side }}"><span class="pw-dot" aria-hidden="true"></span>{{ entry.warrior }}</a>
+          {% if not forloop.last %}<span class="pw-muted">then</span>{% endif %}
+        {% endfor %}
+      </p>
+    </hgroup>
+    {% if block.game.llm_version or block.game.finish_reason %}
+      <ul class="pw-chips">
+        {% if block.game.llm_version %}
+          <li><span class="pw-muted">LLM</span> {{ block.game.llm_version }}</li>
+        {% endif %}
+        {% if block.game.finish_reason %}
+          <li><span class="pw-muted">Finish</span> {{ block.game.finish_reason }}</li>
+        {% endif %}
+      </ul>
     {% endif %}
+  </header>
 
-    {% if block.game.llm_version %}
-      <dt>LLM version</dt>
-      <dd>{{ block.game.llm_version }}</dd>
-    {% endif %}
-
-  </dl>
-
-  <details>
-    <summary role="button" class="outline">Result</summary>
-    {% if not block.game.resolved_at %}
-      <i>Game is not resolved yet</i>
-    {% elif block.result_visible %}
+  {% if not block.game.resolved_at %}
+    <p aria-busy="true">Waiting for the LLM&hellip;</p>
+  {% elif not block.result_visible %}
+    <p class="pw-note">
+      <span aria-hidden="true">&#128274;</span>
+      The result is hidden. Only the warriors' authors can see it.
+    </p>
+  {% elif not block.game.result %}
+    <p class="pw-note">The LLM produced no result.</p>
+  {% else %}
+    <details open>
+      <summary>Result</summary>
       {% include 'exact_text.html' with text=block.game.result %}
-    {% else %}
-      <i>Hidden. Only the warriors' authors can see it.</i>
-    {% endif %}
-  </details>
+    </details>
+  {% endif %}
 
   {% for scoring in block.scorings %}
-    <table>
-      <thead>
-        <tr>
-          <th>{{ scoring.algorithm }}</th>
-          <th>Result similarity</th>
-          <th>Relative (100% sum)</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for warrior_scoring in scoring.warriors %}
-          <tr>
-            <td>{{ warrior_scoring.warrior }}</td>
-            <td>{{ warrior_scoring.similarity|percentage }}</td>
-            <td>{% include 'warriors/partials/score.html' with score=warrior_scoring.score %}</td>
-          </tr>
-        {% endfor %}
-        <tr>
-          <td>Cooperation score</td>
-          <td colspan="2">{{ scoring.cooperation_score|percentage }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="pw-scoring">
+      <h3>{{ scoring.algorithm }}</h3>
+      {% if not scoring.scored %}
+        <p class="pw-muted">Not scored.</p>
+      {% else %}
+        <ul class="pw-split-sides">
+          {% for warrior_scoring in scoring.warriors %}
+            <li class="pw-side-{{ warrior_scoring.side }}">
+              <span class="pw-name"><span class="pw-dot" aria-hidden="true"></span>{{ warrior_scoring.warrior }}</span>
+              <span class="pw-split-score"><span class="pw-sr-only">score</span> {{ warrior_scoring.score|percentage }}</span>
+              <small>result similarity {{ warrior_scoring.similarity|percentage }}</small>
+            </li>
+          {% endfor %}
+        </ul>
+        <div class="pw-split-bar" aria-hidden="true">
+          {% for warrior_scoring in scoring.warriors %}
+            <span class="pw-side-{{ warrior_scoring.side }}" style="width: {% widthratio warrior_scoring.score 1 100 %}%"></span>
+          {% endfor %}
+        </div>
+        <small>Cooperation score {{ scoring.cooperation_score|percentage }}</small>
+      {% endif %}
 
-    {% if scoring.marks_result and block.game.resolved_at %}
-      {% for warrior_scoring in scoring.warriors %}
-        <details>
-          <summary role="button" class="outline">
-            Result common with {{ warrior_scoring.warrior }} &mdash;
-            {{ warrior_scoring.similarity|percentage }}
-          </summary>
+      {% if scoring.marks_result and block.game.result %}
+        {% for warrior_scoring in scoring.warriors %}
           {% if warrior_scoring.marked_result %}
-            {% include 'exact_text.html' with text=warrior_scoring.marked_result %}
-          {% else %}
-            <i>Hidden. Only the warrior's author can see it.</i>
+            <details class="pw-side-{{ warrior_scoring.side }}">
+              <summary>
+                <span class="pw-dot" aria-hidden="true"></span>What survived of {{ warrior_scoring.warrior }}
+                &mdash; {{ warrior_scoring.similarity|percentage }}
+              </summary>
+              {% include 'exact_text.html' with text=warrior_scoring.marked_result %}
+            </details>
           {% endif %}
-        </details>
-      {% endfor %}
-    {% endif %}
+        {% endfor %}
+        {% if scoring.marks_hidden %}
+          <p class="pw-note">
+            <span aria-hidden="true">&#128274;</span>
+            What survived of each prompt is highlighted only for that warrior's author.
+          </p>
+        {% endif %}
+      {% endif %}
+    </div>
   {% endfor %}
 
-</div>
+</article>

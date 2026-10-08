@@ -1,0 +1,9 @@
+{% load percentage %}
+{% if score is not None %}
+  <span class="pw-score">
+    {{ score|percentage }}
+    <span class="pw-bar" aria-hidden="true"><span style="width: {% widthratio score 1 100 %}%"></span></span>
+  </span>
+{% else %}
+  <span class="pw-score pw-muted"><span aria-hidden="true">&ndash;</span><span class="pw-sr-only">no score</span></span>
+{% endif %}

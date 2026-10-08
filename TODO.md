@@ -182,3 +182,16 @@ that is the difference between a page with neighbours and a dead end.
 Next move: filter `llm=battle.llm` directly and drop the `for_user` call,
 leaving both walks scoped by nothing but what is being browsed.
 Both are behavior changes, so they need sign-off.
+
+A score is drawn two ways.
+The battle page uses `warriors/partials/score_bar.html`,
+a number beside a bar,
+whose styles sit in the `head` block of `battle_detail.html`.
+The warrior's battle list (`warriorarena_detail.html`)
+still uses `score.html`,
+a red/green `<meter>` with no visible number,
+which also says "good/bad" by color alone.
+Next move: move the bar styles and `.pw-sr-only` into `base.html`,
+switch the warrior list to `score_bar.html` with a neutral bar color,
+and delete `score.html`.
+It changes what the list looks like, so it needs sign-off.

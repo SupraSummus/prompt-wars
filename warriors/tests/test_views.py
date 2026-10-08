@@ -228,6 +228,34 @@ def test_battle_details_with_score(client, battle):
 
 
 @pytest.mark.django_db
+def test_battle_details_warrior_keeps_its_side(client, battle):
+    """
+    A game's header follows its prompt order,
+    while its scores keep the battle's order, each warrior with its own number,
+    so a warrior stays on one side of the page in both games.
+    """
+    create_scores(
+        battle,
+        score_1_2_1=0.1, score_1_2_2=0.2,
+        score_2_1_1=0.3, score_2_1_2=0.4,
+    )
+
+    response = client.get(
+        reverse('battle_detail', args=(battle.id,))
+    )
+
+    _, following = response.context['game_blocks']
+    assert [entry['warrior'].id for entry in following['prompt_order']] == [
+        battle.warrior_2_id, battle.warrior_1_id,
+    ]
+    scoring, = following['scorings']
+    assert [(row['warrior'].id, row['side'], row['score']) for row in scoring['warriors']] == [
+        (battle.warrior_1_id, 1, pytest.approx(0.3 / 0.7)),
+        (battle.warrior_2_id, 2, pytest.approx(0.4 / 0.7)),
+    ]
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize('warrior', [
     {'public_battle_results': False},
     {'public_battle_results': True},
@@ -254,6 +282,8 @@ def test_battle_details_public(client, battle, warrior_arena):
 def test_battle_details_error(user_client, battle, warrior_user_permission):
     """An errored game has no result text, and its author still gets the page."""
     assert game_of(battle, '1_2').text_unit is None
+    # scoring an errored game leaves its row in place, with nothing in it
+    GameScoreFactory(game=game_of(battle, '1_2'), algorithm=ScoreAlgorithm.LCS)
     response = user_client.get(
         reverse('battle_detail', args=(battle.id,))
     )
@@ -261,6 +291,8 @@ def test_battle_details_error(user_client, battle, warrior_user_permission):
     block = response.context['game_blocks'][0]
     assert block['game'].finish_reason == 'error'
     assert block['result_visible']
+    scoring, = block['scorings']
+    assert not scoring['scored']
 
 
 def schedule_in_order(*battles):

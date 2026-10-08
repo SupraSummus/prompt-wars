@@ -200,3 +200,26 @@ when the anchors were direction strings —
 bookmarks and pasted URLs, no longer anything in the tree —
 land at the top of the right battle page;
 the battle URL itself is unchanged.
+
+**A warrior keeps its side and color.**
+The battle's canonical order gives each warrior a side of the page and a color,
+and every block reads its warriors in that order:
+the summary rows, the versus header,
+and the scores inside each game block.
+A reader's eye then follows one warrior down the page,
+and the two game blocks, side by side, compare at a glance.
+Prompt order stays visible in each game block's header,
+where it is a fact about that game,
+instead of being the order of the score rows.
+The rejected alternative, score rows in prompt order,
+puts a warrior on opposite sides of two adjacent game blocks,
+and the colors then contradict the positions.
+
+**Color and graphics only repeat the text.**
+The page targets WCAG 2.2 AA,
+so nothing on it is told by color or shape alone:
+every colored dot or bar sits beside a name and a number,
+the bars are hidden from screen readers,
+and highlighted text is underlined as well as tinted.
+Explanations of the numbers are visible text, not tooltips,
+which keyboard and touch users cannot reach.
