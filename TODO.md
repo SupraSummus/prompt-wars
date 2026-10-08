@@ -70,29 +70,16 @@ so it needs sign-off as a behavior change.
 Doing it would also let the widened tolerance
 in `rating_tests.py::test_get_performance_rating` tighten back.
 
-`Battle.rating_transferred_at` is a dead column:
-nothing writes or reads it —
-only a "not used anymore" comment in `warriors/battles.py`
-keeps it in the code.
-Next move: drop the field and the comment,
-same shape as the `lcs_len_*` column removal;
-implies a schema migration but no behavior change.
-
 `Game.input_sha256` stays as a consistency anchor
 ("Where the design lands" in `docs/game-migration.md`),
 which makes the 34 game rows with a blank sha worth filling.
-They are blank because their battle has no sha either,
-so `backfill_game_input_sha256` has nothing to copy,
-and `verify_games` cannot see them —
-blank on both sides compares equal.
-The fill waits for the battle's directional columns to drop:
-filling only the game side of a live mirror
-reads as a `conflicting input_sha256` finding.
-Next move: once the columns are gone,
-a repair command that recomputes the sha from the warrior bodies
-(the way the root-level `backfill_sha.py` derives it)
-onto blank game rows.
-`backfill_game_input_sha256` goes with the columns it copies from.
+Nothing holds a copy to restore them from:
+their battles never had a sha either.
+Next move: pull the sha derivation out of `_run_llm` (`warriors/tasks.py`)
+into a function on the game,
+and add a repair command in `warriors/management/commands/`
+that calls it on blank game rows,
+with its deletion condition logged here.
 
 The `game` foreign key on `GameScore` (`warriors/score.py`)
 carries an index nobody reads:
@@ -108,10 +95,6 @@ Only this one is left, so the win left to take is part of that.
 Next move: set `db_index=False` on the field
 and migrate the index away;
 behavior-preserving.
-The `battle` foreign key needs no decision of its own:
-the `verify_games` audit is the last thing that looks a score up by battle,
-and column, index and audit all go
-in the "Drop the directional columns" step of `docs/game-migration.md`.
 
 The `thinking_config` that `call_gemini` sends (`warriors/llms/google.py`)
 buys thinking but does not bound it:
@@ -175,28 +158,14 @@ and map a 429 response to the `RetryMeLater` that
 `voyageai.error.RateLimitError` currently triggers —
 that exception is the only thing the SDK contributes here.
 
-Five one-off scripts sit at the repo root —
-`backfill_sha.py`, `create_game_score.py`, `set_game_score.py`,
-`gemini_redo_max_tokens.py`, `moderation_experiment.py` —
+`moderation_experiment.py` sits at the repo root,
+a scratch run against the OpenAI moderation endpoint
 imported by hand in a shell, outside any app,
 untested and unreachable from `manage.py`.
-They rot invisibly:
-`backfill_sha.py` cites a `verify_ordering.py` that is not in the tree,
-and it writes `Battle.input_sha256_*` without the matching game rows —
-the blanks `backfill_game_input_sha256` exists to fill.
-`create_game_score.py` and `set_game_score.py` key `GameScore`
-on (battle, direction), which names no score row any more,
-and the former builds one with no game
-for a `_ensure_score` that reads the game row.
-Next move: for each, decide between
-a management command next to `warriors/management/commands/verify_games.py`
-if the operation is still worth running,
-and deletion if it was a one-time fix —
-git keeps whichever ones get deleted.
-For `backfill_sha.py` the decision is settled:
-its recompute-from-bodies logic moves into
-the game-row sha repair command (see the `input_sha256` entry),
-and the script goes.
+Next move: delete it, which git keeps,
+unless the experiment is worth rerunning,
+in which case it becomes a management command
+in `warriors/management/commands/`.
 
 The arena walk in `battle_nav_context` (`warriors/views.py`)
 picks its battles two ways the warrior walk beside it does not.

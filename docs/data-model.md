@@ -14,7 +14,7 @@ Gameplay decomposes into four independent axes:
 1. **Which LLM performs the battle** —
    the `LLM` enum on `Battle` and `DBGame` (`warriors/battles.py`).
 2. **Warrior–result similarity** —
-   `GameScore` rows keyed by (battle, direction, algorithm),
+   `GameScore` rows keyed by (game, algorithm),
    with `ScoreAlgorithm` an enum (`warriors/score.py`).
    Every game gets a score row for every algorithm,
    regardless of any arena's configuration

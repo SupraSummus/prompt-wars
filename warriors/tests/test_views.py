@@ -32,7 +32,7 @@ def test_arena_detail(client, arena):
     {'moderation_passed': None},
 ], indirect=True)
 @pytest.mark.parametrize('battle', [{
-    'resolved_at_1_2': timezone.now(),
+    'game_1_2__resolved_at': timezone.now(),
 }], indirect=True)
 def test_warrior_details(client, warrior_arena, battle):
     response = client.get(
@@ -55,8 +55,8 @@ def test_warrior_details_scores_belong_to_the_page_warrior(client, arena):
         llm=arena.llm,
         warrior_1__id=uuid.UUID(int=1),
         warrior_2__id=uuid.UUID(int=2),
-        resolved_at_1_2=now,
-        resolved_at_2_1=now,
+        game_1_2__resolved_at=now,
+        game_2_1__resolved_at=now,
     )
     create_scores(
         battle,
@@ -210,8 +210,7 @@ def test_battle_details(client, battle):
 def test_battle_details_with_score(client, battle):
     """A game reports the algorithms that scored it, and nothing it lacks."""
     GameScoreFactory(
-        battle=battle,
-        direction='1_2',
+        game=game_of(battle, '1_2'),
         algorithm='lcs',
         warrior_1_similarity=0.5,
         warrior_2_similarity=0.5,
@@ -234,7 +233,7 @@ def test_battle_details_with_score(client, battle):
     {'public_battle_results': True},
 ], indirect=True)
 @pytest.mark.parametrize('battle', [{
-    'resolved_at_1_2': timezone.now(),
+    'game_1_2__resolved_at': timezone.now(),
 }], indirect=True)
 def test_battle_details_public(client, battle, warrior_arena):
     game = game_of(battle, '1_2')
@@ -249,8 +248,8 @@ def test_battle_details_public(client, battle, warrior_arena):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('battle', [{
-    'resolved_at_1_2': timezone.now(),
-    'finish_reason_1_2': 'error',
+    'game_1_2__resolved_at': timezone.now(),
+    'game_1_2__finish_reason': 'error',
 }], indirect=True)
 def test_battle_details_error(user_client, battle, warrior_user_permission):
     """An errored game has no result text, and its author still gets the page."""
@@ -331,7 +330,7 @@ def test_battle_details_nav_unrecognized_warrior(client, arena, battle, bad_valu
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('battle', [{
-    'resolved_at_1_2': timezone.now(),
+    'game_1_2__resolved_at': timezone.now(),
 }], indirect=True)
 def test_warrior_details_links_carry_the_warrior(client, warrior_arena, battle):
     response = client.get(

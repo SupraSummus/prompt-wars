@@ -4,7 +4,7 @@ from django.utils import timezone
 from ..score import ScoreAlgorithm
 from .factories import (
     ArenaFactory, BattleFactory, GameScoreFactory, WarriorArenaFactory,
-    WarriorFactory, WarriorUserPermissionFactory,
+    WarriorFactory, WarriorUserPermissionFactory, game_of,
 )
 
 
@@ -87,8 +87,8 @@ def resolved_battle(
         llm=arena.llm,
         warrior_1=warrior,
         warrior_2=other_warrior,
-        resolved_at_1_2=now,
-        resolved_at_2_1=now,
+        game_1_2__resolved_at=now,
+        game_2_1__resolved_at=now,
         **getattr(request, 'param', {}),
     )
     create_scores(battle, 1, 0.1, 1, 0.1)
@@ -97,15 +97,13 @@ def resolved_battle(
 
 def create_scores(battle, score_1_2_1, score_1_2_2, score_2_1_1, score_2_1_2):
     GameScoreFactory(
-        battle=battle,
-        direction='1_2',
+        game=game_of(battle, '1_2'),
         algorithm=ScoreAlgorithm.LCS,
         warrior_1_similarity=score_1_2_1,
         warrior_2_similarity=score_1_2_2,
     )
     GameScoreFactory(
-        battle=battle,
-        direction='2_1',
+        game=game_of(battle, '2_1'),
         algorithm=ScoreAlgorithm.LCS,
         # in the game order "battle-level warrior 2" is the first one
         warrior_1_similarity=score_2_1_2,
