@@ -31,6 +31,9 @@ class GameScore(GoalRelatedMixin, models.Model):
         to='Game',
         on_delete=models.CASCADE,
         related_name='scores',
+        # unique_game_algorithm leads with game,
+        # so its index answers every lookup by game a plain one would.
+        db_index=False,
     )
     algorithm = models.CharField(
         max_length=20,
