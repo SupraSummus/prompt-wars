@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from users.tests.factories import UserFactory
 
-from ..battles import Battle, DBGame
+from ..battles import Battle, Game
 from ..models import LLM, Arena, WarriorArena, WarriorUserPermission
 from ..score import GameScore
 from ..text_unit import TextUnit
@@ -47,9 +47,9 @@ class WarriorUserPermissionFactory(factory.django.DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
 
 
-class DBGameFactory(factory.django.DjangoModelFactory):
+class GameFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = DBGame
+        model = Game
 
     llm = factory.SelfAttribute('battle.llm')
     scheduled_at = factory.SelfAttribute('battle.scheduled_at')
@@ -88,12 +88,12 @@ class BattleFactory(factory.django.DjangoModelFactory):
     # a battle comes with its two game rows.
     # `game_1_2__resolved_at=...` sets a field on one of them.
     game_1_2 = factory.RelatedFactory(
-        DBGameFactory, 'battle',
+        GameFactory, 'battle',
         warrior_1=factory.SelfAttribute('battle.warrior_1'),
         warrior_2=factory.SelfAttribute('battle.warrior_2'),
     )
     game_2_1 = factory.RelatedFactory(
-        DBGameFactory, 'battle',
+        GameFactory, 'battle',
         warrior_1=factory.SelfAttribute('battle.warrior_2'),
         warrior_2=factory.SelfAttribute('battle.warrior_1'),
     )

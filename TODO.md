@@ -71,7 +71,7 @@ Doing it would also let the widened tolerance
 in `rating_tests.py::test_get_performance_rating` tighten back.
 
 `Game.input_sha256` stays as a consistency anchor
-("Where the design lands" in `docs/game-migration.md`),
+(`docs/games.md`),
 which makes the 34 game rows with a blank sha worth filling.
 Nothing holds a copy to restore them from:
 their battles never had a sha either.

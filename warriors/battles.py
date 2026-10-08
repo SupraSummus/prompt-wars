@@ -148,7 +148,7 @@ class Battle(models.Model):
                 resolve_battle_2_1,
                 args=(str(battle.id),),
             )
-            db_game_1_2 = DBGame.objects.create(
+            Game.objects.create(
                 battle=battle,
                 llm=warrior_arena_1.arena.llm,
                 warrior_1=warrior_1,
@@ -156,7 +156,7 @@ class Battle(models.Model):
                 scheduled_at=battle.scheduled_at,
                 processed_goal=resolve_1_2_goal,
             )
-            db_game_2_1 = DBGame.objects.create(
+            Game.objects.create(
                 battle=battle,
                 llm=warrior_arena_1.arena.llm,
                 warrior_1=warrior_2,
@@ -171,7 +171,7 @@ class Battle(models.Model):
                 precondition_goals=[resolve_1_2_goal, resolve_2_1_goal],
             )
 
-        return battle, db_game_1_2, db_game_2_1
+        return battle
 
     def get_absolute_url(self):
         return reverse('battle_detail', args=[str(self.id)])
@@ -240,8 +240,12 @@ class Battle(models.Model):
         )
 
 
-# TODO: rename to Game, the "Rename" step of docs/game-migration.md
-class DBGame(GoalRelatedMixin, models.Model):
+class Game(GoalRelatedMixin, models.Model):
+    """
+    One direction of a battle: one LLM run on the warriors in prompt order.
+
+    Why a battle is a header over two of these: `docs/games.md`.
+    """
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
@@ -262,7 +266,7 @@ class DBGame(GoalRelatedMixin, models.Model):
     )
     # Warriors are in prompt order, unlike the battle's canonical order;
     # comparing warrior_1_id with battle.warrior_1_id recovers the direction,
-    # so direction is derived, never stored (docs/game-migration.md).
+    # so direction is derived, never stored.
     warrior_1 = models.ForeignKey(
         to=Warrior,
         on_delete=models.PROTECT,

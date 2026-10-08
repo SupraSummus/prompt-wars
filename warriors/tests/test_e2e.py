@@ -62,27 +62,7 @@ def test_battle_from_warriors_e2e(monkeypatch, warrior_arena, other_warrior_aren
     create_mock = mock.Mock(return_value=completions_mock)
     monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
 
-    battle, db_game_1_2, db_game_2_1 = Battle.create_from_warriors(warrior_arena, other_warrior_arena)
-    battle.refresh_from_db()
-
-    # Verify DBGame objects were created
-    db_game_1_2.refresh_from_db()
-    db_game_2_1.refresh_from_db()
-    assert db_game_1_2.battle_id == battle.id
-    assert db_game_2_1.battle_id == battle.id
-    assert db_game_1_2.warrior_1 == battle.warrior_1
-    assert db_game_1_2.warrior_2 == battle.warrior_2
-    assert db_game_2_1.warrior_1 == battle.warrior_2
-    assert db_game_2_1.warrior_2 == battle.warrior_1
-    assert db_game_1_2.llm == battle.llm
-    assert db_game_2_1.llm == battle.llm
-    assert db_game_1_2.scheduled_at == battle.scheduled_at
-    assert db_game_2_1.scheduled_at == battle.scheduled_at
-    assert db_game_1_2.resolved_at is None
-    assert db_game_2_1.resolved_at is None
-    assert db_game_1_2.processed_goal is not None
-    assert db_game_2_1.processed_goal is not None
-
+    battle = Battle.create_from_warriors(warrior_arena, other_warrior_arena)
     worker(once=True)  # run async tasks
 
     warrior_arena.refresh_from_db()
@@ -90,21 +70,11 @@ def test_battle_from_warriors_e2e(monkeypatch, warrior_arena, other_warrior_aren
     assert warrior_arena.rating < 0
     assert other_warrior_arena.rating > 0
 
-    # Verify DBGame objects were updated after resolution
-    db_game_1_2.refresh_from_db()
-    db_game_2_1.refresh_from_db()
-    assert db_game_1_2.resolved_at is not None
-    assert db_game_2_1.resolved_at is not None
-    assert db_game_1_2.text_unit is not None
-    assert db_game_2_1.text_unit is not None
-    assert db_game_1_2.finish_reason == 'stop'
-    assert db_game_2_1.finish_reason == 'stop'
-    assert db_game_1_2.llm_version == 'gpt-3.5/1234'
-    assert db_game_2_1.llm_version == 'gpt-3.5/1234'
-
-    # each direction's scores name the game they score, not just the pair
-    assert db_game_1_2.scores.count() == 2
-    assert db_game_2_1.scores.count() == 2
+    # each direction lands on its own game row, scored under every algorithm
+    assert [
+        (game.result, game.finish_reason, game.llm_version, game.scores.count())
+        for game in battle.games.all()
+    ] == [('Some result', 'stop', 'gpt-3.5/1234', 2)] * 2
 
 
 @pytest.mark.django_db

@@ -12,7 +12,7 @@ this doc is about what the schema should mean.
 Gameplay decomposes into four independent axes:
 
 1. **Which LLM performs the battle** —
-   the `LLM` enum on `Battle` and `DBGame` (`warriors/battles.py`).
+   the `LLM` enum on `Battle` and `Game` (`warriors/battles.py`).
 2. **Warrior–result similarity** —
    `GameScore` rows keyed by (game, algorithm),
    with `ScoreAlgorithm` an enum (`warriors/score.py`).
@@ -32,7 +32,7 @@ Battles are keyed by LLM, not by arena —
 every gameplay query goes through `llm`
 (`BattleQuerySet.with_warrior_arena`, matchmaking cooldown,
 `ArenaStats.battle_count`),
-and `DBGame`, the newer model, has no arena at all.
+and `Game` has no arena at all.
 Only the fourth concern hangs off a DB combination object:
 `Arena` binds (llm, score_algorithm) as a row,
 and `WarriorArena` keys rating state by it.
@@ -95,11 +95,10 @@ The schema should say so:
 
 - **Warrior** stays the global unit of submission —
   one bag, entered once.
-- **The battle stream is keyed by LLM** (already true);
-  `Battle.arena` gets dropped,
-  and the `DBGame`-direction migration
-  makes the per-direction game the canonical record
-  (plan: `docs/game-migration.md`).
+- **The battle stream is keyed by LLM** (already true),
+  with the per-direction `Game` as its canonical record
+  (`docs/games.md`);
+  `Battle.arena` gets dropped.
 - **Ranking configuration moves to code**:
   a registry mapping a ranking key (enum)
   to (llm, score_algorithm, mELO parameters).

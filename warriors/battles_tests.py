@@ -148,12 +148,9 @@ def test_reading_scores_costs_no_query_per_battle():
 # even without create_from_warriors' own atomic block.
 @pytest.mark.django_db(transaction=True)
 def test_create_from_warriors_scheduled_at_consistent(warrior_arena, other_warrior_arena):
-    battle, db_game_1_2, db_game_2_1 = Battle.create_from_warriors(warrior_arena, other_warrior_arena)
+    battle = Battle.create_from_warriors(warrior_arena, other_warrior_arena)
     battle.refresh_from_db()
-    db_game_1_2.refresh_from_db()
-    db_game_2_1.refresh_from_db()
-    assert db_game_1_2.scheduled_at == battle.scheduled_at
-    assert db_game_2_1.scheduled_at == battle.scheduled_at
+    assert [game.scheduled_at for game in battle.games.all()] == [battle.scheduled_at] * 2
 
 
 def resolve_game(battle, direction, resolved_at):
