@@ -199,22 +199,6 @@ and map a 429 response to the `RetryMeLater` that
 `voyageai.error.RateLimitError` currently triggers —
 that exception is the only thing the SDK contributes here.
 
-`verify_games` skips a direction whose game row has no `resolved_at`,
-which leaves `llm` and `scheduled_at` unchecked
-on exactly the rows `resolve_battle`'s asserts act on:
-those two are set when the pair is created, not at resolution,
-so an unresolved direction can hold a drifted copy
-and the audit will not say so.
-The same skip hides a battle column
-that records a resolution its game row lacks —
-the shape the pre-mirror repair left behind.
-Next move: split the comparison —
-the creation-time fields (`llm`, `scheduled_at`, the warrior pair)
-on every direction,
-the resolution fields once either side records a resolution.
-The skip exists because `attempts` climbs while a direction retries,
-and that is a resolution field.
-
 Five one-off scripts sit at the repo root —
 `backfill_sha.py`, `create_game_score.py`, `set_game_score.py`,
 `gemini_redo_max_tokens.py`, `moderation_experiment.py` —

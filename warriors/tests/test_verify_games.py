@@ -113,13 +113,21 @@ def test_verify_leaves_an_unresolved_direction_alone(mirrored_battle):
 
 @pytest.mark.django_db
 def test_verify_reports_a_resolution_the_mirror_missed(mirrored_battle):
-    # the in-flight gate reads the game row, which is the side resolution
-    # writes first: keyed on the column instead, the one drift this audit
-    # exists to catch would pass for a direction still running
     mirrored_battle.resolved_at_1_2 = None
     mirrored_battle.save(update_fields=['resolved_at_1_2'])
 
     with pytest.raises(CommandError, match='conflicting resolved_at: 1'):
+        call_command('verify_games')
+
+
+@pytest.mark.django_db
+def test_verify_reports_a_resolution_the_game_row_missed(mirrored_battle):
+    # only the battle holds this result, and the column drop would lose it
+    game = mirrored_battle.games.get(warrior_1=mirrored_battle.warrior_1)
+    game.resolved_at = None
+    game.save(update_fields=['resolved_at'])
+
+    with pytest.raises(CommandError, match='blank resolved_at: 1'):
         call_command('verify_games')
 
 

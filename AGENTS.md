@@ -155,6 +155,8 @@ sudo -u postgres psql -c "CREATE DATABASE promptwars OWNER promptwars;"
 # vector, so without it database setup fails for the whole suite with
 # 'extension "vector" is not available'. No restart — a backend resolves
 # the extension when it runs CREATE EXTENSION, not at startup.
+# A fresh container has no package lists, so update first.
+apt-get update
 apt-get install -y postgresql-16-pgvector
 
 # Upgrade to >= 0.7.0 only to test embedding_explorer or guessing: the
