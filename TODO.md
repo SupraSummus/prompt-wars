@@ -70,17 +70,6 @@ so it needs sign-off as a behavior change.
 Doing it would also let the widened tolerance
 in `rating_tests.py::test_get_performance_rating` tighten back.
 
-`Game.input_sha256` stays as a consistency anchor
-(`docs/games.md`),
-which makes the 34 game rows with a blank sha worth filling.
-Nothing holds a copy to restore them from:
-their battles never had a sha either.
-Next move: pull the sha derivation out of `_run_llm` (`warriors/tasks.py`)
-into a function on the game,
-and add a repair command in `warriors/management/commands/`
-that calls it on blank game rows,
-with its deletion condition logged here.
-
 The `game` foreign key on `GameScore` (`warriors/score.py`)
 carries an index nobody reads:
 it is a prefix of `unique_game_algorithm`,
