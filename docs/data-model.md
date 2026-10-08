@@ -75,12 +75,6 @@ and with quirks that follow from the accident:
   are two independent rating states
   converging over the same battle set.
 
-The explicit version of cross-arena submission,
-`ensure_warrior_on_all_arenas` (`warriors/cross_arena.py`),
-is unreferenced and incompatible with the schema —
-evidence the implicit mechanism displaced it
-without the model being restated.
-
 ## What Arena actually earns its keep for
 
 Presentation and operations, not gameplay:
@@ -144,7 +138,6 @@ per-round participation is the enrollment mechanism anyway.
 ## Migration is incremental
 
 Each step is independently shippable:
-deleting the dead `warriors/cross_arena.py` module;
 keying the matchmaking clock by (warrior, llm);
 introducing the ranking registry
 and pointing `update_rating` at it instead of `arena.score_algorithm`;
