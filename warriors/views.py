@@ -262,6 +262,7 @@ class BattleDetailView(DetailView):
 
     def get_queryset(self):
         return super().get_queryset().select_related(
+            'arena',
             'warrior_1',
             'warrior_2',
         ).prefetch_related(
@@ -298,7 +299,7 @@ class BattleDetailView(DetailView):
             for algorithm in ScoreAlgorithm
         ]
         context['game_blocks'] = [
-            game_block(game, visible_warrior_ids, show_battle_results)
+            game_block(game, battle, visible_warrior_ids, show_battle_results)
             for game in battle.games_list
         ]
 
@@ -330,6 +331,18 @@ class BattleDetailView(DetailView):
         return warrior_arena
 
 
+def battle_sides(battle):
+    """
+    Each warrior's side of the page, keyed by warrior id.
+
+    The battle's canonical order assigns them,
+    and every block of the page reads its warriors in that order,
+    so a warrior keeps one side and one color throughout
+    ("A warrior keeps its side and color" in docs/battle-display.md).
+    """
+    return {battle.warrior_1_id: 1, battle.warrior_2_id: 2}
+
+
 def battle_score_summary(battle, algorithm):
     """
     One algorithm's scores as a matrix: a warrior per row, a game per column.
@@ -342,12 +355,17 @@ def battle_score_summary(battle, algorithm):
     """
     games = battle.games_list
     score_objects = [game.score_object(algorithm) for game in games]
+    sides = battle_sides(battle)
     return {
         'algorithm': ScoreAlgorithm(algorithm).label,
-        'games': games,
+        'games': [
+            {'game': game, 'side': sides[game.warrior_1_id]}
+            for game in games
+        ],
         'rows': [
             {
                 'warrior': warrior,
+                'side': sides[warrior.id],
                 'scores': [
                     score_for(score_object, warrior.id)
                     for score_object in score_objects
@@ -367,19 +385,26 @@ def battle_score_summary(battle, algorithm):
     }
 
 
-def game_block(game, visible_warrior_ids, show_battle_results):
+def game_block(game, battle, visible_warrior_ids, show_battle_results):
     """
     One game as its own block: what the LLM produced, and how it scored.
 
     A game shows the algorithms that have scored it, each reporting itself,
     so a further member of `ScoreAlgorithm`
     reaches the page without a template edit (docs/battle-display.md).
+    Prompt order is this game's own, so it is listed here
+    rather than imposed on the scores below it.
     """
+    sides = battle_sides(battle)
     return {
         'game': game,
+        'prompt_order': [
+            {'warrior': warrior, 'side': sides[warrior.id]}
+            for warrior in (game.warrior_1, game.warrior_2)
+        ],
         'result_visible': show_battle_results,
         'scorings': [
-            game_scoring(game, score_object, visible_warrior_ids)
+            game_scoring(game, battle, score_object, visible_warrior_ids)
             for score_object in (
                 game.score_object(algorithm)
                 for algorithm in ScoreAlgorithm
@@ -389,7 +414,7 @@ def game_block(game, visible_warrior_ids, show_battle_results):
     }
 
 
-def game_scoring(game, score_object, visible_warrior_ids):
+def game_scoring(game, battle, score_object, visible_warrior_ids):
     """
     One algorithm's reading of one game.
 
@@ -398,22 +423,30 @@ def game_scoring(game, score_object, visible_warrior_ids):
     so it hangs off this block rather than the game's.
     """
     marks_result = score_object.algorithm == ScoreAlgorithm.LCS
+    sides = battle_sides(battle)
+    warriors = [
+        {
+            'warrior': warrior,
+            'side': sides[warrior.id],
+            'similarity': score_object.similarity_for(warrior.id),
+            'score': score_object.score_for(warrior.id),
+            'marked_result': (
+                game.result_marked_for(warrior)
+                if marks_result and warrior.id in visible_warrior_ids
+                else None
+            ),
+        }
+        for warrior in (battle.warrior_1, battle.warrior_2)
+    ]
     return {
         'algorithm': ScoreAlgorithm(score_object.algorithm).label,
+        # an errored game keeps its score rows, with nothing in them
+        'scored': score_object.score is not None,
         'marks_result': marks_result,
-        'warriors': [
-            {
-                'warrior': warrior,
-                'similarity': score_object.similarity_for(warrior.id),
-                'score': score_object.score_for(warrior.id),
-                'marked_result': (
-                    game.result_marked_for(warrior)
-                    if marks_result and warrior.id in visible_warrior_ids
-                    else None
-                ),
-            }
-            for warrior in (game.warrior_1, game.warrior_2)
-        ],
+        'marks_hidden': marks_result and any(
+            warrior['marked_result'] is None for warrior in warriors
+        ),
+        'warriors': warriors,
         'cooperation_score': score_object.cooperation_score,
     }
 
