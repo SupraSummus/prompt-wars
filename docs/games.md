@@ -35,6 +35,9 @@ The rejected alternative — dropping it as derivable —
 misses that derivability is what makes the check possible:
 a value that is only ever recomputed
 can never disagree with anything.
+For the same reason a blank sha stays blank:
+a backfill could only compute it from today's bodies,
+so it could not show what the game was resolved against.
 The battle holds no sha of its own:
 a pair-level copy would add nothing the two game rows lack.
 
