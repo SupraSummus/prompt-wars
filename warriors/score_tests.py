@@ -5,7 +5,7 @@ import pytest
 from django_goals.busy_worker import worker
 from django_goals.models import Goal
 
-from .score import ScoreAlgorithm, get_or_create_game_score
+from .score import GameScore, ScoreAlgorithm, get_or_create_game_score
 from .tests.factories import TextUnitFactory, game_of
 
 
@@ -130,3 +130,27 @@ def test_gamescore_lcs(battle, direction):
     assert game_score.warrior_1_similarity == 1 / 3
     assert game_score.warrior_2_similarity == 2 / 4
     assert game_score.warriors_similarity == 1 / 4
+
+
+@pytest.mark.parametrize(
+    ('warrior_1_similarity', 'warrior_2_similarity', 'warriors_similarity', 'expected'),
+    [
+        # the pair from test_gamescore_lcs: (1/3) / (1/2) * (1 - 1/4)
+        (1 / 3, 2 / 4, 1 / 4, 0.5),
+        (2 / 4, 1 / 3, 1 / 4, 0.5),
+        # balanced survival of copies of each other is no fusion
+        (0.5, 0.5, 1.0, 0.0),
+        # nothing survived; embedding similarities can go negative
+        (0.0, 0.0, 0.25, 0),
+        (-0.2, -0.1, 0.25, 0),
+        # an errored game is scored with no similarities at all
+        (None, None, None, None),
+    ],
+)
+def test_cooperation_score(warrior_1_similarity, warrior_2_similarity, warriors_similarity, expected):
+    game_score = GameScore(
+        warrior_1_similarity=warrior_1_similarity,
+        warrior_2_similarity=warrior_2_similarity,
+        warriors_similarity=warriors_similarity,
+    )
+    assert game_score.cooperation_score == pytest.approx(expected)

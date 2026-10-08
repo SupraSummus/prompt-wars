@@ -113,20 +113,6 @@ the `verify_games` audit is the last thing that looks a score up by battle,
 and column, index and audit all go
 in the "Drop the directional columns" step of `docs/game-migration.md`.
 
-`GameScore.cooperation_score` (`warriors/score.py`) has no test.
-It is the one scoring property nothing exercises directly:
-`score` and `score_rev` are asserted in `score_tests.py`
-and again through `score_for` in `battles_tests.py`,
-while this one is only ever rendered
-(`templates/warriors/partials/game.html`).
-It also carries the edge cases the others do not —
-a non-positive larger similarity short-circuiting to 0,
-and the `1 - warriors_similarity` factor
-that is the whole point of the axis
-(`docs/design-tensions.md` owns why it matters).
-Next move: a parametrized test beside the LCS score tests
-covering the zero case, a missing similarity, and one worked pair.
-
 The `thinking_config` that `call_gemini` sends (`warriors/llms/google.py`)
 buys thinking but does not bound it:
 `gemini-flash-lite-latest` resolves to a Gemini 3 model,
