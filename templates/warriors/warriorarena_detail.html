@@ -44,7 +44,7 @@
         </details>
       {% endif %}
 
-      <h2>Battles</h2>
+      <h2 id="battles">Battles</h2>
       <p>
         {% if request.user.is_authenticated %}
           <a href="{% url 'challenge_warrior' warrior.id %}" role="button">Challenge this warrior to a duel</a>
@@ -54,14 +54,16 @@
         Next auto battle: {% include 'time.html' with time=warrior.next_battle_schedule %}
         (in {{ warrior.next_battle_schedule|timeuntil }})
       </p>
+      {# a data table may scroll sideways on a narrow screen; the region makes that reachable by keyboard #}
+      <div class="overflow-auto" role="region" tabindex="0" aria-labelledby="battles">
       <table>
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Opponent</th>
-            <th>Score (this vs other)</th>
-            <th>Score (other vs this)</th>
-            <th><span data-tooltip="Adjusted for warriors' strength">Performance</span></th>
+            <th scope="col">Date</th>
+            <th scope="col">Opponent</th>
+            <th scope="col">Score (going first)</th>
+            <th scope="col">Score (going second)</th>
+            <th scope="col">Performance</th>
           </tr>
         </thead>
         <tbody>
@@ -70,14 +72,14 @@
               <td><a href="{{ row.url }}">
                 {% include 'time.html' with time=row.battle.scheduled_at %}
               </a></td>
-              <td><a href="{{ row.url }}">{{ row.opponent }}</a></td>
+              <th scope="row"><a href="{{ row.url }}">{{ row.opponent }}</a></th>
               {% for cell in row.games %}
                 <td>
                   <a href="{{ row.url }}#game-{{ cell.game.id }}">
                     {% if not cell.game.resolved_at %}
                       <i>pending</i>
                     {% else %}
-                      {% include 'warriors/partials/score.html' with score=cell.score %}
+                      {% include 'warriors/partials/score_bar.html' with score=cell.score %}
                     {% endif %}
                   </a>
                 </td>
@@ -94,6 +96,13 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
+      <p><small>
+        A score is this warrior's share of one game,
+        with its prompt going first or second.
+        Performance is the battle score
+        minus the score the two warriors' ratings predicted.
+      </small></p>
 
       {% if other_warrior_arenas %}
         <h2>On other arenas</h2>

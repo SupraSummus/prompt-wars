@@ -219,3 +219,16 @@ cd /home/user/prompt-wars
 poetry run flake8 embedding_explorer/
 poetry run pylint --load-plugins pylint_django --errors-only --disable=E0401,F5110 embedding_explorer/
 ```
+
+### Screenshots
+
+Playwright's Chromium is preinstalled
+(`/opt/node-tools/node_modules/playwright`),
+but it cannot fetch what the pages load from CDNs (Pico, htmx, Chart.js):
+the egress proxy takes only HTTPS CONNECT,
+and a Chromium pointed at it sends `localhost` through it too.
+Launch it without a proxy,
+`curl` the CDN files once,
+and answer their URLs from those copies with `page.route`.
+axe-core works the same way:
+`curl` its `axe.min.js` and load it with `page.addScriptTag`.
