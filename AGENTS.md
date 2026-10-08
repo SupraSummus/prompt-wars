@@ -99,6 +99,15 @@ and a repair fixes one named cause.
 `verify_games` and `backfill_game_input_sha256` are the pair to copy
 (git keeps them: `git log --diff-filter=D -- warriors/management/commands/`).
 
+## Read a migration's SQL before committing it
+
+Migrations run against the live database (`postdeploy` in `Procfile`),
+and Django's generated SQL can do more than the model change needs:
+turning off a foreign key's `db_index` also drops and re-validates the constraint,
+locking both tables for a full scan.
+`manage.py sqlmigrate <app> <migration>` shows what will run;
+`0064_gamescore_game_no_index.py` shows how to run only the part you want.
+
 ## Prose uses semantic line breaks
 
 Write natural-language text —

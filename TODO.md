@@ -70,21 +70,6 @@ so it needs sign-off as a behavior change.
 Doing it would also let the widened tolerance
 in `rating_tests.py::test_get_performance_rating` tighten back.
 
-The `game` foreign key on `GameScore` (`warriors/score.py`)
-carries an index nobody reads:
-it is a prefix of `unique_game_algorithm`,
-which Postgres answers the foreign key's own lookups from,
-so every insert and update on the table
-writes a second index entry for nothing.
-The one bulk measurement of the cost covers two indexes,
-this one and the (battle, direction, algorithm) index beside it:
-dropping both took a million-row update over this table
-from 54s to 40s.
-Only this one is left, so the win left to take is part of that.
-Next move: set `db_index=False` on the field
-and migrate the index away;
-behavior-preserving.
-
 The `thinking_config` that `call_gemini` sends (`warriors/llms/google.py`)
 buys thinking but does not bound it:
 `gemini-flash-lite-latest` resolves to a Gemini 3 model,
