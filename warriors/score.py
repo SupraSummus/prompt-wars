@@ -28,7 +28,7 @@ class GameScore(GoalRelatedMixin, models.Model):
         editable=False
     )
     game = models.ForeignKey(
-        to='DBGame',
+        to='Game',
         on_delete=models.CASCADE,
         related_name='scores',
     )

@@ -39,14 +39,10 @@ def schedule_battle(now=None):
 
 
 def create_battle(warrior, opponent, now=None):
-    """
-    Returns:
-        tuple: (Battle, DBGame, DBGame) - The created battle and its two game instances
-    """
     if now is None:
         now = timezone.now()
 
-    battle, db_game_1_2, db_game_2_1 = Battle.create_from_warriors(warrior, opponent)
+    battle = Battle.create_from_warriors(warrior, opponent)
 
     # Update warrior1 statistics
     warrior.games_played = Battle.objects.with_warrior_arena(warrior).count()
@@ -67,7 +63,7 @@ def create_battle(warrior, opponent, now=None):
     warrior.warrior.schedule_voyage_3_embedding()
     opponent.warrior.schedule_voyage_3_embedding()
 
-    return battle, db_game_1_2, db_game_2_1
+    return battle
 
 
 def find_opponent(warrior_arena, max_rating_diff=MATCHMAKING_MAX_RATING_DIFF):
