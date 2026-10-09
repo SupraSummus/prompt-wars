@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block head %}
+  <style>
+    .pw-auth {
+      max-width: 30rem;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <main class="container pw-auth">
+    <article>
+      {% block auth %}{% endblock %}
+    </article>
+  </main>
+{% endblock %}

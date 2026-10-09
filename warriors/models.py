@@ -68,6 +68,10 @@ class WarriorArenaQuerySet(models.QuerySet):
             warrior__moderation_passed=True,
         )
 
+    def ranked(self):
+        """The ladder's order, best first: the leaderboard and the home page's top spells."""
+        return self.battleworthy().order_by('-rating')
+
 
 class WarriorArena(RatingMixin, models.Model):
     id = models.UUIDField(

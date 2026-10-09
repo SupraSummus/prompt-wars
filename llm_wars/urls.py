@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.conf import settings
 from django.contrib import admin
-from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.views import LogoutView
 from django.urls import path, register_converter
 
 import warriors.views
@@ -24,7 +24,7 @@ from djsfc import Router
 from embedding_explorer import views as embedding_explorer_views
 from guessing import views as guessing_views
 from hill import views as hill_views
-from users.views import SignupView
+from users.views import LoginView, SignupView
 from warriors import my_warriors_view, warrior_view
 from warriors.create_view import WarriorCreateView
 from warriors.views import (

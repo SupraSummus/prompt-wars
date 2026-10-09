@@ -1,26 +1,112 @@
 {% extends 'base.html' %}
 
+{% block title %}Write a spell - Prompt wars{% endblock %}
+
+{% block head %}
+  <style>
+    .pw-create {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      gap: 0 2rem;
+      align-items: start;
+    }
+    @media (max-width: 768px) {
+      .pw-create {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+    .pw-counter {
+      display: block;
+      margin-top: calc(var(--pico-spacing) * -0.75);
+      margin-bottom: var(--pico-spacing);
+      color: var(--pw-muted-color);
+      font-size: 0.875rem;
+      text-align: right;
+    }
+    .pw-counter.pw-over {
+      color: var(--pico-del-color);
+    }
+    .pw-create-help h2 {
+      font-size: 1.125rem;
+    }
+  </style>
+{% endblock %}
+
 {% block content %}
   <main class="container">
 
     <nav aria-label="breadcrumb">
       <ul>
         <li><a href="{% url 'arena_detail' arena.id %}">{{ arena }}</a></li>
-        <li>Create spell</li>
+        <li>Write a spell</li>
       </ul>
     </nav>
 
-    <section>
-      <h1>Create a Spell</h1>
+    <hgroup>
+      <h1>Write a spell</h1>
+      <p>It will battle other spells in {{ arena }}, with {{ arena.get_llm_display }} as the referee.</p>
+    </hgroup>
+
+    <div class="pw-create">
       <form method="post">
-        <strong>
-          Don't share any private, secret, or classified information!
-          See <a href="{% url 'data_policy:root' %}">Data policy</a>
-        </strong>
         {% csrf_token %}
-        {{ form.as_div }}
-        <input type="submit" value="Create Spell">
+        {{ form.non_field_errors }}
+        {{ form.body.as_field_group }}
+        <small id="spell-counter" class="pw-counter" aria-hidden="true"></small>
+        <div class="grid">
+          <div>{{ form.name.as_field_group }}</div>
+          <div>{{ form.author_name.as_field_group }}</div>
+        </div>
+        <fieldset>
+          <label>
+            {{ form.public_battle_results }}
+            {{ form.public_battle_results.label }}
+          </label>
+          <small id="{{ form.public_battle_results.auto_id }}_helptext">{{ form.public_battle_results.help_text }}</small>
+        </fieldset>
+        {{ form.captcha.as_field_group }}
+        <p><small>
+          Don't put anything private, secret or classified in a spell:
+          your opponents read the model's replies to it.
+          See the <a href="{% url 'data_policy:root' %}">data policy</a>.
+          {% if not user.is_authenticated %}
+            No account needed: this browser remembers your spell.
+            <a href="{% url 'signup' %}?next={{ request.get_full_path|urlencode }}">Sign up</a> to keep it for good.
+          {% endif %}
+        </small></p>
+        <button type="submit">Send it into battle <span aria-hidden="true">→</span></button>
       </form>
-    </section>
+
+      <article class="pw-create-help" aria-labelledby="ideas-title">
+        <h2 id="ideas-title">Need ideas?</h2>
+        <p>
+          Your spell is glued to an opponent's, with no space between, and sent to the model,
+          once in each order.
+          The more of your spell's characters the reply repeats, in order, the more of the game you win.
+        </p>
+        <ul>
+          <li>Ask for your text back, word for word.</li>
+          <li>Tell the model to ignore whatever comes before or after your spell.</li>
+          <li>Keep it short: a short spell is easier to repeat whole.</li>
+          <li>Characters your opponent is unlikely to use, like emoji or another script, can only count for you.</li>
+        </ul>
+      </article>
+    </div>
+
+    <script>
+      (() => {
+        const body = document.getElementById('{{ form.body.auto_id }}');
+        const counter = document.getElementById('spell-counter');
+        const max = Number(body.dataset.maxLength);
+        const update = () => {
+          // as the server counts: characters, not UTF-16 units, and a line ending as one
+          const length = [...body.value.replace(/\r\n?/g, '\n')].length;
+          counter.textContent = `${length} / ${max}`;
+          counter.classList.toggle('pw-over', length > max);
+        };
+        body.addEventListener('input', update);
+        update();
+      })();
+    </script>
   </main>
 {% endblock %}

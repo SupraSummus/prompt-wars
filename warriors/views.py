@@ -1,12 +1,15 @@
+import datetime
 import uuid
 
 from django import forms
 from django.contrib.auth.decorators import login_required
 from django.contrib.sites.shortcuts import get_current_site
 from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.http import urlencode
 from django.views.decorators.http import require_POST
 from django.views.generic.base import ContextMixin
@@ -86,6 +89,15 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
     def get_object(self):
         return self.warrior
 
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        # A poll finding the page as it was swaps nothing,
+        # so a keyboard or screen reader user keeps their place between real changes.
+        polling = response.context_data['polling']
+        if polling and request.GET.get('polling') == polling:
+            return HttpResponse(status=204)
+        return response
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
@@ -104,10 +116,12 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
             warrior_battle_row(battle, warrior_arena)
             for battle in battles
         ]
+        context['polling'] = warrior_page_polling(warrior_arena, context['battles'])
+        context['poll_seconds'] = WARRIOR_POLL_SECONDS
 
         show_secrets = is_request_authorized(warrior_arena.warrior, self.request)
         context['show_secrets'] = show_secrets
-        context['warrior_user_permissions'] = None
+        context['warrior_user_permission'] = None
         if self.request.user.is_authenticated:
             context['warrior_user_permission'] = WarriorUserPermission.objects.filter(
                 warrior=warrior_arena.warrior,
@@ -130,6 +144,29 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
         ).select_related('arena'))
 
         return context
+
+
+# A new spell's page refreshes itself while its author waits for the verdict and the first result;
+# past this age nobody is watching it come in.
+WARRIOR_POLL_WINDOW = datetime.timedelta(hours=1)
+WARRIOR_POLL_SECONDS = 5
+
+
+def warrior_page_polling(warrior_arena, battle_rows):
+    """
+    What part of a warrior's page polls for news, if any:
+    the whole page while moderation decides what it shows,
+    then the battle list until a first battle is scored.
+    Only a fresh warrior's, as the first minutes are when a result is awaited
+    (`get_next_battle_delay` front-loads its battles).
+    """
+    if timezone.now() - warrior_arena.created_at > WARRIOR_POLL_WINDOW:
+        return None
+    if warrior_arena.moderation_passed is None:
+        return 'page'
+    if warrior_arena.moderation_passed and all(row['performance'] == 'pending' for row in battle_rows):
+        return 'battles'
+    return None
 
 
 def prefetch_warriors(battles):
@@ -253,6 +290,33 @@ def is_request_authorized(warrior, request):
     return (
         warrior.is_user_authorized(request.user) or
         str(warrior.id) in request.session.get('authorized_warriors', [])
+    )
+
+
+def own_warrior_arenas(request):
+    """
+    The visitor's warriors on every arena: an account's,
+    or what a logged-out browser created or discovered,
+    whose session holds both warrior and warrior-arena ids (`WarriorCreateForm.save`).
+    """
+    if request.user.is_authenticated:
+        return WarriorArena.objects.filter(warrior__users=request.user)
+    ids = request.session.get('authorized_warriors', [])
+    return WarriorArena.objects.filter(Q(id__in=ids) | Q(warrior__id__in=ids))
+
+
+def claim_session_warriors(request):
+    """
+    Give the user who just logged in the warriors this browser holds,
+    which the session forgets on logout or expiry.
+    It is the permission a logged-in visit to the warrior's page grants (`WarriorDetailView`).
+    """
+    warrior_ids = Warrior.objects.filter(
+        id__in=request.session.get('authorized_warriors', []),
+    ).values_list('id', flat=True)
+    WarriorUserPermission.objects.bulk_create(
+        [WarriorUserPermission(warrior_id=warrior_id, user=request.user) for warrior_id in warrior_ids],
+        ignore_conflicts=True,
     )
 
 
@@ -508,11 +572,11 @@ class WarriorLeaderboard(ArenaViewMixin, ListView):
     context_object_name = 'warriors'
 
     def get_queryset(self):
-        return WarriorArena.objects.battleworthy().filter(
+        return WarriorArena.objects.ranked().filter(
             arena=self.arena,
         ).select_related(
             'warrior',
-        ).order_by('-rating')[:100].only(
+        )[:100].only(
             'rating',
             'rating_playstyle',
             'games_played',
@@ -542,19 +606,11 @@ class UpcomingBattlesView(ArenaViewMixin, ListView):
     context_object_name = 'warriors'
 
     def get_queryset(self):
-        qs = WarriorArena.objects.battleworthy().filter(arena=self.arena).select_related(
+        return own_warrior_arenas(self.request).battleworthy().filter(
+            arena=self.arena,
+        ).select_related(
             'warrior',
-        )
-        user = self.request.user
-        if user.is_authenticated:
-            qs = qs.filter(warrior__users=user)
-        else:
-            authorized_warriors = self.request.session.get('authorized_warriors', [])
-            qs = qs.filter(
-                Q(id__in=authorized_warriors) |
-                Q(warrior__id__in=authorized_warriors)
-            )
-        return qs.order_by('next_battle_schedule')[:100]
+        ).order_by('next_battle_schedule')[:100]
 
 
 class RecentBattlesView(ArenaViewMixin, ListView):
