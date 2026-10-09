@@ -368,7 +368,7 @@ class TallyKind(models.TextChoices):
 
 
 class RoundTally(models.Model):
-    """A round's count of one `TallyKind`, kept without recording who."""
+    """A round's count of one `TallyKind`, kept without recording who; `hill_report` reads it."""
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
