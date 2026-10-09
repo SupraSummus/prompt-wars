@@ -13,7 +13,10 @@
   </header>
 
   {% if holder %}
-    <p><mark>Your spell holds the hill.</mark></p>
+    <p>
+      <mark>Your spell holds the hill.</mark>
+      <a href="{% url 'hill:attempt' hill_round.boss_attempt_id %}">Share it</a>
+    </p>
   {% endif %}
 
   {% if not hill_round.boss_shown %}
