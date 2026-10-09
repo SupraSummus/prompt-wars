@@ -144,6 +144,8 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / 'static'
+# third-party CSS and JS served from here, see assets/vendor/README.md
+STATICFILES_DIRS = [BASE_DIR / 'assets']
 STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}{{ arena }}{% endblock %}
 
@@ -25,11 +26,7 @@
     <p>Number of spells: {{ stats.warrior_count }}</p>
     <p>Number of battles: {{ stats.battle_count }}</p>
     <canvas id="chart"></canvas>
-    <script
-      src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"
-      integrity="sha384-G436+Z2nlA8+PNoeRvWdxKbvOf8E/y+lYxqht2iBwNHTQDV5CJr3+AGVj8fGZi5t"
-      crossorigin="anonymous"
-    ></script>
+    <script src="{% static 'vendor/chart.js-4.4.4/chart.umd.js' %}"></script>
     {{ stats.rating_quantile_labels|json_script:'rating_quantile_labels' }}
     {{ stats.rating_quantiles|json_script:'rating_quantile_values' }}
     <script>
