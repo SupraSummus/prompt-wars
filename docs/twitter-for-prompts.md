@@ -90,6 +90,10 @@ Anonymity plus a public feed fails fatally rather than awkwardly.
 This is what keeps the surface hobby-sized;
 a firehose would not.
 
+King of the Hill applies it narrowly
+("Privacy and consent" in `docs/king-of-the-hill.md`):
+it publishes only the spell that takes the hill, with consent asked on every attack.
+
 ## The only test that matters first
 
 Build the selection page.

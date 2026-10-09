@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block head %}
+  {% include 'hill/partials/meta.html' %}
+  {% include 'hill/partials/styles.html' %}
+{% endblock %}
+
+{% block content %}
+  <main class="container pw-hill">
+
+    <nav aria-label="breadcrumb">
+      <ul>
+        <li><a href="{% url 'hill:index' %}">King of the Hill</a></li>
+        <li aria-current="page">Hill #{{ hill_round.number }}</li>
+      </ul>
+    </nav>
+
+    {% if today %}
+      <article>
+        This was Hill #{{ hill_round.number }}; Hill #{{ today.number }} is open now.
+        <a href="{% url 'hill:index' %}#attack">Attack today's boss <span aria-hidden="true">→</span></a>
+      </article>
+    {% endif %}
+
+    <h1>{% if own %}Your attack{% else %}An attack{% endif %} on Hill #{{ hill_round.number }}</h1>
+
+    {% if own %}
+      <details>
+        <summary>Your spell{% if attempt.display_name %}, <bdi>{{ attempt.display_name }}</bdi>{% endif %}</summary>
+        {% include 'exact_text.html' with text=attempt.warrior.body %}
+      </details>
+    {% elif public %}
+      <details>
+        <summary>The spell</summary>
+        {% include 'exact_text.html' with text=attempt.warrior.body %}
+      </details>
+    {% endif %}
+
+    <p id="attempt-announce" class="pw-sr-only" role="status"></p>
+    {% include 'hill/partials/attempt_status.html' %}
+
+    {% if not own %}
+      <p><a role="button" href="{% url 'hill:index' %}#attack">Attack the boss</a></p>
+    {% endif %}
+
+  </main>
+
+  <script>
+    // A live region swapped in with its text already in it is announced unreliably,
+    // so after each poll the region that was there from the start repeats the new status line.
+    document.addEventListener('htmx:afterSettle', () => {
+      const line = document.querySelector('#attempt-status [data-announce]');
+      document.getElementById('attempt-announce').textContent = line ? line.textContent.replace(/\s+/g, ' ').trim() : '';
+    });
+
+    // The share button: the system share sheet where there is one, else the clipboard.
+    document.addEventListener('click', async (event) => {
+      const button = event.target.closest('[data-hill-share]');
+      if (!button) {
+        return;
+      }
+      const field = document.getElementById(button.dataset.hillShare);
+      const feedback = document.getElementById('share-feedback');
+      if (navigator.share) {
+        try {
+          await navigator.share({text: field.value});
+          return;
+        } catch (error) {
+          if (error.name === 'AbortError') {
+            return;
+          }
+        }
+      }
+      try {
+        await navigator.clipboard.writeText(field.value);
+        feedback.textContent = 'Copied. Paste it wherever you post.';
+      } catch (error) {
+        field.select();
+        feedback.textContent = 'Copy the selected text to post it.';
+      }
+    });
+  </script>
+{% endblock %}

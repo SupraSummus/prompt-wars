@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load percentage %}
+
+{% block head %}
+  {% include 'hill/partials/meta.html' %}
+  {% include 'hill/partials/styles.html' %}
+{% endblock %}
+
+{% block content %}
+  <main class="container pw-hill">
+
+    <hgroup>
+      <h1>King of the Hill #{{ hill_round.number }}</h1>
+      <p>One boss spell a day, and anyone may attack it.</p>
+    </hgroup>
+
+    <p class="pw-hill-rule">
+      Your spell and the boss's are glued together and sent to the model, once in each order.
+      Whoever's characters the reply repeats more of, in order, wins.
+      The best attack that takes {{ win_score|percentage }} or more
+      becomes the boss at {{ hill_round.ends_at|date:'H:i' }} UTC.
+      {% if crowning %}<a href="#real-battle">See a real battle <span aria-hidden="true">↓</span></a>{% endif %}
+    </p>
+
+    {% include 'hill/partials/boss_card.html' %}
+
+    {% include 'hill/partials/attack_form.html' %}
+
+    {% if crowning %}
+      <section id="real-battle" aria-labelledby="real-battle-title">
+        <h2 id="real-battle-title">How the boss took the hill</h2>
+        {% include 'hill/partials/result.html' with battle=crowning %}
+      </section>
+    {% endif %}
+
+    {% if your_attempts %}
+      <section aria-labelledby="yours-title">
+        <h2 id="yours-title">Your attacks this round</h2>
+        <ol>
+          {% for mine in your_attempts %}
+            <li>
+              <a href="{% url 'hill:attempt' mine.attempt.id %}">Attack {{ forloop.counter }}</a>:
+              {% if mine.state == 'pending' %}
+                being judged
+              {% elif mine.state == 'scored' %}
+                {{ mine.attempt.score|percentage:1 }}{% if mine.attempt.late %} (too late to count){% endif %}
+              {% elif mine.state == 'failed' %}
+                no usable reply
+              {% elif mine.state == 'flagged' %}
+                flagged by moderation
+              {% else %}
+                didn't count
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ol>
+      </section>
+    {% endif %}
+
+    {% include 'hill/partials/standings.html' %}
+
+    {% if previous %}
+      <section aria-labelledby="previous-title">
+        <h2 id="previous-title">Hill #{{ previous.number }}</h2>
+        <p>
+          {% include 'hill/partials/round_stats.html' with stats=previous_stats %}
+          {% include 'hill/partials/handover.html' with following=hill_round %}
+        </p>
+        <p><a href="{% url 'hill:round_detail' previous.number %}">Hill #{{ previous.number }} results</a></p>
+      </section>
+    {% endif %}
+
+  </main>
+{% endblock %}

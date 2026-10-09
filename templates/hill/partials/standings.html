@@ -1,0 +1,28 @@
+{# Numbers only: while a round is open, nobody's spell or names are shown. #}
+<section aria-labelledby="standings-title">
+  <h2 id="standings-title">Standings</h2>
+  {% if standings.rows %}
+    <div class="overflow-auto" role="region" tabindex="0" aria-labelledby="standings-title">
+      <table class="pw-standings">
+        <thead>
+          <tr>
+            <th scope="col">Rank</th>
+            <th scope="col">Attacker, attacks</th>
+            <th scope="col">Best score</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in standings.rows %}
+            {% include 'hill/partials/standing_row.html' %}
+          {% endfor %}
+          {% if standings.own %}
+            {% include 'hill/partials/standing_row.html' with row=standings.own %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+    <p><small class="pw-muted">Each attacker's best attack this round; {{ standings.total }} attacker{{ standings.total|pluralize }} scored so far.</small></p>
+  {% else %}
+    <p>No attack has a score yet.</p>
+  {% endif %}
+</section>

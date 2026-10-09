@@ -1,0 +1,64 @@
+{% load percentage %}
+{# One scored hill battle from the attacker's side (`hill.display.battle_view`): the attacker in side 1's color, the boss in side 2's. #}
+<div class="pw-result">
+  <p class="pw-headline"{% if announce %} data-announce{% endif %}>
+    <bdi>{{ battle.attacker_label }}</bdi> took <strong>{{ battle.score|percentage:1 }}</strong> of this battle;
+    <bdi>{{ battle.boss_label }}</bdi> took {{ battle.boss_score|percentage:1 }}.
+  </p>
+
+  <div class="pw-cards">
+    {% for game in battle.games %}
+      <article class="pw-game" aria-labelledby="{{ battle.attempt.id }}-game-{{ forloop.counter }}">
+        <header>
+          <hgroup>
+            <h3 id="{{ battle.attempt.id }}-game-{{ forloop.counter }}">Going {% if game.attacker_first %}first{% else %}second{% endif %}</h3>
+            <p>
+              <span class="pw-sr-only">Prompt order:</span>
+              {% if game.attacker_first %}
+                <bdi>{{ battle.attacker_label }}</bdi> <span class="pw-muted">then</span> <bdi>{{ battle.boss_label }}</bdi>
+              {% else %}
+                <bdi>{{ battle.boss_label }}</bdi> <span class="pw-muted">then</span> <bdi>{{ battle.attacker_label }}</bdi>
+              {% endif %}
+            </p>
+          </hgroup>
+        </header>
+
+        <ul class="pw-split-sides">
+          <li class="pw-side-1">
+            <span class="pw-name"><span class="pw-dot" aria-hidden="true"></span><bdi>{{ battle.attacker_label }}</bdi></span>
+            <span class="pw-split-score"><span class="pw-sr-only">score</span> {{ game.score|percentage:1 }}</span>
+            <small>{{ game.attacker_survived }} of {{ game.attacker_length }} characters survived</small>
+          </li>
+          <li class="pw-side-2">
+            <span class="pw-name"><span class="pw-dot" aria-hidden="true"></span><bdi>{{ battle.boss_label }}</bdi></span>
+            <span class="pw-split-score"><span class="pw-sr-only">score</span> {{ game.boss_score|percentage:1 }}</span>
+            <small>{{ game.boss_survived }} of {{ game.boss_length }} characters survived</small>
+          </li>
+        </ul>
+        <div class="pw-split-bar" aria-hidden="true">
+          <span class="pw-side-1" style="width: {% widthratio game.score 1 100 %}%"></span>
+          <span class="pw-side-2" style="width: {% widthratio game.boss_score 1 100 %}%"></span>
+        </div>
+        <p><small>The reply was {{ game.reply_length }} character{{ game.reply_length|pluralize }} long; characters count when they survive in order.</small></p>
+
+        {% if not battle.replies %}
+          <p class="pw-note">
+            <span aria-hidden="true">&#128274;</span>
+            The replies are hidden until they pass moderation.
+          </p>
+        {% elif not game.result %}
+          <p class="pw-note">The model replied with nothing.</p>
+        {% else %}
+          <details open class="pw-side-1">
+            <summary><span class="pw-dot" aria-hidden="true"></span>The reply, marking what survived of <bdi>{{ battle.attacker_spell }}</bdi></summary>
+            {% include 'exact_text.html' with text=game.attacker_marked %}
+          </details>
+          <details class="pw-side-2">
+            <summary><span class="pw-dot" aria-hidden="true"></span>The reply, marking what survived of <bdi>{{ battle.boss_label }}</bdi></summary>
+            {% include 'exact_text.html' with text=game.boss_marked %}
+          </details>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+</div>

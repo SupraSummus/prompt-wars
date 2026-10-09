@@ -5,7 +5,7 @@ register = Library()
 
 
 @register.filter
-def percentage(value):
+def percentage(value, digits=0):
     if value is None:
         return '-'
-    return f'{value:.0%}'
+    return f'{value:.{digits}%}'

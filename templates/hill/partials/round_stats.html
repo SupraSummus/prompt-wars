@@ -1,0 +1,7 @@
+{% load percentage %}{# A closed round's numbers, `hill.rules.standings_stats`. #}
+{% if stats.attackers %}
+  {{ stats.attackers }} attacker{{ stats.attackers|pluralize }},
+  {{ stats.broke_through }} beat the boss; the boss held {{ stats.boss_held|percentage:1 }}.
+{% else %}
+  No challengers.
+{% endif %}

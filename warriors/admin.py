@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils import timezone
 
 from .battles import Battle
 from .models import Arena, WarriorArena
@@ -39,6 +40,16 @@ class WarriorAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
     )
     search_fields = ('id', 'name', 'author_name')
     date_hierarchy = 'created_at'
+    actions = ('take_down',)
+
+    @admin.action(description='Take down: flag as failing moderation')
+    def take_down(self, request, queryset):
+        """The owner's veto, as a moderation verdict: off the ladder (`battleworthy`) and off the hill."""
+        queryset.update(
+            moderation_passed=False,
+            moderation_model='owner',
+            moderation_date=timezone.now(),
+        )
 
 
 @admin.register(WarriorArena)

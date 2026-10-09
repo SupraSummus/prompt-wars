@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'stories.apps.StoriesConfig',
     'embedding_explorer.apps.EmbeddingExplorerConfig',
     'guessing.apps.GuessingConfig',
+    'hill.apps.HillConfig',
 ]
 
 MIDDLEWARE = [
@@ -210,6 +211,10 @@ LOGGING = {
             'level': 'INFO',
         },
         'warriors': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'hill': {
             'handlers': ['console'],
             'level': 'INFO',
         },

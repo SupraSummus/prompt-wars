@@ -177,3 +177,122 @@ the `overflow-auto` region around its table,
 labelled by the heading above it.
 Next move: wrap all three the same way
 and screenshot each at 320px.
+
+Two first attacks sent at once without a hill session cookie
+(two tabs, or a browser without JavaScript to disable the button)
+run as two players (`hill.identity.get_identity`):
+one is accepted, and if the browser keeps the other's cookie,
+the player can neither see their attempt nor send the text again.
+Next move, once a player reports it:
+carry a signed key in the form for a visitor without one, and have `get_identity` adopt it.
+
+No LLM client sets a timeout sized to its call site.
+The Gemini client (`warriors/llms/google.py`) has none:
+google-genai passes `timeout=None` unless `HttpOptions.timeout` is set, in milliseconds.
+The OpenAI and Anthropic clients run on their SDKs' 600-second timeout and two retries of their own.
+One hung call pins a worker thread (`--threads` in `Procfile`), hill battles included,
+and the SDK retries run before `_run_llm`'s backoff sees a rate limit.
+Next move: give each call site a timeout a little above its slowest normal call
+(`GoalProgress.time_taken` in production),
+in the shape of `moderation_client` in `hill/tasks.py`;
+a Gemini timeout maps to `TransientLLMError` and takes the existing retry path.
+Dropping SDK retries changes battle timing, so it needs sign-off.
+
+`do_moderation` (`warriors/tasks.py`) catches nothing around its moderation call,
+so a rate limit, a 5xx or a dropped connection fails the goal,
+and once django_goals gives up, `moderation_passed` stays None for good:
+nothing schedules it again, and a warrior without a verdict is never `battleworthy`.
+It also asserts `moderation_date is None`,
+so `hill_crown --warrior` or the admin's take-down action (`WarriorAdmin.take_down`)
+on a ladder spell whose `do_moderation` is still queued records a verdict first
+and makes that goal fail:
+the spell never gets its generated name or its embedding.
+Next move: move `moderation_client`, `TRANSIENT_MODERATION_ERRORS` and `moderate`
+from `hill/tasks.py` to `warriors/llms/openai.py`,
+and `record_spell_moderation` next to `Warrior`, as the one writer of its verdict;
+have `do_moderation` use both and answer transient errors with `RetryMeLater`;
+add a repair command that re-schedules moderation for warriors whose goal gave up with no verdict,
+and log here the condition for deleting it.
+Retrying instead of giving up changes ladder behavior, so it needs sign-off.
+
+A Voyage embedding that fails on anything but a rate limit is lost for good:
+`_ensure_voyage_3_embedding` (`warriors/embeddings.py`) retries only `voyageai.error.RateLimitError`,
+and `schedule_voyage_3_embedding` never schedules again once a goal is set, given up or not.
+Every EMBEDDINGS `GameScore` waiting on the embedding stays empty,
+and the resolve goal waiting on that score never reaches `AllDone`;
+King of the Hill reads scores before goal states because of this (`hill.status.attempt_status`).
+The client also has no timeout, so a hung call holds a worker thread.
+Next move: answer the SDK's server, connection and timeout errors with the same `RetryMeLater`,
+pass the client a `timeout`,
+have `schedule_voyage_3_embedding` schedule afresh when the existing goal gave up,
+and re-schedule the stuck rows with a repair command,
+deleted once no EMBEDDINGS `GameScore` waits on a given-up goal.
+Retrying a 5xx is a behavior change, so it needs sign-off.
+
+Pasting a King of the Hill text into the ladder's `/create/` form
+is a discovery like any other (`WarriorCreateForm.save`, `warriors/create_view.py`):
+the paster gets ladder access to the spell, as a session grant or a `WarriorUserPermission`,
+and a `WarriorArena` enrolls it in matchmaking.
+Boss texts are public, so anyone can put any boss on the ladder,
+and a logged-in paster who ticks public battle results
+publishes its ladder battles' outputs (`update_public_battle_results`);
+a guess at a sealed attack's text is told whether it exists.
+Hill battles stay unreadable either way:
+they are unrated, so no ladder page lists or opens them.
+Next move: in `WarriorCreateForm.clean`,
+read the hash with `cleaned_data.get` (`clean_body` may have failed),
+and refuse a text whose Warrior is a hill boss, a house boss or has a `HillAttempt`,
+unless the requester already holds a grant for it,
+checked without `Warrior.is_user_authorized`'s cache (next entry),
+with copy that doesn't say whether the text is public;
+test that a refusal creates no `WarriorArena` and no grant.
+It changes what the ladder accepts, so it needs sign-off.
+
+`Warrior.is_user_authorized` (`warriors/warriors.py`) sits behind a process-wide `lru_cache`
+keyed by the warrior and the user,
+and model instances hash by primary key,
+so an answer outlives the request that computed it:
+a user who opens a spell, then discovers it through `/create/`,
+reads as unauthorized in that process until the entry is evicted
+(reproduced: a fresh instance answers False after a `WarriorUserPermission` is created).
+Next move: drop the `lru_cache`,
+and if the warrior and battle pages' query counts suffer,
+memoize on the instance in a dict keyed by user id,
+which lives no longer than the request.
+It changes who reads as authorized, so it needs sign-off.
+
+An anonymous GET of `/challenge/<id>/` (`ChallengeWarriorView`, `warriors/views.py`) is a 500:
+`ChallengeWarriorForm` filters its choices by `warrior__users=self.user`,
+and rendering them with `AnonymousUser` raises `ValidationError`
+("“AnonymousUser” is not a valid UUID").
+The link shows only for signed-in users, but nothing stops the request.
+Next move: `LoginRequiredMixin` on the view,
+with a test that an anonymous visitor is sent to log in.
+
+`RECAPTCHA_PUBLIC_KEY` and `RECAPTCHA_PRIVATE_KEY` default to Google's published test keys
+(`llm_wars/settings.py`), which pass every captcha,
+and the `django_recaptcha` system check that would flag them is silenced.
+A production environment missing either variable
+therefore runs with no captcha and says nothing:
+the ladder's create form and King of the Hill's first attack in a round
+let every robot through.
+Next move: fall back to the test keys only when an explicit setting asks for them,
+set in `example.env`, which development and CI copy,
+and silence the check only then,
+so a deploy without keys fails the system checks `migrate` runs at `postdeploy`.
+Failing a deploy that lacks the keys is a behavior change, so it needs sign-off.
+
+The hill tells an outage from a bad reply by counting retries:
+`hill.status._ran_out_of_retries` reads `finish_reason == 'error'` with `game.attempts > MAX_TRANSIENT_RETRIES`,
+because `_run_llm` (`warriors/tasks.py`) stores the same 'error' for both.
+If `_run_llm`'s retry comparison changes, outages silently become charged failures,
+and the hill tests build games with `attempts=` directly, so they would not notice.
+Next move: have `_run_llm` store a distinct finish reason when it gives up,
+check that in `hill.status`, and keep `MAX_TRANSIENT_RETRIES` private to `warriors.tasks`.
+It changes the Finish chip on ladder battle pages, so it needs sign-off.
+
+`docs/strategy.md` judges King of the Hill by whether players come back,
+and nothing counts that.
+Next move: on `RoundAdmin`, a read-only column per round:
+its attackers (distinct identities with a scored attempt),
+and how many of them also attacked in one of the previous `HILL_NO_RETURN_ROUNDS` rounds.

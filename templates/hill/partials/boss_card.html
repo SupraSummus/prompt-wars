@@ -1,0 +1,46 @@
+{% load percentage %}
+<article class="pw-boss" aria-labelledby="boss-title">
+  <header>
+    <hgroup>
+      <h2 id="boss-title">
+        <bdi>{{ hill_round.boss_label }}</bdi>
+      </h2>
+      <p>
+        {% if hill_round.shown_author %}by <bdi>{{ hill_round.shown_author }}</bdi> &middot;{% endif %}
+        {{ reign_line }}
+      </p>
+    </hgroup>
+  </header>
+
+  {% if holder %}
+    <p><mark>Your spell holds the hill.</mark></p>
+  {% endif %}
+
+  {% if not hill_round.boss_shown %}
+    <p class="pw-note">The boss's text is hidden pending review. You can still attack it.</p>
+  {% else %}
+    <div class="overflow-auto pw-boss-text" role="region" tabindex="0" aria-label="The boss's spell">
+      {% include 'exact_text.html' with text=hill_round.boss.body %}
+    </div>
+  {% endif %}
+
+  <footer>
+    <p>
+      {% if stats.attackers %}
+        {{ stats.attackers }} attacker{{ stats.attackers|pluralize }} this round,
+        {{ stats.broke_through }} beat it; the boss held {{ stats.boss_held|percentage:1 }}.
+      {% else %}
+        No attacks yet. Be the first.
+      {% endif %}
+    </p>
+    <p>
+      {% if round_open %}
+        Attacks close at {% include 'hill/partials/utc_time.html' with time=hill_round.ends_at %}
+        (in {{ hill_round.ends_at|timeuntil }}).
+      {% else %}
+        Attacks closed at {% include 'hill/partials/utc_time.html' with time=hill_round.ends_at %};
+        the next boss is being crowned.
+      {% endif %}
+    </p>
+  </footer>
+</article>

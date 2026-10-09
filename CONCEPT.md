@@ -110,6 +110,8 @@ live in [docs/strategy.md](docs/strategy.md);
 design-level strengths, tensions, and candidate directions
 in [docs/design-tensions.md](docs/design-tensions.md);
 the fixed-cadence rounds proposal in [docs/rounds.md](docs/rounds.md);
+King of the Hill, the daily boss anyone can attack,
+in [docs/king-of-the-hill.md](docs/king-of-the-hill.md);
 the microblog reading of the same mechanics
 in [docs/twitter-for-prompts.md](docs/twitter-for-prompts.md);
 prior art for the mechanics this project keeps proposing —

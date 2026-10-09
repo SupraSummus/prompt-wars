@@ -1,0 +1,19 @@
+{% load percentage %}
+<tr{% if row.you %} class="pw-you"{% endif %}>
+  <td>#{{ row.rank }}</td>
+  <td>
+    {% if row.you %}You{% else %}Attacker #{{ row.attacker_number }}{% endif %}
+    <small><span aria-hidden="true">&times;</span>{{ row.attempt_count }}<span class="pw-sr-only"> attack{{ row.attempt_count|pluralize }}</span></small>
+  </td>
+  <td>
+    <span class="pw-score">
+      {{ row.score|percentage:1 }}
+      <span class="pw-bar" aria-hidden="true"><span style="width: {% widthratio row.score 1 100 %}%"></span></span>
+    </span>
+    {% if row.crown_block %}
+      <small>can't take the hill: {{ row.crown_block|lower }}</small>
+    {% elif row.beats_the_boss %}
+      <small>beats the boss</small>
+    {% endif %}
+  </td>
+</tr>

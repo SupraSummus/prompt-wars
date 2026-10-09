@@ -1,0 +1,60 @@
+{# The hill's own look, on top of the battle page's. #}
+{% include 'warriors/partials/battle_styles.html' %}
+<style>
+  .pw-hill pre {
+    /* a long run with no spaces (a URL, a row of emoji) wraps instead of widening the page */
+    overflow-wrap: anywhere;
+  }
+  .pw-hill-rule {
+    font-size: 1.125rem;
+  }
+  /* about six lines of the boss's spell; the rest scrolls inside the region */
+  .pw-boss-text {
+    max-height: 10.5rem;
+    margin-bottom: var(--pico-spacing);
+    border-radius: var(--pico-border-radius);
+  }
+  .pw-boss-text pre {
+    margin: 0;
+  }
+  .pw-boss footer p {
+    margin-bottom: 0.25rem;
+  }
+
+  .pw-refusal {
+    padding: 0.75rem 1rem;
+    border-left: 0.25rem solid var(--pico-del-color);
+    background: var(--pico-card-sectioning-background-color);
+  }
+  .errorlist {
+    margin: 0 0 0.25rem;
+    padding: 0;
+    color: var(--pico-del-color);
+    font-size: 0.875em;
+  }
+  .errorlist li {
+    list-style: none;
+  }
+
+  .pw-headline {
+    font-size: 1.25rem;
+  }
+  .pw-standings td, .pw-standings th {
+    background: transparent;
+    vertical-align: top;
+  }
+  .pw-standings .pw-you td {
+    font-weight: bold;
+  }
+  .pw-standings small {
+    display: block;
+    color: var(--pw-muted-color);
+  }
+
+  .pw-share textarea {
+    /* as tall as the text where the browser can, so wrapped lines on a phone aren't cut off */
+    field-sizing: content;
+    font-family: var(--pico-font-family-monospace);
+    font-size: 0.875rem;
+  }
+</style>
