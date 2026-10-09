@@ -11,7 +11,8 @@
       </ul>
     </nav>
 
-    <h1>Top 100 leaderboard</h1>
+    <h1 id="leaderboard-title">Top 100 leaderboard</h1>
+    <div class="overflow-auto" role="region" tabindex="0" aria-labelledby="leaderboard-title">
     <table>
       <thead>
         <tr>
@@ -34,6 +35,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
 
     <h2>Playstyle Distribution</h2>
     <div style="width: 80vmin; height: 80vmin; margin: auto;">

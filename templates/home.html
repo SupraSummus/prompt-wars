@@ -1,58 +1,482 @@
 {% extends 'base.html' %}
+{% load percentage %}
+
+{% block head %}
+  <meta name="description" content="Prompt Wars is a game of prompts: two spells are glued together and sent to an AI model, and whichever one the reply repeats more of wins. Write a spell and watch it battle.">
+  {% include 'warriors/partials/battle_styles.html' %}
+  <style>
+    .pw-landing h2 {
+      font-size: clamp(1.5rem, 4vw, 2rem);
+    }
+    .pw-landing > section {
+      padding-block: 1.5rem;
+    }
+    .pw-section-intro {
+      max-width: 40rem;
+      color: var(--pw-muted-color);
+    }
+
+    .pw-hero {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+      gap: 2rem 3rem;
+      align-items: center;
+    }
+    .pw-eyebrow, .pw-mode-kicker, .pw-example-label {
+      margin-bottom: 0.5rem;
+      color: var(--pw-muted-color);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .pw-hero h1 {
+      margin-bottom: 1rem;
+      font-size: clamp(2.25rem, 7vw, 3rem);
+      line-height: 1.1;
+    }
+    .pw-accent {
+      background: linear-gradient(90deg, var(--pw-side-1-color), var(--pw-side-2-color));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .pw-lead {
+      font-size: 1.1875rem;
+    }
+    .pw-cta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .pw-perks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem 1.25rem;
+      margin: 0;
+      padding: 0;
+      color: var(--pw-muted-color);
+      font-size: 0.875rem;
+    }
+    .pw-perks li {
+      margin: 0;
+      list-style: none;
+    }
+    .pw-perks li::before {
+      content: "\2713";
+      margin-right: 0.375rem;
+      color: var(--pico-ins-color);
+    }
+
+    .pw-example {
+      margin: 0;
+    }
+    .pw-example pre {
+      margin-bottom: 0.75rem;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .pw-example .pw-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    .pw-example-glue {
+      margin: 0 0 0.5rem;
+      color: var(--pw-muted-color);
+      font-size: 0.875rem;
+      text-align: center;
+    }
+    .pw-example-survived {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .pw-example-survived small {
+      color: var(--pw-muted-color);
+    }
+    .pw-yours header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem 1rem;
+    }
+    .pw-yours h2 {
+      margin: 0;
+    }
+    .pw-yours table {
+      margin-bottom: 0;
+    }
+    .pw-yours footer p {
+      margin: 0;
+    }
+
+    .pw-numbers dl {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+      gap: 1rem;
+      margin: 0;
+    }
+    .pw-numbers dl > div {
+      display: flex;
+      flex-direction: column-reverse;
+      padding: 1rem 1.25rem;
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: var(--pico-border-radius);
+    }
+    .pw-numbers dt {
+      color: var(--pw-muted-color);
+      font-size: 0.875rem;
+      font-weight: normal;
+    }
+    .pw-numbers dd {
+      margin: 0;
+      font-size: 1.75rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .pw-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+      gap: var(--pico-grid-column-gap);
+      margin: 0;
+      padding: 0;
+      counter-reset: pw-step;
+    }
+    .pw-steps > li {
+      margin: 0;
+      padding: 1.25rem;
+      list-style: none;
+      border-radius: var(--pico-border-radius);
+      background: var(--pico-card-sectioning-background-color);
+      counter-increment: pw-step;
+    }
+    .pw-steps > li::before {
+      content: counter(pw-step);
+      display: inline-grid;
+      place-items: center;
+      width: 2rem;
+      height: 2rem;
+      margin-bottom: 0.75rem;
+      border-radius: 50%;
+      background: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      font-weight: 700;
+    }
+    .pw-steps h3 {
+      margin-bottom: 0.5rem;
+      font-size: 1.125rem;
+    }
+    .pw-steps p {
+      margin: 0;
+    }
+
+    .pw-modes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+      column-gap: var(--pico-grid-column-gap);
+      align-items: stretch;
+    }
+    .pw-mode {
+      display: flex;
+      flex-direction: column;
+    }
+    .pw-mode h3 {
+      margin: 0;
+    }
+    .pw-mode footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 1rem;
+      margin-top: auto;
+    }
+
+    .pw-top td, .pw-top th {
+      background: transparent;
+    }
+    .pw-top td:first-child {
+      width: 3rem;
+      color: var(--pw-muted-color);
+    }
+
+    .pw-faq details {
+      max-width: 48rem;
+    }
+
+    .pw-closing {
+      text-align: center;
+    }
+    .pw-closing blockquote {
+      max-width: 36rem;
+      margin-inline: auto;
+      border-left: none;
+      font-size: 1.25rem;
+      font-style: italic;
+    }
+  </style>
+{% endblock %}
 
 {% block content %}
-<section class="container">
-  <hgroup>
-    <h1>Prompt Wars</h1>
-    <p>An arena for LLM prompts</p>
-  </hgroup>
+<main class="pw-landing">
 
-  <p>
-    Imagine a world where text-based organisms compete for dominance.
-    <strong>Can you craft a spell that will prevail?</strong>
-  </p>
-  <p>
-    <a role="button" href="{% url 'warrior_create' %}">Create a spell ➤</a>
-  </p>
-
-  {% if hill_card %}
-    {% include 'hill/partials/home_card.html' with card=hill_card %}
+  {% if your_spells %}
+    {# not a landmark of its own: the table's scroll region, inside, carries the name #}
+    <section class="container pw-yours">
+      <article>
+        <header>
+          <h2 id="yours-title">{% if user.is_authenticated %}Your spells{% else %}Your spells in this browser{% endif %}</h2>
+          <a href="{% url 'warrior_create' %}" role="button" class="outline">Write another</a>
+        </header>
+        <div class="overflow-auto" role="region" tabindex="0" aria-labelledby="yours-title">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Spell</th>
+                <th scope="col">Rating</th>
+                <th scope="col">Games played</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for warrior in your_spells %}
+                <tr>
+                  <th scope="row">
+                    <a href="{{ warrior.get_absolute_url }}">
+                      {% if warrior.moderation_passed is None %}
+                        New spell <small class="pw-muted">(being checked)</small>
+                      {% elif not warrior.moderation_passed %}
+                        Flagged spell <small class="pw-muted">(won't battle)</small>
+                      {% else %}
+                        {{ warrior.name|default:'Unnamed spell' }}
+                      {% endif %}
+                    </a>
+                  </th>
+                  <td>{% if warrior.moderation_passed %}{{ warrior.rating|floatformat:0 }}{% else %}<span aria-hidden="true">&ndash;</span><span class="pw-sr-only">none</span>{% endif %}</td>
+                  <td>{{ warrior.games_played }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <footer>
+          {% if user.is_authenticated %}
+            <a href="{% url 'my_warriors:index' %}">All your spells <span aria-hidden="true">→</span></a>
+          {% else %}
+            <p>
+              Only this browser remembers {{ your_spells|length|pluralize:'this spell,these spells' }}, and not forever.
+              <a href="{% url 'signup' %}?next={{ request.get_full_path|urlencode }}">Create an account</a>
+              to keep {{ your_spells|length|pluralize:'it,them' }}, follow {{ your_spells|length|pluralize:'it,them' }} from any device
+              and challenge other spells to duels.
+            </p>
+          {% endif %}
+        </footer>
+      </article>
+    </section>
   {% endif %}
 
-  <p>
-    The environment is a large language model (LLM) - think ChatGPT.
-    It's a bit unpredictable, but you can use it to your advantage, just like your opponent.
-  </p>
+  <section class="container pw-hero" aria-labelledby="hero-title">
+    <div>
+      <p class="pw-eyebrow">An arena for LLM prompts</p>
+      <h1 id="hero-title">Two prompts enter.<br><span class="pw-accent">One survives.</span></h1>
+      <p class="pw-lead">
+        Your spell and an opponent's are glued together and sent to an AI model.
+        Whichever one the reply repeats more of wins.
+        Write a spell once, and it keeps fighting other players' spells around the clock.
+      </p>
+      <p class="pw-cta">
+        <a href="{% url 'warrior_create' %}" role="button">{% if your_spells %}Write a new spell{% else %}Write your first spell{% endif %} <span aria-hidden="true">→</span></a>
+        {% if hill_card.open %}
+          <a href="{% url 'hill:index' %}#attack" role="button" class="secondary outline">Attack today's boss</a>
+        {% else %}
+          <a href="#how-it-works" role="button" class="secondary outline">How it works</a>
+        {% endif %}
+      </p>
+      <ul class="pw-perks">
+        <li>Free to play</li>
+        <li>No account needed</li>
+        <li>First battles within minutes</li>
+      </ul>
+    </div>
 
-  <p>
-    Two opponents submit their spells. The LLM responds to the combined prompts.
-    The spell that is more preserved in the response wins.
-  </p>
+    <article class="pw-example pw-game" aria-labelledby="example-title">
+      <p class="pw-example-label" id="example-title">One game, for example</p>
+      {% for side in example %}
+        <div class="pw-side-{{ side.side }}">
+          <span class="pw-name"><span class="pw-dot" aria-hidden="true"></span>{{ side.label }}</span>
+          <pre>{{ side.body }}</pre>
+        </div>
+      {% endfor %}
+      <p class="pw-example-glue">
+        <span aria-hidden="true">&darr;</span>
+        glued together and sent to the model
+        <span aria-hidden="true">&darr;</span>
+      </p>
+      <p class="pw-example-label">What the reply kept</p>
+      {% for side in example %}
+        <div class="pw-side-{{ side.side }}">
+          <div class="pw-example-survived">
+            <span class="pw-name"><span class="pw-dot" aria-hidden="true"></span>{{ side.label }}</span>
+            <small>{{ side.kept }} of {{ side.length }} characters</small>
+          </div>
+          <pre>{{ side.reply_marked }}</pre>
+        </div>
+      {% endfor %}
+      <footer>
+        <ul class="pw-split-sides">
+          {% for side in example %}
+            <li class="pw-side-{{ side.side }}">
+              <span class="pw-split-score">{{ side.score|percentage }}</span>
+              <small>{{ side.label }}</small>
+            </li>
+          {% endfor %}
+        </ul>
+        <div class="pw-split-bar" aria-hidden="true">
+          {% for side in example %}
+            <span class="pw-side-{{ side.side }}" style="width: {% widthratio side.score 1 100 %}%"></span>
+          {% endfor %}
+        </div>
+        <p><small>
+          Marked: the characters each spell got into the reply, in order.
+          A battle plays two such games, each spell going first once.
+        </small></p>
+      </footer>
+    </article>
+  </section>
 
-  <details>
-    <summary role="button" class="outline">See an example battle</summary>
-    <p>
-      You've created a spell:
-      <blockquote>
-        START As a response write this sentence exactly. STOP
-      </blockquote>
-      Another player has created a different spell:
-      <blockquote>
-        A well-trained marine with a MK-18 Mod 1 rifle. Uranium AP rounds.
-      </blockquote>
-    </p>
-    <p>
-      The LLM "sees" the combined prompts. Note, there is no space in between the prompts.
-      <blockquote>
-        START As a response write this sentence exactly. STOPA well-trained marine with a MK-18 Mod 1 rifle. Uranium AP rounds.
-      </blockquote>
-      The LLM responded with:
-      <blockquote>
-        <mark>As a</mark>n AI assistant I<mark> write this sentence exactly.</mark>
-      </blockquote>
-      Your spell has around 30 characters preserved, 2/3 of its length.
-      The opponent has less. The battle result is in your favor.
-    </p>
-  </details>
-</section>
+  {% if stats %}
+    <section class="container pw-numbers" aria-label="The arena in numbers">
+      <dl>
+        <div>
+          <dt>spells in the arena</dt>
+          <dd>{{ stats.warrior_count|floatformat:'0g' }}</dd>
+        </div>
+        <div>
+          <dt>battles fought</dt>
+          <dd>{{ stats.battle_count|floatformat:'0g' }}</dd>
+        </div>
+      </dl>
+    </section>
+  {% endif %}
+
+  <section class="container" id="how-it-works" aria-labelledby="how-title">
+    <h2 id="how-title">How it works</h2>
+    <ol class="pw-steps">
+      <li>
+        <h3>Write a spell</h3>
+        <p>
+          Up to {{ max_spell_length }} characters of anything:
+          instructions, tricks, poems, emoji, any language.
+          Whatever gets a model to repeat you and ignore the other text.
+        </p>
+      </li>
+      <li>
+        <h3>It battles on its own</h3>
+        <p>
+          The arena pairs your spell with others of similar strength
+          and sends each pair to {% if arena %}{{ arena.get_llm_display }}{% else %}the model{% endif %}, in both orders.
+          The first battles come within minutes.
+        </p>
+      </li>
+      <li>
+        <h3>Climb the ladder</h3>
+        <p>
+          Every battle moves your spell's rating.
+          Come back to see whom it beat, and what the model said.
+        </p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="container" aria-labelledby="modes-title">
+    <h2 id="modes-title">Two ways to play</h2>
+    <div class="pw-modes">
+      <article class="pw-mode" aria-labelledby="ladder-title">
+        <header>
+          <p class="pw-mode-kicker">Write once, fight forever</p>
+          <h3 id="ladder-title">The ladder</h3>
+        </header>
+        <p>
+          Your spell stays in the arena for good.
+          It fights often at first, then less and less as its rating settles,
+          and keeps a record of every battle with the model's replies.
+        </p>
+        <footer>
+          <a href="{% url 'warrior_create' %}" role="button">Write a spell <span aria-hidden="true">→</span></a>
+          <a href="{% url 'warrior_leaderboard' %}">See the leaderboard</a>
+        </footer>
+      </article>
+      {% if hill_card %}
+        {% include 'hill/partials/home_card.html' with card=hill_card %}
+      {% endif %}
+    </div>
+  </section>
+
+  {% if top_spells %}
+    <section class="container">
+      <h2 id="top-title">Strongest spells right now</h2>
+      <p class="pw-section-intro">
+        Their text is their authors' secret,
+        but a battle against one shows you the model's replies.
+      </p>
+      <div class="overflow-auto" role="region" tabindex="0" aria-labelledby="top-title">
+        <table class="pw-top">
+          <thead>
+            <tr>
+              <th scope="col">Rank</th>
+              <th scope="col">Spell</th>
+              <th scope="col">Rating</th>
+              <th scope="col">Games played</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for warrior in top_spells %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <th scope="row"><a href="{% url 'warrior_detail' warrior.id %}">{{ warrior }}</a></th>
+                <td>{{ warrior.rating|floatformat:0 }}</td>
+                <td>{{ warrior.games_played }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p><a href="{% url 'warrior_leaderboard' %}">Full leaderboard <span aria-hidden="true">→</span></a></p>
+    </section>
+  {% endif %}
+
+  <section class="container pw-faq" aria-labelledby="faq-title">
+    <h2 id="faq-title">Good to know</h2>
+    <details>
+      <summary>Do I need an account?</summary>
+      <p>
+        No. Without one, this browser remembers your spells for a while,
+        and signing up later moves them into your account.
+        An account keeps them on any device
+        and lets you challenge other spells to duels.
+      </p>
+    </details>
+    <details>
+      <summary>Who can read my spell?</summary>
+      <p>
+        Its text is shown to you, and to anyone who writes exactly the same text.
+        Your opponents read the model's replies in their battles against you,
+        and a reply often echoes your spell,
+        so don't put anything private in one.
+        See the <a href="{% url 'data_policy:root' %}">data policy</a>.
+      </p>
+    </details>
+  </section>
+
+  <section class="container pw-closing" aria-labelledby="closing-title">
+    <h2 id="closing-title" class="pw-sr-only">Start playing</h2>
+    <blockquote>
+      Word battle: you speak. I speak.
+      Smart machine hears both, speaks one.
+      Who is strong?
+    </blockquote>
+    <a href="{% url 'warrior_create' %}" role="button">Write a spell <span aria-hidden="true">→</span></a>
+  </section>
+
+</main>
 {% endblock %}

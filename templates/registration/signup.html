@@ -1,14 +1,22 @@
-{% extends 'base.html' %}
+{% extends 'registration/auth_base.html' %}
 
-{% block content %}
-  <main class="container">
+{% block title %}Sign up - Prompt wars{% endblock %}
+
+{% block auth %}
+  <hgroup>
     <h1>Create an account</h1>
+    <p>Keep your spells on any device: the ones this browser remembers move into your account.</p>
+  </hgroup>
 
-    <form method="post" action="{% url 'signup' %}">
-      {% csrf_token %}
-      {{ form.as_div }}
-      <input type="submit" value="Sign up">
-    </form>
+  <form method="post" action="{% url 'signup' %}">
+    {% csrf_token %}
+    {{ form.as_div }}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    <button type="submit">Sign up</button>
+  </form>
 
-  </main>
+  <p>
+    Already have an account?
+    <a href="{% url 'login' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Log in</a>
+  </p>
 {% endblock %}

@@ -120,8 +120,10 @@ it is a signal the system already emits and currently discards.
    Start by instrumenting what account data cannot show:
    how many distinct humans visit and whether anonymous players return.
    Anonymous-to-account claim flow
-   ("leave an email to keep your warriors"),
-   then a periodic digest email built from battle activity.
+   ("leave an email to keep your warriors"):
+   signing up keeps the browser's warriors (`claim_session_warriors`)
+   but asks for no email,
+   which the next step, a periodic digest email built from battle activity, needs.
    Success metrics are blunt at this scale:
    signups per month and 30-day actives.
 3. **A recurring shareable artifact, as a habit rather than a feature.**

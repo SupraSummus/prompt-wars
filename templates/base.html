@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{% if meta_title %}{{ meta_title }} - {% endif %}Prompt wars{% endblock %}</title>
     {% if meta_description %}<meta name="description" content="{{ meta_description }}">{% endif %}
+    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
     <link rel="stylesheet" href="{% static 'vendor/pico-2.1.1/pico.min.css' %}">
     <style>
       mark {
@@ -17,6 +18,14 @@
       }
       header nav a, header nav button {
         white-space: nowrap;
+      }
+      .pw-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      header nav [role=button].pw-nav-cta {
+        padding: 0.375rem 0.875rem;
       }
       .dot-separated > *:not(:last-child)::after {
         content: "•";
@@ -35,6 +44,28 @@
       }
       .pw-muted {
         color: var(--pw-muted-color);
+      }
+      /* Pico's own subtitle color, as the boss card's on the hill */
+      hgroup > :not(:first-child):last-child {
+        --pico-color: var(--pw-muted-color);
+      }
+      /* Django's form rendering: help above a field, errors in a list */
+      .helptext {
+        margin-bottom: 0.25rem;
+        color: var(--pw-muted-color);
+        font-size: 0.875em;
+      }
+      .helptext ul {
+        padding-left: 1.25rem;
+      }
+      .errorlist {
+        margin: 0 0 0.25rem;
+        padding: 0;
+        color: var(--pico-del-color);
+        font-size: 0.875em;
+      }
+      .errorlist li {
+        list-style: none;
       }
       .pw-sr-only {
         position: absolute;
@@ -80,18 +111,24 @@
       {% block header %}
         <nav>
           <ul>
-            <li><strong>
-              <a href="{% url 'home' %}" class="contrast">Prompt wars</a>
-            </strong></li>
-            <li><a href="{% url 'arena_list' %}">Arenas</a></li>
+            <li>
+              <a href="{% url 'home' %}" class="contrast pw-brand">
+                <img src="{% static 'favicon.svg' %}" alt="" width="28" height="28">
+                <strong>Prompt Wars</strong>
+              </a>
+            </li>
+          </ul>
+          <ul>
             <li><a href="{% url 'hill:index' %}">Hill</a></li>
+            <li><a href="{% url 'warrior_leaderboard' %}">Leaderboard</a></li>
+            <li><a href="{% url 'arena_list' %}">Arenas</a></li>
             {% if user.is_authenticated %}
-              <li><a href="{% url 'my_warriors:index' %}">My stuff</a></li>
+              <li><a href="{% url 'my_warriors:index' %}">My spells</a></li>
             {% endif %}
           </ul>
           <ul>
             {% if user.is_authenticated %}
-              <li>
+              <li class="pw-muted">
                 Hi, {{ user.username }}!
               </li>
               <li>
@@ -102,10 +139,12 @@
                   </button>
                 </form>
               </li>
-            {% else %}
-              <li><a href="{% url 'login' %}">Log in</a></li>
-              <li><a href="{% url 'signup' %}">Sign up</a></li>
+            {% elif request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' %}
+              {# back to this page afterwards; the login and signup pages link to each other themselves #}
+              <li><a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Log in</a></li>
+              <li><a href="{% url 'signup' %}?next={{ request.get_full_path|urlencode }}">Sign up</a></li>
             {% endif %}
+            <li><a href="{% url 'warrior_create' %}" role="button" class="pw-nav-cta">New spell</a></li>
           </ul>
         </nav>
       {% endblock %}

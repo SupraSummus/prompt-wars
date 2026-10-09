@@ -1,12 +1,19 @@
 {# The hill on the home page: no form, so the captcha's script stays off the landing page. #}
-<article aria-labelledby="hill-card-title">
+<article class="pw-mode" aria-labelledby="hill-card-title">
   <header>
-    <h2 id="hill-card-title">King of the Hill #{{ card.hill_round.number }}</h2>
+    <p class="pw-mode-kicker">A boss a day</p>
+    <h3 id="hill-card-title">King of the Hill #{{ card.hill_round.number }}</h3>
   </header>
   <p>
-    {% if card.hill_round.shown_name %}Today's boss is <bdi>{{ card.hill_round.shown_name }}</bdi>.{% else %}One boss spell a day, and anyone may attack it.{% endif %}
+    {% if card.hill_round.shown_name %}Today's boss is <bdi><strong>{{ card.hill_round.shown_name }}</strong></bdi>.{% else %}One boss spell a day, and anyone may attack it.{% endif %}
+    An attack's result arrives in about a minute,
+    and at the end of the day the best attack that beat the boss by a margin takes its place.
+  </p>
+  <p class="pw-muted">
     {{ card.attackers }} attacker{{ card.attackers|pluralize }} so far.
     {% if card.open %}Attacks close in {{ card.hill_round.ends_at|timeuntil }}.{% endif %}
   </p>
-  <a role="button" href="{% url 'hill:index' %}#attack">Attack the boss <span aria-hidden="true">→</span></a>
+  <footer>
+    <a role="button" href="{% url 'hill:index' %}#attack">Attack the boss <span aria-hidden="true">→</span></a>
+  </footer>
 </article>

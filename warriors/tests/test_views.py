@@ -436,3 +436,29 @@ def test_recent_battles_public_battle_results(
         assert battle in response.context['battles']
     else:
         assert battle not in response.context['battles']
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('warrior', [{'moderation_passed': None}], indirect=True)
+def test_a_fresh_warriors_page_polls_until_its_first_result(client, arena, warrior, warrior_arena):
+    url = reverse('warrior_detail', args=(warrior_arena.id,))
+    assert 'hx-select="main"' in client.get(url).content.decode()
+    assert client.get(url, {'polling': 'page'}).status_code == 204
+
+    warrior.moderation_passed = True
+    warrior.save(update_fields=['moderation_passed'])
+    assert 'hx-select="#battles-section"' in client.get(url, {'polling': 'page'}).content.decode()
+    assert client.get(url, {'polling': 'battles'}).status_code == 204
+
+    batch_create_battles(arena, warrior_arena, 1)
+    assert 'hx-get' not in client.get(url, {'polling': 'battles'}).content.decode()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('warrior', [{
+    'moderation_passed': None,
+    'created_at': timezone.now() - datetime.timedelta(days=1),
+}], indirect=True)
+def test_warrior_details_of_an_old_warrior_do_not_poll(client, warrior, warrior_arena):
+    response = client.get(reverse('warrior_detail', args=(warrior_arena.id,)))
+    assert response.context['polling'] is None

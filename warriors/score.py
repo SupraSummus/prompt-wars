@@ -186,9 +186,9 @@ def _ensure_score(game_score, save=True):
 def ensure_lcs_score(game_score, game, save=True):
     _set_similarity(
         game_score,
-        _lcs_similarity(game.warrior_1.body, game.result),
-        _lcs_similarity(game.warrior_2.body, game.result),
-        warriors_similarity=_lcs_similarity(
+        lcs_similarity(game.warrior_1.body, game.result),
+        lcs_similarity(game.warrior_2.body, game.result),
+        warriors_similarity=lcs_similarity(
             game.warrior_1.body,
             game.warrior_2.body,
         ),
@@ -197,7 +197,7 @@ def ensure_lcs_score(game_score, game, save=True):
     return AllDone()
 
 
-def _lcs_similarity(warrior, result):
+def lcs_similarity(warrior, result):
     if result is None:
         return None
     return lcs_len(warrior, result) / max(len(warrior), len(result))

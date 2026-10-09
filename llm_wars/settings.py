@@ -154,8 +154,9 @@ STORAGES = {
 
 
 AUTH_USER_MODEL = 'users.User'
-LOGIN_REDIRECT_URL = 'warrior_create'
-LOGOUT_REDIRECT_URL = 'warrior_create'
+# the home page lists a logged-in player's spells
+LOGIN_REDIRECT_URL = 'home'
+LOGOUT_REDIRECT_URL = 'home'
 
 
 OPENAI_API_KEY = env.str('OPENAI_API_KEY', default='')

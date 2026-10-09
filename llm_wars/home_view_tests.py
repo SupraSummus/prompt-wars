@@ -1,0 +1,46 @@
+import pytest
+from django.urls import reverse
+
+from warriors.tests.factories import (
+    WarriorArenaFactory, WarriorUserPermissionFactory,
+)
+
+
+@pytest.mark.django_db
+def test_home_without_an_arena(client):
+    response = client.get(reverse('home'))
+    assert response.status_code == 200
+    assert response.context['top_spells'] == []
+    assert response.context['your_spells'] == []
+
+
+@pytest.mark.django_db
+def test_home_shows_the_top_of_the_ladder(client, default_arena):
+    low = WarriorArenaFactory(arena=default_arena, rating=10)
+    high = WarriorArenaFactory(arena=default_arena, rating=500)
+    WarriorArenaFactory(arena=default_arena, rating=900, warrior__moderation_passed=None)
+    WarriorArenaFactory(rating=1000)  # another arena's
+    response = client.get(reverse('home'))
+    assert response.context['top_spells'] == [high, low]
+
+
+@pytest.mark.django_db
+def test_home_lists_the_spells_this_browser_made(client, default_arena):
+    mine = WarriorArenaFactory(arena=default_arena)
+    WarriorArenaFactory(arena=default_arena)
+    session = client.session
+    session['authorized_warriors'] = [str(mine.id), str(mine.warrior_id)]
+    session.save()
+    response = client.get(reverse('home'))
+    assert response.context['your_spells'] == [mine]
+    # and the nudge to keep it
+    assert 'Only this browser remembers this spell' in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_home_lists_an_accounts_spells(user, user_client, default_arena):
+    mine = WarriorArenaFactory(arena=default_arena)
+    WarriorUserPermissionFactory(warrior=mine.warrior, user=user)
+    WarriorArenaFactory(arena=default_arena)
+    response = user_client.get(reverse('home'))
+    assert response.context['your_spells'] == [mine]

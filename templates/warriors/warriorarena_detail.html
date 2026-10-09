@@ -1,9 +1,18 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ warrior }}{% endblock %}
+{% block title %}{% if warrior.moderation_passed is None and show_secrets %}Your new spell{% else %}{{ warrior }}{% endif %}{% endblock %}
+
+{% block head %}
+  <style>
+    .pw-keep {
+      border-left: 0.25rem solid var(--pico-primary-background);
+    }
+  </style>
+{% endblock %}
 
 {% block content %}
-  <main class="container">
+  {# while moderation decides, the page polls for itself (`warrior_page_polling`); the verdict comes back without hx-*, which ends it #}
+  <main class="container"{% if polling == 'page' %} hx-get="{{ request.path }}?polling=page" hx-trigger="every {{ poll_seconds }}s" hx-select="main" hx-swap="outerHTML"{% endif %}>
 
     <nav aria-label="breadcrumb">
       <ul>
@@ -14,17 +23,32 @@
     </nav>
 
     <hgroup>
-      <h1>{{ warrior }}</h1>
+      {# before moderation the name stays hidden from everyone, and its author needs no id to know what this is #}
+      <h1>{% if warrior.moderation_passed is None and show_secrets %}Your new spell{% else %}{{ warrior }}{% endif %}</h1>
       {% if warrior.moderation_passed and warrior.author_name %}
         <p>by {{ warrior.author_name }}</p>
       {% endif %}
     </hgroup>
 
+    {% if show_secrets and not user.is_authenticated %}
+      <article class="pw-keep">
+        <strong>This spell lives in this browser.</strong>
+        Only this browser can open its text, and not forever.
+        <a href="{% url 'signup' %}?next={{ request.get_full_path|urlencode }}">Create an account</a>
+        or <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">log in</a>
+        to keep it for good.
+      </article>
+    {% endif %}
+
     {% if warrior.moderation_passed is None %}
-      <p>
+      <p role="status">
+        <span aria-busy="true"></span>
         Hold on for a second, please. We are checking if this warrior is battleworthy.
       </p>
-      <a href="" role="button">Reload the page</a> to see the results.
+      <p>
+        Once it passes, it meets opponents of similar strength, the first within minutes.
+        {% if polling %}This page updates by itself.{% else %}<a href="">Reload the page</a> to see the result.{% endif %}
+      </p>
 
     {% elif not warrior.moderation_passed %}
       <p>
@@ -39,21 +63,31 @@
 
       {% if show_secrets %}
         <details>
-          <summary role="button" class="outline">Body</summary>
+          <summary role="button" class="outline">Spell text</summary>
           {% include 'exact_text.html' with text=warrior.body %}
         </details>
       {% endif %}
 
+      {# until a first battle is scored, the list polls for itself, without disturbing the rest of the page #}
+      <section id="battles-section"{% if polling == 'battles' %} hx-get="{{ request.path }}?polling=battles" hx-trigger="every {{ poll_seconds }}s" hx-select="#battles-section" hx-swap="outerHTML"{% endif %}>
       <h2 id="battles">Battles</h2>
       <p>
         {% if request.user.is_authenticated %}
           <a href="{% url 'challenge_warrior' warrior.id %}" role="button">Challenge this warrior to a duel</a>
+        {% else %}
+          <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Log in</a> to challenge this warrior to a duel.
         {% endif %}
       </p>
       <p>
         Next auto battle: {% include 'time.html' with time=warrior.next_battle_schedule %}
         (in {{ warrior.next_battle_schedule|timeuntil }})
       </p>
+      {% if not battles %}
+        <p>
+          No battles yet, but one should be scheduled soon.
+          {% if polling %}This list updates by itself.{% else %}<a href="">Reload the page</a>{% endif %}
+        </p>
+      {% else %}
       {# a data table may scroll sideways on a narrow screen; the region makes that reachable by keyboard #}
       <div class="overflow-auto" role="region" tabindex="0" aria-labelledby="battles">
       <table>
@@ -86,23 +120,18 @@
               {% endfor %}
               <td>{{ row.performance }}</td>
             </tr>
-          {% empty %}
-            <tr>
-              <td colspan="5">
-                No battles yet, but one should be scheduled soon.
-                <a href="" role="button">Reload the page</a>
-              </td>
-            </tr>
           {% endfor %}
         </tbody>
       </table>
       </div>
+      {% endif %}
       <p><small>
         A score is this warrior's share of one game,
         with its prompt going first or second.
         Performance is the battle score
         minus the score the two warriors' ratings predicted.
       </small></p>
+      </section>
 
       {% if other_warrior_arenas %}
         <h2>On other arenas</h2>
