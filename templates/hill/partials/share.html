@@ -1,0 +1,8 @@
+{# A post about the result, built by `hill.display.share_text`: numbers and the hill's address, never the spell. The button is wired up on the attempt page. #}
+<section class="pw-share" aria-labelledby="share-title">
+  <h3 id="share-title">Share your result</h3>
+  <label for="share-text">Text to post</label>
+  <textarea id="share-text" rows="6" readonly>{{ share_text }}</textarea>
+  <button type="button" class="secondary" data-hill-share="share-text">Share</button>
+  <small role="status" id="share-feedback"></small>
+</section>

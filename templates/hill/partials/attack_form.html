@@ -1,0 +1,71 @@
+{# The attack form, or what keeps the visitor from attacking now. #}
+<section id="attack" aria-labelledby="attack-title">
+  <h2 id="attack-title">Attack the boss</h2>
+
+  {% if blocked %}
+    <p class="pw-note">
+      {{ blocked.message }}
+      {% if in_flight %}<a href="{% url 'hill:attempt' in_flight.id %}">See how it's going</a>{% endif %}
+    </p>
+  {% else %}
+    {% if refusal %}
+      <p class="pw-refusal" role="alert">{{ refusal.message }}</p>
+    {% endif %}
+    {% if busy_count %}
+      <p class="pw-note">
+        Busy right now: {{ busy_count }} attack{{ busy_count|pluralize }} being judged.
+        You can write your spell; if it's still busy when you send it, we keep your text.
+      </p>
+    {% endif %}
+    {% if attacks_left is not None %}
+      <p><small>{{ attacks_left }} of {{ attempts_per_player }} attacks left this round.</small></p>
+    {% endif %}
+
+    {# `#attack`: a refused attack comes back as this page, which then opens at the form; the result page an accepted one leads to has no such anchor. #}
+    <form id="attack-form" method="post" action="{% url 'hill:attack' %}#attack">
+      {% csrf_token %}
+      <input type="hidden" name="round_number" value="{{ hill_round.number }}">
+      {{ form.body.as_field_group }}
+      <div class="grid">
+        <div>{{ form.display_name.as_field_group }}</div>
+        <div>{{ form.display_author.as_field_group }}</div>
+      </div>
+      <fieldset>
+        <label>
+          {{ form.consent }}
+          {{ form.consent.label }}
+        </label>
+        {{ form.consent.errors }}
+      </fieldset>
+      <p>
+        <small>
+          Unless it takes the hill, your spell and the model's replies stay private to you.
+          Don't share any private, secret, or classified information!
+          See the <a href="{% url 'data_policy:root' %}">data policy</a>.
+        </small>
+      </p>
+      {% if captcha_needed %}
+        {{ form.captcha.as_field_group }}
+      {% endif %}
+      <button type="submit">Attack the boss</button>
+    </form>
+    <script>
+      // One send per click. A visitor's first attack is what gives them a player key (the session cookie),
+      // so a double click sends it twice as two players: one takes the text,
+      // and the browser may keep the other's cookie, which that text then refuses.
+      (() => {
+        const form = document.getElementById('attack-form');
+        const button = form.querySelector('button[type=submit]');
+        form.addEventListener('submit', () => {
+          button.disabled = true;
+          button.setAttribute('aria-busy', 'true');
+        });
+        // a page restored from the back-forward cache would come back with the button off
+        window.addEventListener('pageshow', () => {
+          button.disabled = false;
+          button.removeAttribute('aria-busy');
+        });
+      })();
+    </script>
+  {% endif %}
+</section>

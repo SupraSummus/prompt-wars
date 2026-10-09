@@ -1,9 +1,13 @@
+import hashlib
 import uuid
 from functools import lru_cache
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+from django.utils.text import normalize_newlines
+from django.utils.translation import gettext
 from django.utils.translation import gettext_lazy as _
 from django_goals.models import AllDone
 
@@ -11,6 +15,47 @@ from .embeddings import EmbeddingMixin, _ensure_voyage_3_embedding
 
 
 MAX_WARRIOR_LENGTH = 1000
+
+
+def normalize_spell_body(body):
+    """
+    A submitted spell as it is stored, and the sha256 that deduplicates it.
+
+    Line endings are normalized before hashing,
+    so the same text pasted from any system is the same spell.
+    Raises ValidationError for a spell over the length limit.
+    """
+    body = normalize_newlines(body)
+    if len(body) > MAX_WARRIOR_LENGTH:
+        raise ValidationError(
+            gettext(
+                'The spell is too long. '
+                'The maximum length is %(max_length)d characters. '
+                'Your spell has %(length)d characters. '
+            ).strip(),
+            params={
+                'max_length': MAX_WARRIOR_LENGTH,
+                'length': len(body),
+            },
+            code='max_length',
+        )
+    return body, hashlib.sha256(body.encode('utf-8')).digest()
+
+
+def get_or_insert_warrior(body, body_sha_256):
+    """
+    The Warrior with this text, and whether this call created it.
+
+    An insert that skips a conflict, then a read by hash,
+    so a spell inserted with the same text in the meantime is found instead of failing the insert.
+    """
+    candidate = Warrior(
+        body=body,
+        body_sha_256=body_sha_256,
+    )
+    Warrior.objects.bulk_create([candidate], ignore_conflicts=True)
+    warrior = Warrior.objects.get(body_sha_256=body_sha_256)
+    return warrior, warrior.id == candidate.id
 
 
 class WarriorQuerySet(models.QuerySet):

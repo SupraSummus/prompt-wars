@@ -1,8 +1,5 @@
-import hashlib
-
 from django import forms
 from django.contrib import messages
-from django.utils.text import normalize_newlines
 from django.utils.translation import gettext as _
 from django.views.generic.edit import CreateView
 from django_goals.models import schedule
@@ -11,7 +8,7 @@ from django_recaptcha.fields import ReCaptchaField
 from .models import WarriorArena, WarriorUserPermission
 from .tasks import do_moderation
 from .views import ArenaViewMixin
-from .warriors import MAX_WARRIOR_LENGTH, Warrior
+from .warriors import Warrior, normalize_spell_body
 
 
 class WarriorCreateForm(forms.ModelForm):
@@ -53,25 +50,8 @@ class WarriorCreateForm(forms.ModelForm):
         return super().clean()
 
     def clean_body(self):
-        body = self.cleaned_data['body']
-        body = normalize_newlines(body)
-        if len(body) > MAX_WARRIOR_LENGTH:
-            raise forms.ValidationError(
-                _(
-                    'The spell is too long. '
-                    'The maximum length is %(max_length)d characters. '
-                    'Your spell has %(length)d characters. '
-                ).strip(),
-                params={
-                    'max_length': MAX_WARRIOR_LENGTH,
-                    'length': len(body),
-                },
-                code='max_length',
-            )
-
-        body_sha_256 = hashlib.sha256(body.encode('utf-8')).digest()
+        body, body_sha_256 = normalize_spell_body(self.cleaned_data['body'])
         self.cleaned_data['body_sha_256'] = body_sha_256
-
         return body
 
     def save(self, commit=True):

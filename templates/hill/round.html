@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block head %}
+  {% include 'hill/partials/meta.html' %}
+  {% include 'hill/partials/styles.html' %}
+{% endblock %}
+
+{% block content %}
+  <main class="container pw-hill">
+
+    <nav aria-label="breadcrumb">
+      <ul>
+        <li><a href="{% url 'hill:index' %}">King of the Hill</a></li>
+        <li aria-current="page">Hill #{{ hill_round.number }}</li>
+      </ul>
+    </nav>
+
+    {% if today %}
+      <article>
+        Hill #{{ today.number }} is open now.
+        <a href="{% url 'hill:index' %}#attack">Attack today's boss <span aria-hidden="true">→</span></a>
+      </article>
+    {% endif %}
+
+    <hgroup>
+      <h1>Hill #{{ hill_round.number }}</h1>
+      <p>
+        From {% include 'time.html' with time=hill_round.starts_at %}
+        to {% include 'time.html' with time=hill_round.ends_at %}
+      </p>
+    </hgroup>
+
+    <section aria-labelledby="boss-title">
+      <h2 id="boss-title">The boss: <bdi>{{ hill_round.boss_label }}</bdi></h2>
+      {% if hill_round.shown_author %}<p>by <bdi>{{ hill_round.shown_author }}</bdi></p>{% endif %}
+      {% if not hill_round.boss_shown %}
+        <p class="pw-note">This boss's text is hidden pending review.</p>
+      {% else %}
+        <div class="overflow-auto pw-boss-text" role="region" tabindex="0" aria-label="The boss's spell">
+          {% include 'exact_text.html' with text=hill_round.boss.body %}
+        </div>
+      {% endif %}
+      <p>
+        {% include 'hill/partials/round_stats.html' %}
+        {% if following %}
+          {% include 'hill/partials/handover.html' %}
+        {% endif %}
+      </p>
+    </section>
+
+    {% if crowning %}
+      <section aria-labelledby="crowning-title">
+        <h2 id="crowning-title">The battle that took the hill</h2>
+        {% include 'hill/partials/result.html' with battle=crowning %}
+      </section>
+    {% endif %}
+
+  </main>
+{% endblock %}

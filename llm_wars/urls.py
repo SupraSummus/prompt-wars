@@ -18,12 +18,12 @@ from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import path, register_converter
-from django.views.generic import TemplateView
 
 import warriors.views
 from djsfc import Router
 from embedding_explorer import views as embedding_explorer_views
 from guessing import views as guessing_views
+from hill import views as hill_views
 from users.views import SignupView
 from warriors import my_warriors_view, warrior_view
 from warriors.create_view import WarriorCreateView
@@ -32,7 +32,7 @@ from warriors.views import (
     WarriorLeaderboard, warrior_set_public_battle_results,
 )
 
-from . import data_policy_view
+from . import data_policy_view, home_view
 
 
 class SignedIntConverter:
@@ -54,9 +54,10 @@ router.route_all('warrior/', warrior_view.router, name='warrior')
 router.route_all('data-policy/', data_policy_view.router, name='data_policy')
 router.route_all('embedding-explorer/', embedding_explorer_views.router, name='embedding_explorer')
 router.route_all('guessing/', guessing_views.router, name='guessing')
+router.route_all('hill/', hill_views.router, name='hill')
 
 urlpatterns = (
-    path('', TemplateView.as_view(template_name="home.html"), name='home'),
+    path('', home_view.home, name='home'),
     path("admin/", admin.site.urls),
 
     # urls for default arena

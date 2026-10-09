@@ -30,6 +30,11 @@ A deadline drives action
 in a way an always-open door does not,
 and a fixed reveal hour makes results an event to anticipate.
 
+King of the Hill (`docs/king-of-the-hill.md`)
+runs a small version of this clock beside the trickle:
+one numbered boss a day,
+attacked through unrated battles that answer in about a minute.
+
 ## What it does not buy
 
 Per-battle unexpectedness does not increase:

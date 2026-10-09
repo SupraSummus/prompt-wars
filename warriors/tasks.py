@@ -21,6 +21,9 @@ from .warriors import MAX_WARRIOR_LENGTH, Warrior, ensure_name_generated
 
 logger = logging.getLogger(__name__)
 
+# Transient LLM failures a game retries, backing off, before it resolves as an 'error'.
+MAX_TRANSIENT_RETRIES = 6
+
 
 def do_moderation(goal, warrior_id):
     now = timezone.now()
@@ -170,7 +173,7 @@ def _run_llm(game, now):
         game.attempts += 1
         game.save(update_fields=['attempts'])
 
-        if attempts < 6:
+        if attempts < MAX_TRANSIENT_RETRIES:
             # try again in some time
             exponent = attempts + random.random() - 0.5
             delay = datetime.timedelta(minutes=5) * 2**exponent

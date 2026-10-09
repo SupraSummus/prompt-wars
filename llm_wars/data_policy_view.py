@@ -1,5 +1,5 @@
 from django.template.response import TemplateResponse
-from dominate.tags import h1, h2, hgroup, li, main, p, section, strong, ul
+from dominate.tags import a, h1, h2, hgroup, li, main, p, section, strong, ul
 
 from djsfc import Router, parse_template
 
@@ -41,6 +41,36 @@ def root(request):
                 li("Battle results are always visible to the other participant in the battle")
                 li("If either participant has enabled \"public battle results\", the battle output will be publicly viewable")
                 li("We currntly do not support deleting battle results from our system.")
+
+        with section():
+            h2("King of the Hill")
+            p("What a player writes for the hill stays private to them, with one exception:")
+            with ul():
+                li(
+                    "When a spell takes the hill, its text, the name and author given to it, "
+                    "and the model's replies in the battle that won it are published. "
+                    "The attack form asks for this consent with every attack.",
+                )
+                li(
+                    "Every other attack's text, the names given to it and the model's replies "
+                    "are shown only in the browser session it was sent from.",
+                )
+                li(
+                    "An attack's score is shown without them: "
+                    "in the round's standings, as \"Attacker #k\", "
+                    "and to anyone who opens the attack's link.",
+                )
+                li(
+                    "The hill tells players apart by a random key in the session cookie. "
+                    "Logging out, clearing cookies or two weeks without an attack ends it, "
+                    "and with it access to earlier attacks.",
+                )
+                li("The attack form uses Google reCAPTCHA, which sends the visitor's IP address to Google. The hill stores no IP address.")
+                li(
+                    "To have a published spell taken down, contact the operator through the project's ",
+                    a("GitHub page", href="https://github.com/SupraSummus/prompt-wars"),
+                    ".",
+                )
 
     return TemplateResponse(request, template, {
         'privacy_content': main_el.render(),

@@ -150,6 +150,11 @@ In particular the side apps (`stories`, `labirynth`, `guessing`)
 stay frozen:
 new content for players who don't come back compounds nothing.
 
+King of the Hill (`docs/king-of-the-hill.md`) is the owner's chosen exception,
+a new game mode built as a bet on priorities 2 and 3:
+a daily reason to come back, and a result to post.
+It is judged by whether its attackers come back in later rounds.
+
 ## Rejected alternatives
 
 - **Bring-your-own-API-key.**

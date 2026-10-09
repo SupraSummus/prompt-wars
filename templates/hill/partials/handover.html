@@ -1,0 +1,13 @@
+{% load percentage %}{# Who held the hill after a closed round, and how: `following` is the round after it. #}
+{% if following.boss_reason == 'broke' %}
+  <bdi>{{ following.boss_label }}</bdi> broke the hill with {{ following.boss_attempt.score|percentage:1 }}.
+{% elif following.boss_reason == 'inherited' %}
+  <bdi>{{ following.boss_label }}</bdi>,
+  the best attack of the boss's reign, inherited the hill.
+{% elif following.boss_reason == 'house' %}
+  A house boss stepped in.
+{% elif following.boss_reason == 'held' %}
+  The boss held.
+{% else %}
+  The keeper put a new boss on the hill.
+{% endif %}
