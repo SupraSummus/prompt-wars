@@ -109,7 +109,7 @@ def resolve_battle(goal, battle_id, direction):
     now = timezone.now()
     battle = Battle.objects.get(id=battle_id)
     # A direction names the warrior that leads the prompt, and
-    # Battle.create_from_warriors writes both games with the battle, so the
+    # Battle.create writes both games with the battle, so the
     # unique (battle, warrior_1) finds this one. processed_goal cannot:
     # backfilled rows have none, and goal collection clears the rest.
     leader_id, follower_id = battle.warrior_1_id, battle.warrior_2_id

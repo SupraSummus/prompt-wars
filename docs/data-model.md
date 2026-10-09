@@ -37,6 +37,11 @@ Only the fourth concern hangs off a DB combination object:
 `Arena` binds (llm, score_algorithm) as a row,
 and `WarriorArena` keys rating state by it.
 
+Not every battle in the stream feeds the ladder.
+Unrated battles, King of the Hill's, are played and scored,
+but the ladder never reads them;
+`BattleQuerySet.rated` draws the line.
+
 ## The one bag of warriors already exists — implicitly
 
 `Warrior` is global:
@@ -47,7 +52,7 @@ and `WarriorArena` is a thin per-arena shell
 plus delegating properties).
 
 Cross-arena spread happens automatically within an LLM:
-`transfer_rating` (`warriors/tasks.py`) fans a battle's result
+`transfer_rating` (`warriors/tasks.py`) fans a rated battle's result
 out to every arena with the same llm,
 lazily creating `WarriorArena` rows via
 `get_or_create_warrior_arenas`,

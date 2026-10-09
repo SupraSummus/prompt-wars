@@ -1,6 +1,9 @@
+from unittest import mock
+
 import pytest
 from django.utils import timezone
 
+from .. import embeddings
 from ..score import ScoreAlgorithm
 from .factories import (
     ArenaFactory, BattleFactory, GameScoreFactory, WarriorArenaFactory,
@@ -93,6 +96,15 @@ def resolved_battle(
     )
     create_scores(battle, 1, 0.1, 1, 0.1)
     return battle
+
+
+@pytest.fixture
+def gemini(monkeypatch):
+    """The mocked Gemini call, its return value `(reply, finish_reason, version)`; embeddings stubbed out."""
+    reply = mock.MagicMock(return_value=('', 'STOP', 'gemini-test'))
+    monkeypatch.setattr('warriors.tasks.resolve_battle_google', reply)
+    monkeypatch.setattr(embeddings, 'get_embedding', mock.MagicMock(return_value=[0.0] * 1024))
+    return reply
 
 
 def create_scores(battle, score_1_2_1, score_1_2_2, score_2_1_1, score_2_1_2):
