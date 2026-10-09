@@ -290,9 +290,3 @@ and the hill tests build games with `attempts=` directly, so they would not noti
 Next move: have `_run_llm` store a distinct finish reason when it gives up,
 check that in `hill.status`, and keep `MAX_TRANSIENT_RETRIES` private to `warriors.tasks`.
 It changes the Finish chip on ladder battle pages, so it needs sign-off.
-
-`docs/strategy.md` judges King of the Hill by whether players come back,
-and nothing counts that.
-Next move: on `RoundAdmin`, a read-only column per round:
-its attackers (distinct identities with a scored attempt),
-and how many of them also attacked in one of the previous `HILL_NO_RETURN_ROUNDS` rounds.

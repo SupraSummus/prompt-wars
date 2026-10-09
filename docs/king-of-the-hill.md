@@ -15,8 +15,7 @@ At the daily handover, the best attack that beat the boss by a margin becomes th
 It serves the retention and shareable-artifact priorities of `docs/strategy.md`:
 a fast first result, a reason to come back the next day,
 and a share text (`hill.display.share_text`) that holds only numbers, so it is safe to post anywhere.
-It is judged by whether attackers come back in later rounds;
-counting that is an open entry in `TODO.md`.
+It is judged by whether attackers come back in later rounds ("How it is judged").
 
 ## The hill and the ladder
 
@@ -217,6 +216,60 @@ Each with what would bring it back.
 - Whether reigns settle into bosses nobody can beat, despite the gates and the term.
 - Whether the share text travels.
 
+## How it is judged
+
+Launch day doesn't answer whether the hill works:
+a post brings people (`docs/strategy.md`), and the hill is a bet on them coming back.
+So the verdict comes from the weeks after the post's traffic has passed.
+`hill_report` prints the hill's counts per round,
+and given the launch round, per window: a verdict window, then a confirmation window
+(`--help` for its options).
+It leaves out each post's round and the days its traffic swells,
+and the owner's own attacks, which would flatter the counts;
+the owner's identity is on their attacks in the HillAttempt admin.
+
+A player is a browser session (`hill/identity.py`),
+so attackers overcount people and returning players undercount them;
+the bands allow for that.
+Where the report prints k of n without a percentage, the percentage bands don't apply;
+judge by the counts.
+
+| # | Signal | Flop | Alive | Banger |
+|---|---|---|---|---|
+| 1 | Attackers per round, median | < 3, the ladder's human rate | 3–14 | ≥ 15, and the confirmation window keeps 80% of the verdict window's mean |
+| 2 | Regulars; next-round return | < 5, no more than the 30-day active accounts; < 10% | 5–19; 10–25% | ≥ 20; ≥ 25% |
+| 3 | A 2nd attack; at the cap | < 30% with a 2nd | 30–60% | > 60%, and ≥ 20% at the cap |
+| 4 | Pressed Share; new players through a shared link | < 5%, or at most one new player through a link in a window | 5–15%; 10–30% | ≥ 15%; ≥ 30% |
+
+- **Banger:** rows 1 and 2 banger in the verdict window and holding in the confirmation window,
+  with rows 3 and 4 at least alive.
+- **Alive:** rows 1 and 2 at least alive.
+  Rows 3 and 4 then say what to fix:
+  few 2nd attacks, the first result doesn't hook;
+  shares that bring nobody, the trigger for "An image for link previews";
+  no shares, the share step itself.
+- **Flop:** row 1 or row 2 a flop, however good launch day looked.
+
+Early warnings don't decide the verdict.
+In the first hours, more than 60% of the launch round's attackers sending a 2nd attack is good,
+and under 30% bad.
+Once the next round closes, 25% of the launch round's new players attacking again in it is good,
+and under 10% bad;
+it undercounts, since in-app browsers keep their own cookies.
+The launch round's own size measures the post more than the game.
+
+The report's tuning line can change `hill/rules.py`, not the verdict.
+Beaten twice or less in a window whose median round has 10 or more attackers is too hard;
+beaten 12 times or more, or mostly by one of a round's first attacks, is too cheap.
+A house fallback means a term ended, by its length or a takedown, with no attack fit to inherit,
+and one player holding more than a third of the rounds may be one person's several browsers.
+
+For the project, the lift that counts is regulars:
+a month and two months after the post,
+twice as many as the accounts that logged in in the 30 days before it ("Launch runbook").
+A banger with flat accounts is expected, since the hill has no path to an account;
+it is the trigger for "Email and a claim flow for winners", not a mark against the hill.
+
 ## Launch runbook
 
 1. **Seed the first boss and the house, soon after deploying:**
@@ -241,6 +294,9 @@ Each with what would bring it back.
 4. **Post right after a handover**,
    so the first wave's attacks count in the round they were sent,
    and the next handover is the reason to come back.
+   The round it opened is the launch round `hill_report` judges from.
+   Just before posting, count the accounts that logged in within the last 30 days (`User.last_login`):
+   the lift check in "How it is judged" needs that number, and it can't be counted later.
 5. **During the post, watch by hand**
    the hill page for its busy and used-up states, and the pending attempts in admin.
    Lowering `max_pending` hands the worker back to the ladder without a deploy.
