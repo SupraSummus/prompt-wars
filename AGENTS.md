@@ -223,12 +223,13 @@ poetry run pylint --load-plugins pylint_django --errors-only --disable=E0401,F51
 ### Screenshots
 
 Playwright's Chromium is preinstalled
-(`/opt/node-tools/node_modules/playwright`),
-but it cannot fetch what the pages load from CDNs (Pico, htmx, Chart.js):
+(`/opt/node-tools/node_modules/playwright`).
+Launch it without a proxy (`--no-proxy-server`):
 the egress proxy takes only HTTPS CONNECT,
 and a Chromium pointed at it sends `localhost` through it too.
-Launch it without a proxy,
-`curl` the CDN files once,
-and answer their URLs from those copies with `page.route`.
-axe-core works the same way:
+The pages serve their own CSS and JS (`assets/vendor/`),
+so a dev server renders them whole;
+the one third-party script is reCAPTCHA on the forms,
+which a screenshot can drop with `page.route` and `route.abort()`.
+axe-core comes from outside:
 `curl` its `axe.min.js` and load it with `page.addScriptTag`.

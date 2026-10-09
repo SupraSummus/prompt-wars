@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -6,10 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{% if meta_title %}{{ meta_title }} - {% endif %}Prompt wars{% endblock %}</title>
     {% if meta_description %}<meta name="description" content="{{ meta_description }}">{% endif %}
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
-    />
+    <link rel="stylesheet" href="{% static 'vendor/pico-2.1.1/pico.min.css' %}">
     <style>
       mark {
         padding: 0;
@@ -75,11 +72,7 @@
       }
     </style>
     {% block head %}{% endblock %}
-    <script
-      src="https://unpkg.com/htmx.org@1.9.12"
-      integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2"
-      crossorigin="anonymous"
-    ></script>
+    <script src="{% static 'vendor/htmx-1.9.12/htmx.min.js' %}"></script>
   </head>
   <body>
 
