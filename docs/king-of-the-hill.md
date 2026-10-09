@@ -140,6 +140,10 @@ The hill doesn't use the ladder's `public_battle_results`:
 that flag belongs to a warrior and stays set,
 so it would publish every ladder battle the boss ever fought.
 
+Share presses, and the new players a share text's link brings,
+are counted per round without recording who (`RoundTally`);
+the player's own session keeps which rounds it was counted in, so a press counts once a round.
+
 The hill stores no IP address,
 but the captcha sends the visitor's to Google, as the data policy says (`llm_wars/data_policy_view.py`).
 

@@ -54,6 +54,9 @@
     });
 
     // The share button: the system share sheet where there is one, else the clipboard.
+    // The page's first completed share is posted to the button's form action (`hill.views.shared`);
+    // later ones would only race its once-a-round check.
+    let reported = false;
     document.addEventListener('click', async (event) => {
       const button = event.target.closest('[data-hill-share]');
       if (!button) {
@@ -61,9 +64,16 @@
       }
       const field = document.getElementById(button.dataset.hillShare);
       const feedback = document.getElementById('share-feedback');
+      const report = () => {
+        if (!reported) {
+          reported = true;
+          fetch(button.form.action, {method: 'POST', body: new FormData(button.form), keepalive: true});
+        }
+      };
       if (navigator.share) {
         try {
           await navigator.share({text: field.value});
+          report();
           return;
         } catch (error) {
           if (error.name === 'AbortError') {
@@ -74,6 +84,7 @@
       try {
         await navigator.clipboard.writeText(field.value);
         feedback.textContent = 'Copied. Paste it wherever you post.';
+        report();
       } catch (error) {
         field.select();
         feedback.textContent = 'Copy the selected text to post it.';

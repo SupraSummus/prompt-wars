@@ -29,7 +29,9 @@ from .display import (
 )
 from .forms import HillAttackForm
 from .identity import peek_identity
-from .models import AttemptState, BossReason, Hill, HillAttempt, Round
+from .models import (
+    AttemptState, BossReason, Hill, HillAttempt, Round, RoundTally, TallyKind,
+)
 from .rules import (
     HILL_ATTEMPTS_PER_PLAYER, HILL_MIN_SURVIVED_CHARS, HILL_WIN_SCORE,
     beats_boss, crowned_round, is_public, replies_public, standings,
@@ -49,6 +51,11 @@ RULES = {
     'attempts_per_player': HILL_ATTEMPTS_PER_PLAYER,
     'min_survived_chars': HILL_MIN_SURVIVED_CHARS,
 }
+
+# The marker on a share text's link (`?via=`), which the attack form passes on.
+SHARE_VIA = 'share'
+# The rounds a player's Share press was counted in, so it counts once per round.
+SHARED_ROUNDS_SESSION_KEY = 'hill_shared_rounds'
 
 # what a terminal status poll returns once the hill is switched off: no `hx-*`, so polling stops
 CLOSED_STATUS = '<section id="attempt-status"><p role="status">King of the Hill is closed.</p></section>'
@@ -192,7 +199,8 @@ def index(request):
     closed = _closed(request, hill, hill_round)
     if closed is not None:
         return closed
-    return _hill_page(request, hill, hill_round, HillAttackForm(initial=_initial(request)))
+    form = HillAttackForm(initial={'via': request.GET.get('via', ''), **_initial(request)})
+    return _hill_page(request, hill, hill_round, form)
 
 
 @router.route('POST', 'attack/')
@@ -221,6 +229,12 @@ def attack(request):
         return _refused(request, form, refused)
     if accepted.repeated:
         messages.info(request, Accepted.REPEAT_NOTICE)
+    elif (
+        form.cleaned_data['via'] == SHARE_VIA and
+        HillAttempt.objects.live().filter(identity=accepted.attempt.identity).count() == 1
+    ):
+        # the player's first live attack: a new player, brought by a shared link
+        RoundTally.bump(accepted.attempt.hill_round_id, TallyKind.NEW_VIA_SHARE)
     return redirect('hill:attempt', accepted.attempt.id)
 
 
@@ -291,7 +305,7 @@ def _attempt_context(request, attempt):
         context['share_text'] = share_text(
             context['battle'],
             hill_round,
-            request.build_absolute_uri(reverse('hill:index')),
+            request.build_absolute_uri(f"{reverse('hill:index')}?via={SHARE_VIA}"),
             holding_round=Round.objects.filter(boss_attempt=attempt, closed_at=None).first(),
         )
     if own and context['round_open']:
@@ -335,6 +349,25 @@ def attempt_status(request, attempt_id):
     if context['polling'] and context['key'] == request.GET.get('key'):
         return HttpResponse(status=204)
     return TemplateResponse(request, 'hill/partials/attempt_status.html', context)
+
+
+@router.route('POST', 'a/<uuid:attempt_id>/shared/')
+def shared(request, attempt_id):
+    """
+    A Share press that went through, as the attempt's page reports it (`TallyKind.SHARE_PRESSED`):
+    counted for the author of a scored attack, once per round per player.
+    """
+    attempt = get_object_or_404(HillAttempt, id=attempt_id)
+    counted_rounds = request.session.get(SHARED_ROUNDS_SESSION_KEY, [])
+    hill_round_id = str(attempt.hill_round_id)
+    if (
+        attempt.identity == peek_identity(request) and
+        attempt.state == AttemptState.SCORED and
+        hill_round_id not in counted_rounds
+    ):
+        request.session[SHARED_ROUNDS_SESSION_KEY] = [*counted_rounds, hill_round_id]
+        RoundTally.bump(attempt.hill_round_id, TallyKind.SHARE_PRESSED)
+    return HttpResponse(status=204)
 
 
 @router.route('GET', 'round/<int:number>/')
