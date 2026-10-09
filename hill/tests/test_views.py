@@ -416,6 +416,17 @@ def test_a_share_text_holds_numbers_and_a_link_that_marks_the_attack_form(client
 
 
 @pytest.mark.django_db
+def test_the_holder_reaches_their_share_text_from_the_hill(client, hill, open_round):
+    attempt = judged(open_round, player(client))
+    attempt_url = reverse('hill:attempt', args=[attempt.id])
+    crown_attempt(hill, attempt)
+
+    assert attempt_url in client.get(reverse('hill:index')).content.decode()
+    assert attempt_url not in Client().get(reverse('hill:index')).content.decode()
+    assert client.get(attempt_url).context['share_text'].startswith('My spell holds the Prompt Wars hill')
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize('earlier, via, counted', [
     (None, 'share', 1),
     (AttemptState.SCORED, 'share', 0),
