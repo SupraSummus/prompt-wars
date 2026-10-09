@@ -261,7 +261,11 @@ class BattleDetailView(DetailView):
     context_object_name = 'battle'
 
     def get_queryset(self):
-        return super().get_queryset().select_related(
+        # An unrated battle is not found here, whoever asks:
+        # King of the Hill shows its battles on its own pages, under its own rules,
+        # and authoring one side here (a hill boss that also plays the ladder)
+        # must not open the other side's sealed result.
+        return super().get_queryset().rated().select_related(
             'arena',
             'warrior_1',
             'warrior_2',
@@ -462,7 +466,7 @@ def battle_nav_context(battle, warrior_arena, user):
     so an arena step landing on another of its battles keeps the warrior walk.
     """
     arena_previous, arena_next = battle_neighbour_urls(
-        Battle.objects.for_user(user).filter(arena__llm=battle.llm),
+        Battle.objects.for_user(user).rated().filter(arena__llm=battle.llm),
         battle, warrior_arena,
     )
     if warrior_arena is None:
@@ -569,7 +573,7 @@ class RecentBattlesView(ArenaViewMixin, ListView):
         authorized_warriors = self.request.session.get('authorized_warriors', [])
         if authorized_warriors:
             q |= Q(warrior_1__id__in=authorized_warriors) | Q(warrior_2__id__in=authorized_warriors)
-        qs = Battle.objects.filter(
+        qs = Battle.objects.rated().filter(
             llm=self.arena.llm,
         ).filter(q).distinct().order_by('-scheduled_at')
         battles = list(qs[:100])

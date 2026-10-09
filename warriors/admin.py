@@ -81,8 +81,13 @@ class WarriorArenaAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
 
 @admin.register(Battle)
 class BattleAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
-    list_display = ('warrior_1', 'warrior_2', 'scheduled_at')
+    list_display = ('warrior_1', 'warrior_2', 'scheduled_at', 'rated')
+    list_filter = ('rated',)
     date_hierarchy = 'scheduled_at'
+
+    def view_on_site(self, obj):
+        # the battle page doesn't show an unrated battle, so no link to a 404
+        return obj.get_absolute_url() if obj.rated else None
 
 
 @admin.register(TextUnit)

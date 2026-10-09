@@ -25,8 +25,21 @@ MATCHMAKING_COOLDOWN = datetime.timedelta(days=183)  # 6 months
 
 
 class BattleQuerySet(models.QuerySet):
+    def rated(self):
+        """
+        Battles the ladder counts: rating, matchmaking, and the lists and stats it shows.
+
+        Every ladder query starts here,
+        so an unrated battle — fought for King of the Hill —
+        moves no rating, spends no matchmaking cooldown
+        and appears on no ladder page
+        ("The hill and the ladder" in docs/king-of-the-hill.md).
+        """
+        return self.filter(rated=True)
+
     def with_warrior_arena(self, warrior_arena):
-        return self.filter(
+        """A warrior's ladder battles: every rated battle it fought under its arena's LLM."""
+        return self.rated().filter(
             llm=warrior_arena.arena.llm,
         ).filter(
             models.Q(warrior_1_id=warrior_arena.warrior_id) |
@@ -34,12 +47,13 @@ class BattleQuerySet(models.QuerySet):
         )
 
     def with_warrior_arenas(self, warrior_arena_1, warrior_arena_2):
+        """The ladder battles between two warriors of one arena."""
         assert warrior_arena_1.arena_id == warrior_arena_2.arena_id
         warrior_1_id = warrior_arena_1.warrior_id
         warrior_2_id = warrior_arena_2.warrior_id
         if warrior_1_id > warrior_2_id:
             warrior_1_id, warrior_2_id = warrior_2_id, warrior_1_id
-        return self.filter(
+        return self.rated().filter(
             llm=warrior_arena_1.arena.llm,
             warrior_1_id=warrior_1_id,
             warrior_2_id=warrior_2_id,
@@ -58,7 +72,8 @@ class BattleQuerySet(models.QuerySet):
         ).distinct()
 
     def recent(self):
-        return self.filter(
+        """Ladder battles within the matchmaking cooldown."""
+        return self.rated().filter(
             scheduled_at__gt=timezone.now() - MATCHMAKING_COOLDOWN,
         )
 
@@ -98,6 +113,12 @@ class Battle(models.Model):
         on_delete=models.PROTECT,
         related_name='+',
     )
+    # False for a battle the ladder must never see (`BattleQuerySet.rated`).
+    # A database default rather than a Python one, so the column keeps it
+    # and inserts from a release that predates the field still succeed.
+    rated = models.BooleanField(
+        db_default=True,
+    )
 
     objects = BattleQuerySet.as_manager()
 
@@ -116,11 +137,30 @@ class Battle(models.Model):
 
     @classmethod
     def create_from_warriors(cls, warrior_arena_1, warrior_arena_2):
+        """A ladder battle between two warriors of one arena."""
         assert warrior_arena_1.arena_id == warrior_arena_2.arena_id
-        arena_id = warrior_arena_1.arena_id
+        return cls.create(
+            llm=warrior_arena_1.arena.llm,
+            arena_id=warrior_arena_1.arena_id,
+            warrior_a=warrior_arena_1.warrior,
+            warrior_b=warrior_arena_2.warrior,
+        )
 
-        warrior_1 = warrior_arena_1.warrior
-        warrior_2 = warrior_arena_2.warrior
+    @classmethod
+    def create(
+        cls, *, llm, warrior_a, warrior_b,
+        arena_id=None, rated=True, deadline=None,
+    ):
+        """
+        A battle between two warriors, with both its games and the goals that play them.
+
+        The pair is put in canonical order, so either may come first.
+        Only a rated battle schedules `transfer_rating`;
+        an unrated one is scored like any other and stops there.
+        `deadline` orders this battle's goals, and the ones they schedule, in the worker's queue;
+        None leaves it to django_goals.
+        """
+        warrior_1, warrior_2 = warrior_a, warrior_b
         if warrior_1.id > warrior_2.id:
             warrior_1, warrior_2 = warrior_2, warrior_1
 
@@ -135,22 +175,25 @@ class Battle(models.Model):
         with transaction.atomic():
             battle = cls.objects.create(
                 arena_id=arena_id,
-                llm=warrior_arena_1.arena.llm,
+                llm=llm,
                 warrior_1=warrior_1,
                 warrior_2=warrior_2,
                 scheduled_at=TransactionNow(),
+                rated=rated,
             )
             resolve_1_2_goal = schedule(
                 resolve_battle_1_2,
                 args=(str(battle.id),),
+                deadline=deadline,
             )
             resolve_2_1_goal = schedule(
                 resolve_battle_2_1,
                 args=(str(battle.id),),
+                deadline=deadline,
             )
             Game.objects.create(
                 battle=battle,
-                llm=warrior_arena_1.arena.llm,
+                llm=llm,
                 warrior_1=warrior_1,
                 warrior_2=warrior_2,
                 scheduled_at=battle.scheduled_at,
@@ -158,18 +201,20 @@ class Battle(models.Model):
             )
             Game.objects.create(
                 battle=battle,
-                llm=warrior_arena_1.arena.llm,
+                llm=llm,
                 warrior_1=warrior_2,
                 warrior_2=warrior_1,
                 scheduled_at=battle.scheduled_at,
                 processed_goal=resolve_2_1_goal,
             )
 
-            schedule(
-                transfer_rating,
-                args=(str(battle.id),),
-                precondition_goals=[resolve_1_2_goal, resolve_2_1_goal],
-            )
+            if rated:
+                schedule(
+                    transfer_rating,
+                    args=(str(battle.id),),
+                    precondition_goals=[resolve_1_2_goal, resolve_2_1_goal],
+                    deadline=deadline,
+                )
 
         return battle
 

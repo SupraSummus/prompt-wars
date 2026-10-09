@@ -4,8 +4,9 @@ import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
+from django_goals.models import Goal
 
-from .battles import Battle
+from .battles import LLM, Battle
 from .score import ScoreAlgorithm
 from .tests.factories import (
     BattleFactory, GameScoreFactory, WarriorArenaFactory, WarriorFactory,
@@ -145,12 +146,37 @@ def test_reading_scores_costs_no_query_per_battle():
 
 # transaction=True runs the test in autocommit, like a plain view request;
 # under the default test-wrapping transaction the timestamps would agree
-# even without create_from_warriors' own atomic block.
+# even without Battle.create's own atomic block.
 @pytest.mark.django_db(transaction=True)
 def test_create_from_warriors_scheduled_at_consistent(warrior_arena, other_warrior_arena):
     battle = Battle.create_from_warriors(warrior_arena, other_warrior_arena)
     battle.refresh_from_db()
     assert [game.scheduled_at for game in battle.games.all()] == [battle.scheduled_at] * 2
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('rated', [True, False])
+def test_create_hands_on_rating_only_when_rated(warrior, other_warrior, rated):
+    battle = Battle.create(
+        llm=LLM.GOOGLE_GEMINI,
+        warrior_a=warrior,
+        warrior_b=other_warrior,
+        rated=rated,
+    )
+    battle.refresh_from_db()
+    assert (battle.arena, battle.rated) == (None, rated)
+    assert battle.games.count() == 2
+    assert Goal.objects.filter(handler='warriors.tasks.transfer_rating').exists() is rated
+
+
+@pytest.mark.django_db
+def test_create_takes_the_pair_in_either_order():
+    first, second = WarriorFactory(id=UUID(int=1)), WarriorFactory(id=UUID(int=2))
+    battle = Battle.create(llm=LLM.GOOGLE_GEMINI, warrior_a=second, warrior_b=first)
+    assert (battle.warrior_1, battle.warrior_2) == (first, second)
+    assert sorted(
+        (game.warrior_1_id, game.warrior_2_id) for game in battle.games.all()
+    ) == [(first.id, second.id), (second.id, first.id)]
 
 
 def resolve_game(battle, direction, resolved_at):
