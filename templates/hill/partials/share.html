@@ -3,6 +3,9 @@
   <h3 id="share-title">Share your result</h3>
   <label for="share-text">Text to post</label>
   <textarea id="share-text" rows="6" readonly>{{ share_text }}</textarea>
-  <button type="button" class="secondary" data-hill-share="share-text">Share</button>
-  <small role="status" id="share-feedback"></small>
+  <form method="post" action="{% url 'hill:shared' attempt.id %}">
+    {% csrf_token %}
+    <button type="button" class="secondary" data-hill-share="share-text">Share</button>
+    <small role="status" id="share-feedback"></small>
+  </form>
 </section>

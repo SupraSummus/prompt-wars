@@ -1,6 +1,6 @@
 import uuid
 
-from django.db import models
+from django.db import connection, models
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -358,3 +358,49 @@ class HillAttempt(models.Model):
 
     def __str__(self):
         return str(self.id)
+
+
+class TallyKind(models.TextChoices):
+    # counted by `hill.views.shared`
+    SHARE_PRESSED = 'share_pressed', _('Share pressed')
+    # counted by `hill.views.attack`
+    NEW_VIA_SHARE = 'new_via_share', _('New player through a shared link')
+
+
+class RoundTally(models.Model):
+    """A round's count of one `TallyKind`, kept without recording who."""
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+    hill_round = models.ForeignKey(
+        to=Round,
+        on_delete=models.CASCADE,
+        related_name='tallies',
+        # hill_round_tally_unique leads with hill_round and answers lookups by it
+        db_index=False,
+    )
+    kind = models.CharField(
+        max_length=20,
+        choices=TallyKind.choices,
+    )
+    count = models.PositiveIntegerField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=('hill_round', 'kind'),
+                name='hill_round_tally_unique',
+            ),
+        ]
+
+    @classmethod
+    def bump(cls, hill_round_id, kind):
+        """Count one more `kind` in the round: one upsert, which the ORM can't write, so concurrent bumps never lose a count."""
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f'INSERT INTO {cls._meta.db_table} AS tally (id, hill_round_id, kind, count) VALUES (%s, %s, %s, 1) '
+                'ON CONFLICT (hill_round_id, kind) DO UPDATE SET count = tally.count + 1',
+                [uuid.uuid4(), hill_round_id, kind],
+            )

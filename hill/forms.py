@@ -40,6 +40,11 @@ class HillAttackForm(forms.Form):
     round_number = forms.IntegerField(
         widget=forms.HiddenInput,
     )
+    # the `?via=` marker on the link the visitor came by, which `hill.views.attack` counts
+    via = forms.CharField(
+        widget=forms.HiddenInput,
+        required=False,
+    )
     body = forms.CharField(
         label='Your spell',
         widget=forms.Textarea(attrs={'rows': 6}),

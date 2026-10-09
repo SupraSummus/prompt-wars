@@ -5,12 +5,13 @@ import uuid
 import pytest
 from django.contrib.sessions.models import Session
 from django.db import connection
+from django.test import Client
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
 from ..identity import SESSION_KEY
-from ..models import AttemptState, CrownBlock, HillAttempt
+from ..models import AttemptState, CrownBlock, HillAttempt, TallyKind
 from ..rules import HILL_ATTEMPTS_PER_PLAYER
 from ..status import finalize_attempt
 from .factories import HillAttemptFactory, crown_attempt, fought, resolve
@@ -48,6 +49,10 @@ def visible(response):
     Tags go without a space, so a reply whose letters are marked one by one still reads whole.
     """
     return ' '.join(html.unescape(re.sub(r'<[^>]+>', '', response.content.decode())).split())
+
+
+def tally(hill_round, kind):
+    return hill_round.tallies.filter(kind=kind).values_list('count', flat=True).first() or 0
 
 
 def query_count(client, url, **params):
@@ -94,7 +99,7 @@ def test_the_hill_shows_the_boss_and_the_form(client, named_round):
 def test_looking_at_the_hill_leaves_no_session(client, open_round):
     attempt = fought(HillAttemptFactory(hill_round=open_round), [REPLY, REPLY])
 
-    client.get(reverse('hill:index'))
+    client.get(reverse('hill:index'), {'via': 'share'})
     client.get(reverse('hill:attempt', args=[attempt.id]))
     client.get(reverse('hill:attempt_status', args=[attempt.id]), {'key': 'judging'})
 
@@ -393,6 +398,57 @@ def test_a_pending_attempt_polls_until_its_result(client, open_round):
     assert 'oracle of zebras' in visible(done)
     attempt.refresh_from_db()
     assert attempt.state == AttemptState.SCORED
+
+
+# sharing
+
+@pytest.mark.django_db
+def test_a_share_text_holds_numbers_and_a_link_that_marks_the_attack_form(client, open_round):
+    attempt = judged(open_round, player(client), display_name='Riverstone', display_author='Ana')
+
+    text = client.get(reverse('hill:attempt', args=[attempt.id])).context['share_text']
+    assert text.startswith(f'Prompt Wars · King of the Hill #{open_round.number}\n')
+    for words in (ATTACK, 'Riverstone', 'Ana', 'oracle of zebras'):
+        assert words not in text
+    link = text.splitlines()[-1]
+    assert link == 'http://testserver/hill/?via=share'
+    assert 'name="via" value="share"' in Client().get(link).content.decode()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('earlier, via, counted', [
+    (None, 'share', 1),
+    (AttemptState.SCORED, 'share', 0),
+    # refunded, so not yet a player
+    (AttemptState.VOID, 'share', 1),
+    (None, '', 0),
+])
+def test_a_shared_link_counts_the_new_players_it_brings(client, mocked_recaptcha, open_round, earlier, via, counted):
+    if earlier is not None:
+        HillAttemptFactory(hill_round=open_round, identity=player(client), state=earlier)
+
+    response = client.post(reverse('hill:attack'), attack_data(open_round, via=via))
+
+    assert response.status_code == 302
+    assert tally(open_round, TallyKind.NEW_VIA_SHARE) == counted
+
+
+@pytest.mark.django_db
+def test_a_share_press_counts_once_per_round_for_the_author_of_a_scored_attack(client, hill, open_round):
+    identity = player(client)
+    someone_elses = judged(open_round, warrior__body='A spell of somebody else.')
+    pending = HillAttemptFactory(hill_round=open_round, identity=identity)
+    first = judged(open_round, identity)
+    second = judged(open_round, identity, warrior__body='Another spell of mine.')
+    following = crown_attempt(hill, first)
+    later = judged(following, identity, warrior__body='A spell for the next boss.')
+
+    counts = []
+    for attempt in (someone_elses, pending, first, first, second, later):
+        assert client.post(reverse('hill:shared', args=[attempt.id])).status_code == 204
+        counts.append([tally(hill_round, TallyKind.SHARE_PRESSED) for hill_round in (open_round, following)])
+
+    assert counts == [[0, 0], [0, 0], [1, 0], [1, 0], [1, 0], [1, 1]]
 
 
 # a past round

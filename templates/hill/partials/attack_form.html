@@ -25,6 +25,7 @@
     <form id="attack-form" method="post" action="{% url 'hill:attack' %}#attack">
       {% csrf_token %}
       <input type="hidden" name="round_number" value="{{ hill_round.number }}">
+      {{ form.via }}
       {{ form.body.as_field_group }}
       <div class="grid">
         <div>{{ form.display_name.as_field_group }}</div>
