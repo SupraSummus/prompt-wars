@@ -305,17 +305,18 @@ def own_warrior_arenas(request):
     return WarriorArena.objects.filter(Q(id__in=ids) | Q(warrior__id__in=ids))
 
 
-def claim_session_warriors(request):
+def claim_session_warriors(sender, request, user, **kwargs):
     """
     Give the user who just logged in the warriors this browser holds,
     which the session forgets on logout or expiry.
     It is the permission a logged-in visit to the warrior's page grants (`WarriorDetailView`).
+    A `user_logged_in` receiver, so every way of logging in does it.
     """
     warrior_ids = Warrior.objects.filter(
         id__in=request.session.get('authorized_warriors', []),
     ).values_list('id', flat=True)
     WarriorUserPermission.objects.bulk_create(
-        [WarriorUserPermission(warrior_id=warrior_id, user=request.user) for warrior_id in warrior_ids],
+        [WarriorUserPermission(warrior_id=warrior_id, user=user) for warrior_id in warrior_ids],
         ignore_conflicts=True,
     )
 

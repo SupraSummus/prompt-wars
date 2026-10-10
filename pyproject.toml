@@ -20,6 +20,8 @@ django-goals = "*"
 humanize = "*"
 voyageai = "*"
 google-genai = "*"
+google-auth = {extras = ["requests"], version = "*"}
+httpx = "*"
 dominate = "*"
 pgvector = "*"
 

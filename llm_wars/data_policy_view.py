@@ -43,6 +43,14 @@ def root(request):
                 li("We currntly do not support deleting battle results from our system.")
 
         with section():
+            h2("Logging in with Google")
+            p(
+                "Logging in with Google takes you to Google's sign-in page. "
+                "The site asks Google only for your Google account's identifier, which it stores to log you in; "
+                "it receives neither your name nor your email address.",
+            )
+
+        with section():
             h2("King of the Hill")
             p("What a player writes for the hill stays private to them, with one exception:")
             with ul():

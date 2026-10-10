@@ -24,6 +24,7 @@ from djsfc import Router
 from embedding_explorer import views as embedding_explorer_views
 from guessing import views as guessing_views
 from hill import views as hill_views
+from users import google_login
 from users.views import LoginView, SignupView
 from warriors import my_warriors_view, warrior_view
 from warriors.create_view import WarriorCreateView
@@ -55,6 +56,7 @@ router.route_all('data-policy/', data_policy_view.router, name='data_policy')
 router.route_all('embedding-explorer/', embedding_explorer_views.router, name='embedding_explorer')
 router.route_all('guessing/', guessing_views.router, name='guessing')
 router.route_all('hill/', hill_views.router, name='hill')
+router.route_all('login/google/', google_login.router, name='google_login')
 
 urlpatterns = (
     path('', home_view.home, name='home'),

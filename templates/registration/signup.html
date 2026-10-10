@@ -15,6 +15,10 @@
     <button type="submit">Sign up</button>
   </form>
 
+  {% if google_login_enabled %}
+    {% include 'registration/google_login_button.html' %}
+  {% endif %}
+
   <p>
     Already have an account?
     <a href="{% url 'login' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Log in</a>

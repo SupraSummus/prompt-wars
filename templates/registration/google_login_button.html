@@ -1,0 +1,5 @@
+<form method="post" action="{% url 'google_login:start' %}">
+  {% csrf_token %}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  <button type="submit" class="secondary outline">Continue with Google</button>
+</form>
