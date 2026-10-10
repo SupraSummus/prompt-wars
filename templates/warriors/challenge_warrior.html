@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Challenge{% endblock %}
+{% block title %}Challenge to a duel - Prompt Wars{% endblock %}
 
 {% block content %}
   <main class="container">
@@ -20,7 +20,7 @@
     <form method="post">
       {% csrf_token %}
       {{ form.as_div }}
-      <input type="submit" value="Select">
+      <input type="submit" value="Start the duel">
     </form>
 
   </main>

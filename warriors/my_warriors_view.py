@@ -17,6 +17,8 @@ WARRIORS_PER_PAGE = 25
 template = parse_template('''\
 {% extends "base.html" %}
 
+{% block title %}My prompts - Prompt Wars{% endblock %}
+
 {% block main %}
     <h1>My prompts</h1>
     <table>

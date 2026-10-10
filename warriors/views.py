@@ -354,7 +354,7 @@ class BattleDetailView(DetailView):
 
         # Add meta title
         context['meta_title'] = (
-            f"Prompt Wars Battle: {battle.warrior_1} vs {battle.warrior_2}"
+            f"Battle: {battle.warrior_1} vs {battle.warrior_2}"
         )
 
         # Add meta description

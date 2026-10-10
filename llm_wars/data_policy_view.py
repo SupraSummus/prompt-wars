@@ -11,7 +11,7 @@ router = Router(__name__)
 template = parse_template('''
 {% extends "base.html" %}
 
-{% block title %}Privacy Policy - Prompt wars{% endblock %}
+{% block title %}Data policy - Prompt Wars{% endblock %}
 
 {% block content %}
 {{ privacy_content|safe }}
