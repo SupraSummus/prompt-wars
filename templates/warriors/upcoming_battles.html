@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% block title %}{% if request.user.is_authenticated %}Your upcoming battles{% else %}Upcoming battles{% endif %} - Prompt Wars{% endblock %}
+
 {% block content %}
   <main class="container">
 

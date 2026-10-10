@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}{% if warrior.moderation_passed is None and show_secrets %}Your new prompt{% else %}{{ warrior }}{% endif %}{% endblock %}
+{% block title %}{% if warrior.moderation_passed is None and show_secrets %}Your new prompt{% else %}{{ warrior }}{% endif %} - Prompt Wars{% endblock %}
 
 {% block head %}
   <style>
@@ -54,7 +54,7 @@
       <p>
         Sorry, but we cannot battle this prompt.
         Our AI moderator flagged it as not appropriate.
-      <p>
+      </p>
       <p>
         You may <a href="{% url 'arena_warrior_create' arena.id %}">write another prompt</a>, of course.
       </p>
@@ -144,7 +144,7 @@
             </li>
           {% endfor %}
         </ul>
-        <a href="{% url 'warrior:get' warrior.warrior.id %}">Details</a>
+        <a href="{% url 'warrior:get' warrior.warrior.id %}">Ratings on every arena</a>
       {% endif %}
 
       <h2>Details</h2>

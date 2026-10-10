@@ -304,6 +304,12 @@ so dropping or replacing either would break the import at startup.
 Next move: add `requests = "*"` to `pyproject.toml` and run `poetry lock`,
 which leaves the locked versions as they are.
 
+The two Chart.js canvases have no text alternative (WCAG 1.1.1 Non-text Content):
+the arena's rating quantiles (`arena_detail.html`)
+and the leaderboard's playstyle scatter (`warrior_leaderboard.html`),
+so a screen reader passes over both in silence.
+Next move: give each `<canvas>` `role="img"` and an `aria-label` that says what it plots.
+
 Saving "Make the model's replies public" on a prompt's all-arenas page (`warriors/warrior_view.py`) is a 404:
 the form posts a `Warrior` id to `warrior_set_public_battle_results` (`warriors/views.py`),
 which looks the permission up by a `WarriorArena` id;

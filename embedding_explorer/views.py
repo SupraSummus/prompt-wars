@@ -139,7 +139,7 @@ def _build_detail_page(query):
 def index_get(request):
     content = _build_index_page(request, ExplorerForm())
     return TemplateResponse(request, base_template, {
-        'page_title': 'Embedding Explorer - Prompt wars',
+        'page_title': 'Embedding Explorer - Prompt Wars',
         'content': content.render(),
     })
 
@@ -152,7 +152,7 @@ def index_post(request):
         return redirect('embedding_explorer:detail', query_id=query.id)
     content = _build_index_page(request, form_instance)
     return TemplateResponse(request, base_template, {
-        'page_title': 'Embedding Explorer - Prompt wars',
+        'page_title': 'Embedding Explorer - Prompt Wars',
         'content': content.render(),
     })
 

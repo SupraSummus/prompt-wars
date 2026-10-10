@@ -14,7 +14,7 @@ router = Router(__name__)
 template = parse_template('''\
 {% extends "base.html" %}
 
-{% block title %}{{ warrior }}{% endblock %}
+{% block title %}{{ warrior }} - Prompt Wars{% endblock %}
 
 {% block content %}
 <main class="container">
@@ -91,6 +91,7 @@ template = parse_template('''\
 
 not_moderated_template = parse_template('''\
 {% extends "base.html" %}
+{% block title %}{{ warrior }} - Prompt Wars{% endblock %}
 {% block content %}
 <main class="container">
   <h1>{{ warrior }}</h1>

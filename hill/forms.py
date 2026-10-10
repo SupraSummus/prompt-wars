@@ -57,7 +57,7 @@ class HillAttackForm(forms.Form):
         required=False,
     )
     display_author = forms.CharField(
-        label='Your name (optional)',
+        label='Author (optional)',
         max_length=NAME_MAX_LENGTH,
         required=False,
     )
