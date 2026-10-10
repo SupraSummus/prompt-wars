@@ -62,10 +62,10 @@ def next_house_boss(hill, exclude):
     """
     The house boss to step in: the one whose last reign is furthest back, never-served first.
 
-    Rotating through several stops one counter-spell,
+    Rotating through several stops one counter-prompt,
     prepared against a single fallback, from retaking the hill each time it falls back.
     Excluded warriors, and those moderation has not passed, are skipped
-    (the admin can add any spell; `hill_crown --house` moderates it first);
+    (the admin can add any warrior; `hill_crown --house` moderates it first);
     None if no house boss is left.
     """
     last_served = Round.objects.filter(
@@ -218,7 +218,7 @@ def hill_handover(now):
 
     Idempotent: a closed round has a successor whose `ends_at` is in the future.
     It waits up to `HILL_HANDOVER_GRACE` for attacks still in battle
-    and for scored ones whose spell has no moderation verdict yet,
+    and for scored ones whose prompt has no moderation verdict yet,
     so a busy queue at the cutoff doesn't drop an attack that could take the hill.
     A disabled hill is left alone; re-enabled after its round ended, it hands over at once.
     """

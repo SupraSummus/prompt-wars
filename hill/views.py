@@ -83,7 +83,7 @@ def _closed(request, hill, hill_round, kept_body=''):
         opens_soon=hill is not None and hill.enabled,
         kept_body=kept_body,
         meta_title='King of the Hill',
-        meta_description='Attack the boss spell of the day on Prompt Wars.',
+        meta_description='Attack the boss prompt of the day on Prompt Wars.',
     ))
 
 
@@ -99,7 +99,7 @@ def _public_battle(attempt_id, crowned):
     """
     The battle by which an attempt took the hill, for anyone to see; None if it can't be shown.
 
-    `crowned` is a round the attempt's spell held the hill in, which names it.
+    `crowned` is a round the attempt's prompt held the hill in, which names it.
     """
     attempt = _attempts_with_status_data().filter(id=attempt_id).first()
     if attempt is None or attempt.state != AttemptState.SCORED or not is_public(attempt):
@@ -117,7 +117,7 @@ def _initial(request):
     The attack form's starting values: with `?from=`, the player's earlier attack.
 
     `?from=` is honoured only for the attempt's own author,
-    so a shared attempt link can't open a sealed spell in a stranger's form.
+    so a shared attempt link can't open a sealed prompt in a stranger's form.
     """
     try:
         earlier_id = uuid.UUID(request.GET.get('from', ''))
@@ -295,7 +295,7 @@ def _attempt_context(request, attempt):
         context['battle'] = battle_view(
             attempt,
             attacker_label='You' if own else crowned_round(attempt).boss_label,
-            attacker_spell='your spell' if own else None,
+            attacker_prompt_label='your prompt' if own else None,
             boss_label=hill_round.boss_label,
             replies=own or replies_public(attempt),
         )

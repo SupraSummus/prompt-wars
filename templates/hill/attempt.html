@@ -26,12 +26,12 @@
 
     {% if own %}
       <details>
-        <summary>Your spell{% if attempt.display_name %}, <bdi>{{ attempt.display_name }}</bdi>{% endif %}</summary>
+        <summary>Your prompt{% if attempt.display_name %}, <bdi>{{ attempt.display_name }}</bdi>{% endif %}</summary>
         {% include 'exact_text.html' with text=attempt.warrior.body %}
       </details>
     {% elif public %}
       <details>
-        <summary>The spell</summary>
+        <summary>The prompt</summary>
         {% include 'exact_text.html' with text=attempt.warrior.body %}
       </details>
     {% endif %}

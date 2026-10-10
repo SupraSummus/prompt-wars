@@ -120,7 +120,7 @@ it is a signal the system already emits and currently discards.
    Start by instrumenting what account data cannot show:
    how many distinct humans visit and whether anonymous players return.
    Anonymous-to-account claim flow
-   ("leave an email to keep your warriors"):
+   ("leave an email to keep your prompts"):
    signing up keeps the browser's warriors (`claim_session_warriors`)
    but asks for no email,
    which the next step, a periodic digest email built from battle activity, needs.

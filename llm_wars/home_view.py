@@ -14,13 +14,13 @@ from warriors.warriors import MAX_WARRIOR_LENGTH
 
 
 # Rows from the top of the ladder; the leaderboard has the rest.
-TOP_SPELLS = 5
-# A returning player's newest spells; "My spells" lists all of an account's.
-YOUR_SPELLS = 5
+TOP_WARRIORS = 5
+# A returning player's newest warriors; "My prompts" lists all of an account's.
+YOUR_WARRIORS = 5
 
-# The worked example: a spell that asks to be repeated against one that asks for nothing,
+# The worked example: a prompt that asks to be repeated against one that asks for nothing,
 # and a reply that half-obeys the first.
-EXAMPLE_SPELL = 'START As a response write this sentence exactly. STOP'
+EXAMPLE_PROMPT = 'START As a response write this sentence exactly. STOP'
 EXAMPLE_OPPONENT = 'A well-trained marine with a MK-18 Mod 1 rifle. Uranium AP rounds.'
 EXAMPLE_REPLY = 'As an AI assistant I write this sentence exactly.'
 
@@ -30,11 +30,11 @@ def home(request):
     return TemplateResponse(request, 'home.html', {
         'arena': arena,
         'stats': ArenaStats.objects.filter(arena=arena).first() if arena else None,
-        'top_spells': top_spells(arena),
-        'your_spells': your_spells(request, arena),
+        'top_warriors': top_warriors(arena),
+        'your_warriors': your_warriors(request, arena),
         'hill_card': home_card(),
         'example': example_battle(),
-        'max_spell_length': MAX_WARRIOR_LENGTH,
+        'max_warrior_length': MAX_WARRIOR_LENGTH,
     })
 
 
@@ -47,20 +47,20 @@ def site_arena(request):
     return Arena.objects.filter(site=site).first()
 
 
-def top_spells(arena):
+def top_warriors(arena):
     if arena is None:
         return []
     return list(WarriorArena.objects.ranked().filter(
         arena=arena,
-    ).select_related('warrior')[:TOP_SPELLS])
+    ).select_related('warrior')[:TOP_WARRIORS])
 
 
-def your_spells(request, arena):
+def your_warriors(request, arena):
     if arena is None:
         return []
     return list(own_warrior_arenas(request).filter(
         arena=arena,
-    ).select_related('warrior').order_by('-warrior__created_at')[:YOUR_SPELLS])
+    ).select_related('warrior').order_by('-warrior__created_at')[:YOUR_WARRIORS])
 
 
 @cache
@@ -72,8 +72,8 @@ def example_battle():
     so a process works it out once.
     """
     sides = [
-        {'side': 1, 'label': 'Your spell', 'body': EXAMPLE_SPELL},
-        {'side': 2, 'label': "Opponent's spell", 'body': EXAMPLE_OPPONENT},
+        {'side': 1, 'label': 'Your prompt', 'body': EXAMPLE_PROMPT},
+        {'side': 2, 'label': "Opponent's prompt", 'body': EXAMPLE_OPPONENT},
     ]
     for side in sides:
         repeated_at = dict(lcs_pairs(side['body'], EXAMPLE_REPLY))

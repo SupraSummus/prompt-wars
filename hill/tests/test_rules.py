@@ -44,7 +44,7 @@ def test_standings_rank_each_attacker_by_their_best_eligible_attempt(open_round)
     HillAttemptFactory(hill_round=open_round, identity='a', state=AttemptState.FAILED)
     # ties go to more characters survived
     d_best = attempt('d', 0.65, 6, survived_chars=200)
-    # ranked, but it beats the boss only once its spell passes moderation
+    # ranked, but it beats the boss only once its prompt passes moderation
     e_best = attempt('e', 0.8, 7, warrior__moderation_passed=None)
 
     rows = standings(open_round)

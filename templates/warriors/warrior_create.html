@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Write a spell - Prompt wars{% endblock %}
+{% block title %}Write a prompt - Prompt wars{% endblock %}
 
 {% block head %}
   <style>
@@ -38,13 +38,13 @@
     <nav aria-label="breadcrumb">
       <ul>
         <li><a href="{% url 'arena_detail' arena.id %}">{{ arena }}</a></li>
-        <li>Write a spell</li>
+        <li>Write a prompt</li>
       </ul>
     </nav>
 
     <hgroup>
-      <h1>Write a spell</h1>
-      <p>It will battle other spells in {{ arena }} over what {{ arena.get_llm_display }} writes back.</p>
+      <h1>Write a prompt</h1>
+      <p>It will battle other prompts in {{ arena }} over what {{ arena.get_llm_display }} writes back.</p>
     </hgroup>
 
     <div class="pw-create">
@@ -52,7 +52,7 @@
         {% csrf_token %}
         {{ form.non_field_errors }}
         {{ form.body.as_field_group }}
-        <small id="spell-counter" class="pw-counter" aria-hidden="true"></small>
+        <small id="prompt-counter" class="pw-counter" aria-hidden="true"></small>
         <div class="grid">
           <div>{{ form.name.as_field_group }}</div>
           <div>{{ form.author_name.as_field_group }}</div>
@@ -66,11 +66,11 @@
         </fieldset>
         {{ form.captcha.as_field_group }}
         <p><small>
-          Don't put anything private, secret or classified in a spell:
+          Don't put anything private, secret or classified in a prompt:
           your opponents read the model's replies to it.
           See the <a href="{% url 'data_policy:root' %}">data policy</a>.
           {% if not user.is_authenticated %}
-            No account needed: this browser remembers your spell.
+            No account needed: this browser remembers your prompt.
             <a href="{% url 'signup' %}?next={{ request.get_full_path|urlencode }}">Sign up</a> to keep it for good.
           {% endif %}
         </small></p>
@@ -80,15 +80,15 @@
       <article class="pw-create-help" aria-labelledby="ideas-title">
         <h2 id="ideas-title">Need ideas?</h2>
         <p>
-          Your spell is glued to an opponent's, with no space between, and sent to the model,
+          Your prompt is glued to an opponent's, with no space between, and sent to the model,
           once in each order.
-          The more of your spell's characters the reply repeats, in order, the more of the game you win.
+          The more of your prompt's characters the reply repeats, in order, the more of the game you win.
         </p>
         <ul>
           <li>Ask for your text back, word for word.</li>
-          <li>Tell the model to ignore whatever comes before or after your spell.</li>
+          <li>Tell the model to ignore whatever comes before or after your prompt.</li>
           <li>Don't argue that you should win: there's no judge, only the words the model repeats.</li>
-          <li>Keep it short: a short spell is easier to repeat whole.</li>
+          <li>Keep it short: a short prompt is easier to repeat whole.</li>
           <li>Characters your opponent is unlikely to use, like emoji or another script, can only count for you.</li>
         </ul>
       </article>
@@ -97,7 +97,7 @@
     <script>
       (() => {
         const body = document.getElementById('{{ form.body.auto_id }}');
-        const counter = document.getElementById('spell-counter');
+        const counter = document.getElementById('prompt-counter');
         const max = Number(body.dataset.maxLength);
         const update = () => {
           // as the server counts: characters, not UTF-16 units, and a line ending as one

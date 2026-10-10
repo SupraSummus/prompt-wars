@@ -8,12 +8,12 @@ from django_recaptcha.fields import ReCaptchaField
 from .models import WarriorArena, WarriorUserPermission
 from .tasks import do_moderation
 from .views import ArenaViewMixin
-from .warriors import MAX_WARRIOR_LENGTH, Warrior, normalize_spell_body
+from .warriors import MAX_WARRIOR_LENGTH, Warrior, normalize_warrior_body
 
 
 class WarriorCreateForm(forms.ModelForm):
     body = forms.CharField(
-        label='Your spell',
+        label='Your prompt',
         help_text=f'Up to {MAX_WARRIOR_LENGTH} characters, in any language.',
         widget=forms.Textarea(attrs={
             'rows': 6,
@@ -35,16 +35,16 @@ class WarriorCreateForm(forms.ModelForm):
             'captcha',
         )
         labels = {
-            'name': 'Spell name (optional)',
+            'name': 'Name your prompt (optional)',
             'author_name': 'Author (optional)',
-            'public_battle_results': 'Make battle results public',
+            'public_battle_results': "Make the model's replies public",
         }
         help_texts = {
             'name': "Left empty, it gets one once it's checked.",
             'author_name': 'Recommended, for eternal glory.',
             'public_battle_results': (
-                "Anyone can then read the model's replies in this spell's battles, "
-                'and a reply often echoes the spell.'
+                "Anyone can then read them in this prompt's battles, "
+                'and a reply often echoes the prompt.'
             ),
         }
 
@@ -59,13 +59,13 @@ class WarriorCreateForm(forms.ModelForm):
     def clean(self):
         if not self.arena.enabled:
             raise forms.ValidationError(
-                _('Creating spells in this arena is disabled.'),
+                _('Creating prompts in this arena is disabled.'),
                 code='arena_disabled',
             )
         return super().clean()
 
     def clean_body(self):
-        body, body_sha_256 = normalize_spell_body(self.cleaned_data['body'])
+        body, body_sha_256 = normalize_warrior_body(self.cleaned_data['body'])
         self.cleaned_data['body_sha_256'] = body_sha_256
         return body
 
@@ -74,7 +74,7 @@ class WarriorCreateForm(forms.ModelForm):
             body_sha_256=self.cleaned_data['body_sha_256'],
         ).first()
 
-        # create the spell if it is unique
+        # create the warrior if it is unique
         if warrior is None:
             warrior = super().save(commit=False)
 
@@ -91,7 +91,7 @@ class WarriorCreateForm(forms.ModelForm):
         else:
             messages.info(
                 self.request,
-                _('The spell already existed. You have discovered it and now you have full access to its secrets.'),
+                _('The prompt already existed. You have discovered it and now you have full access to its secrets.'),
             )
 
         warrior_arena, warrior_arena_created = WarriorArena.objects.get_or_create(
@@ -99,7 +99,7 @@ class WarriorCreateForm(forms.ModelForm):
             warrior=warrior,
         )
 
-        # give the user permission to the spell
+        # give the user permission to the warrior
         if self.user.is_authenticated:
             perm, perm_created = WarriorUserPermission.objects.get_or_create(
                 warrior=warrior,

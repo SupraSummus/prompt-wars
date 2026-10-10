@@ -33,7 +33,7 @@ def _plural(count, word):
 def shown_state(attempt, state):
     """
     `state` as a page shows it for `attempt`:
-    a scored attempt whose spell moderation has since flagged reads as flagged,
+    a scored attempt whose prompt has since been flagged by moderation reads as flagged,
     before the sweep gets to storing that.
     """
     if state == AttemptState.SCORED and attempt.warrior.moderation_passed is False:
@@ -57,14 +57,14 @@ def reign_line(hill_round):
     return 'Put on the hill by its keeper.'
 
 
-def battle_view(attempt, *, attacker_label, boss_label, replies, attacker_spell=None):
+def battle_view(attempt, *, attacker_label, boss_label, replies, attacker_prompt_label=None):
     """
     An attempt's scored battle, from the attacker's side: its score, then each game.
 
     `replies` says whether the replies are shown, marked with what survived;
     the numbers are shown either way, survival among them:
-    characters kept in order (`lcs_len`), which a game's score, relative to the other spell, doesn't say.
-    `attacker_spell` names the attacker's spell where its label can't ("your spell" for "You").
+    characters kept in order (`lcs_len`), which a game's score, relative to the other prompt, doesn't say.
+    `attacker_prompt_label` names the attacker's prompt where its label can't ("your prompt" for "You").
     """
     attacker = attempt.warrior
     boss = attempt.hill_round.boss
@@ -93,7 +93,7 @@ def battle_view(attempt, *, attacker_label, boss_label, replies, attacker_spell=
         'games': games,
         'replies': replies,
         'attacker_label': attacker_label,
-        'attacker_spell': attacker_spell or attacker_label,
+        'attacker_prompt_label': attacker_prompt_label or attacker_label,
         'boss_label': boss_label,
     }
 
@@ -107,12 +107,12 @@ def share_text(battle, hill_round, url, holding_round=None):
     """
     A post about a result: numbers and emoji bars, and the hill's address.
 
-    Never the spell or its names, which stay the author's to share;
-    `holding_round` is the round the attempt's spell holds the hill in, if it does.
+    Never the prompt or its names, which stay the author's to share;
+    `holding_round` is the round the attempt's prompt holds the hill in, if it does.
     """
     if holding_round is not None:
         return (
-            f'My spell holds the Prompt Wars hill (#{holding_round.number}). Can you break it?\n'
+            f'My prompt holds the Prompt Wars hill (#{holding_round.number}). Can you break it?\n'
             f'{url}'
         )
     first, second = (game['score'] for game in battle['games'])
@@ -143,7 +143,7 @@ def standing_rows(rows, identity):
     The standings `rows` as a page lists them: the top ones, then the viewer's own if it is lower.
 
     Numbers only, and "You" or "Attacker #k" for a handle:
-    while a round is open, nobody's spell or names are shown.
+    while a round is open, nobody's prompt or names are shown.
     """
     shown = [_standing_row(row, identity) for row in rows[:HILL_STANDINGS_SIZE]]
     own = next((
@@ -175,7 +175,7 @@ def index_meta(hill_round, stats):
         )
     return {
         'meta_title': f'King of the Hill #{hill_round.number}',
-        'meta_description': f'{attacks} Write a spell that takes the hill.',
+        'meta_description': f'{attacks} Write a prompt that takes the hill.',
     }
 
 
@@ -185,7 +185,7 @@ def attempt_meta(attempt, state):
     if state != AttemptState.SCORED:
         description = f"An attack on the Hill #{number} boss on Prompt Wars."
     else:
-        description = f'This spell took {percent1(attempt.score)} of its battle against the Hill #{number} boss.'
+        description = f'This prompt took {percent1(attempt.score)} of its battle against the Hill #{number} boss.'
     return {
         'meta_title': f'An attack on Hill #{number}',
         'meta_description': description,

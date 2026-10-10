@@ -5,7 +5,7 @@ The hill moderates on its own client rather than through `do_moderation`:
 a timeout and no SDK retries, so a hung call can't hold a worker thread for long,
 transient errors retried instead of given up,
 and no naming or embedding scheduled after it —
-hill spells keep blank names and never need an embedding.
+hill warriors keep blank names and never need an embedding.
 """
 import datetime
 import functools
@@ -48,8 +48,8 @@ def moderate(texts):
     )
 
 
-def record_spell_moderation(warrior, response, flagged, now):
-    """Store a spell's verdict, unless another moderation stored one first."""
+def record_warrior_moderation(warrior, response, flagged, now):
+    """Store a warrior's moderation verdict, unless another moderation stored one first."""
     Warrior.objects.filter(
         id=warrior.id,
         moderation_passed=None,
@@ -77,25 +77,25 @@ def retry_when_unavailable(handler):
 @retry_when_unavailable
 def moderate_attempt(goal, attempt_id):
     """
-    Moderate an attack's spell, which gates its crown.
+    Moderate an attack's prompt, which gates its crown.
 
-    A flagged spell turns its attempt flagged (`hill.status.attempt_status`).
+    A flagged prompt turns its attempt flagged (`hill.status.attempt_status`).
     """
     warrior = HillAttempt.objects.select_related('warrior').get(id=attempt_id).warrior
     response = moderate([warrior.body])
     (result,) = response.results
-    record_spell_moderation(warrior, response, result.flagged, timezone.now())
+    record_warrior_moderation(warrior, response, result.flagged, timezone.now())
     return AllDone()
 
 
 @retry_when_unavailable
 def moderate_crowned_attempt(goal, attempt_id):
     """
-    Moderate what an attack that took the hill publishes besides its spell, in one call:
+    Moderate what an attack that took the hill publishes besides its prompt, in one call:
     both replies of its battle, and the names typed for it.
 
     Passed replies may be shown to anyone (`hill.rules.replies_public`).
-    Passed names go onto every round its spell holds;
+    Passed names go onto every round its prompt holds;
     flagged ones never do, and the boss reigns unnamed.
     """
     attempt = HillAttempt.objects.select_related('battle').get(id=attempt_id)

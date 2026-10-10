@@ -69,7 +69,7 @@ class WarriorArenaQuerySet(models.QuerySet):
         )
 
     def ranked(self):
-        """The ladder's order, best first: the leaderboard and the home page's top spells."""
+        """The ladder's order, best first: the leaderboard and the home page's top warriors."""
         return self.battleworthy().order_by('-rating')
 
 

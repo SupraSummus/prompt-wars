@@ -146,7 +146,7 @@ def test_the_rotation_skips_the_boss_itself(hill, reign, another):
 @pytest.mark.django_db
 @pytest.mark.parametrize('moderation_passed', [None, False])
 def test_the_rotation_skips_a_house_boss_moderation_has_not_passed(hill, reign, moderation_passed):
-    """The admin can add any spell as a house boss; only `hill_crown --house` moderates it."""
+    """The admin can add any warrior as a house boss; only `hill_crown --house` moderates it."""
     house(hill, warrior=WarriorFactory(moderation_passed=moderation_passed))
     assert successor(hill, reign[-1])[0] == BossReason.HELD
 

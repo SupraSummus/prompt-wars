@@ -160,7 +160,7 @@ def test_what_keeps_a_visitor_from_attacking_replaces_the_form(client, open_roun
 
 
 @pytest.mark.django_db
-def test_attacking_again_starts_from_your_own_spell_only(client, open_round):
+def test_attacking_again_starts_from_your_own_prompt_only(client, open_round):
     identity = player(client)
     mine = judged(open_round, identity, display_name='Riverstone')
     someone_elses = HillAttemptFactory(hill_round=open_round, warrior__body='A sealed spell of somebody else.')
@@ -267,7 +267,7 @@ def test_an_attack_leads_to_its_page(client, mocked_recaptcha, open_round):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('data, message', [
-    ({'body': BOSS_BODY}, "Your spell copies the boss's text (100% match)."),
+    ({'body': BOSS_BODY}, "Your prompt copies the boss's text (100% match)."),
     ({'consent': ''}, 'Agree to the publication terms to attack.'),
 ], ids=['copies the boss', 'no consent'])
 def test_a_refused_attack_keeps_the_text_and_the_solved_captcha(client, mocked_recaptcha, open_round, data, message):
@@ -330,7 +330,7 @@ def test_a_stranger_sees_only_the_score(client, open_round):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('passed', [True, None])
-def test_a_spell_that_took_the_hill_is_public_with_its_replies_once_they_pass(client, hill, open_round, passed):
+def test_a_prompt_that_took_the_hill_is_public_with_its_replies_once_they_pass(client, hill, open_round, passed):
     winner = judged(open_round, output_moderation_passed=passed)
     crown_attempt(hill, winner, boss_name='Riverstone')
 
@@ -423,7 +423,7 @@ def test_the_holder_reaches_their_share_text_from_the_hill(client, hill, open_ro
 
     assert attempt_url in client.get(reverse('hill:index')).content.decode()
     assert attempt_url not in Client().get(reverse('hill:index')).content.decode()
-    assert client.get(attempt_url).context['share_text'].startswith('My spell holds the Prompt Wars hill')
+    assert client.get(attempt_url).context['share_text'].startswith('My prompt holds the Prompt Wars hill')
 
 
 @pytest.mark.django_db

@@ -10,10 +10,10 @@ from hill.forms import NAME_MAX_LENGTH, clean_display_text
 from hill.handover import Successor, crown
 from hill.models import BossReason, Hill, HouseBoss, Round
 from hill.tasks import (
-    TRANSIENT_MODERATION_ERRORS, moderate, record_spell_moderation,
+    TRANSIENT_MODERATION_ERRORS, moderate, record_warrior_moderation,
 )
 from warriors.warriors import (
-    Warrior, get_or_insert_warrior, normalize_spell_body,
+    Warrior, get_or_insert_warrior, normalize_warrior_body,
 )
 
 
@@ -21,25 +21,25 @@ class Command(BaseCommand):
     """
     The owner's hand on the hill: seed the first boss, replace a boss, or add a house boss.
 
-    The spell is moderated synchronously before any lock is taken,
+    The prompt is moderated synchronously before any lock is taken,
     so the scheduler's handover never waits on the moderation call.
     """
     help = (
-        'Crown a spell as the hill boss at once (--now), add it to the house bosses (--house), or both. '
+        'Crown a prompt as the hill boss at once (--now), add it to the house bosses (--house), or both. '
         'Creates the hill, disabled, if there is none.'
     )
 
     def add_arguments(self, parser):
-        spell = parser.add_mutually_exclusive_group(required=True)
-        spell.add_argument(
+        source = parser.add_mutually_exclusive_group(required=True)
+        source.add_argument(
             '--body-file',
             type=Path,
-            help="A file holding the spell's text; the file's final line break is not part of it.",
+            help="A file holding the prompt; the file's final line break is not part of it.",
         )
-        spell.add_argument(
+        source.add_argument(
             '--warrior',
             type=uuid.UUID,
-            help='The id of an existing spell.',
+            help='The id of an existing warrior.',
         )
         parser.add_argument(
             '--name',
@@ -49,12 +49,12 @@ class Command(BaseCommand):
             '--author',
             help='The author the hill shows for this boss; left out, a house boss keeps the one it has.',
         )
-        parser.add_argument('--house', action='store_true', help='Add the spell to the house bosses.')
-        parser.add_argument('--now', action='store_true', help='Make the spell the boss now, closing the open round.')
+        parser.add_argument('--house', action='store_true', help='Add the prompt to the house bosses.')
+        parser.add_argument('--now', action='store_true', help='Make the prompt the boss now, closing the open round.')
 
     def handle(self, *args, **options):
         if not (options['house'] or options['now']):
-            raise CommandError('Pass --now to crown the spell, --house to add it to the house bosses, or both.')
+            raise CommandError('Pass --now to crown the prompt, --house to add it to the house bosses, or both.')
         names = {
             field: self._display_text(options[field], f'--{field}')
             for field in ('name', 'author')
@@ -65,7 +65,7 @@ class Command(BaseCommand):
         else:
             warrior = Warrior.objects.filter(id=options['warrior']).first()
             if warrior is None:
-                raise CommandError(f'No spell has the id {options["warrior"]}.')
+                raise CommandError(f'No warrior has the id {options["warrior"]}.')
         self._ensure_moderated(warrior)
 
         with transaction.atomic():
@@ -109,9 +109,9 @@ class Command(BaseCommand):
         if body.endswith('\n'):
             body = body[:-1]
         if not body:
-            raise CommandError(f'{path} holds no spell.')
+            raise CommandError(f'{path} holds no prompt.')
         try:
-            body, body_sha_256 = normalize_spell_body(body)
+            body, body_sha_256 = normalize_warrior_body(body)
         except ValidationError as error:
             raise CommandError(error.messages[0]) from error
         warrior, _ = get_or_insert_warrior(body, body_sha_256)
@@ -124,7 +124,7 @@ class Command(BaseCommand):
             except TRANSIENT_MODERATION_ERRORS as error:
                 raise CommandError('Moderation is unavailable right now; try again.') from error
             (result,) = response.results
-            record_spell_moderation(warrior, response, result.flagged, timezone.now())
+            record_warrior_moderation(warrior, response, result.flagged, timezone.now())
             warrior.refresh_from_db()
         if warrior.moderation_passed is not True:
-            raise CommandError('Moderation flagged this spell; the hill will not show it.')
+            raise CommandError('Moderation flagged this prompt; the hill will not show it.')

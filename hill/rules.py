@@ -25,7 +25,7 @@ HILL_WIN_SCORE = 0.55
 HILL_MAX_REIGN_ROUNDS = 3
 
 # A boss's text, and variants of it, can't return for this many rounds,
-# so a dethroned spell's family can't alternate with its conqueror.
+# so a dethroned prompt's family can't alternate with its conqueror.
 HILL_NO_RETURN_ROUNDS = 7
 
 # How long the handover waits for attacks still in battle at the cutoff before marking them late.
@@ -66,7 +66,7 @@ def beats_boss(attempt):
 
 
 def survived_chars(body, results):
-    """Characters of a spell that survived, in order, summed over its games' results."""
+    """Characters of a prompt that survived, in order, summed over its games' results."""
     return sum(lcs_len(body, result) for result in results)
 
 
@@ -169,7 +169,7 @@ def standings_stats(rows):
 
 
 def crowned_round(attempt):
-    """The first round `attempt`'s spell held the hill in, or None if it never took it."""
+    """The first round `attempt`'s prompt held the hill in, or None if it never took it."""
     return Round.objects.filter(boss_attempt=attempt).select_related('boss').order_by('number').first()
 
 
@@ -179,7 +179,7 @@ def is_public(attempt):
 
     Publishing a boss is all the attack form's consent covers,
     so nothing else an attacker sends is shown to anyone else, ever.
-    A spell flagged since, by moderation or the owner's takedown, is taken back.
+    A prompt flagged since, by moderation or the owner's takedown, is taken back.
     """
     return (
         attempt.warrior.moderation_passed is True and

@@ -14,7 +14,7 @@ def hill_crown(*args):
 
 @pytest.fixture
 def body_file(tmp_path):
-    path = tmp_path / 'spell.txt'
+    path = tmp_path / 'prompt.txt'
     path.write_text('Sing the river song, verse by verse.\n', encoding='utf-8')
     return path
 
@@ -33,7 +33,7 @@ def test_seeding_creates_a_disabled_hill_and_its_first_round(moderation, body_fi
     assert before <= hill_round.starts_at <= timezone.now()
     assert hill_round.llm == hill.llm
     boss = hill_round.boss
-    # the file's final line break is not part of the spell
+    # the file's final line break is not part of the prompt
     assert boss.body == 'Sing the river song, verse by verse.'
     assert (boss.name, boss.created_by, boss.moderation_passed) == ('', None, True)
     assert moderation.calls == [[boss.body]]
@@ -76,7 +76,7 @@ def test_a_house_boss_keeps_its_names_when_crowned_or_added_again_without_them(m
 
 
 @pytest.mark.django_db
-def test_a_flagged_spell_is_refused(moderation, body_file):
+def test_a_flagged_prompt_is_refused(moderation, body_file):
     moderation.flagged.add('Sing the river song, verse by verse.')
     with pytest.raises(CommandError, match='flagged'):
         hill_crown('--body-file', body_file, '--now')

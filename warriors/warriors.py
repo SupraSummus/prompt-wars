@@ -17,21 +17,21 @@ from .embeddings import EmbeddingMixin, _ensure_voyage_3_embedding
 MAX_WARRIOR_LENGTH = 1000
 
 
-def normalize_spell_body(body):
+def normalize_warrior_body(body):
     """
-    A submitted spell as it is stored, and the sha256 that deduplicates it.
+    A submitted prompt as it is stored, and the sha256 that deduplicates it.
 
     Line endings are normalized before hashing,
-    so the same text pasted from any system is the same spell.
-    Raises ValidationError for a spell over the length limit.
+    so the same text pasted from any system is the same warrior.
+    Raises ValidationError for a prompt over the length limit.
     """
     body = normalize_newlines(body)
     if len(body) > MAX_WARRIOR_LENGTH:
         raise ValidationError(
             gettext(
-                'The spell is too long. '
+                'The prompt is too long. '
                 'The maximum length is %(max_length)d characters. '
-                'Your spell has %(length)d characters. '
+                'Your prompt has %(length)d characters. '
             ).strip(),
             params={
                 'max_length': MAX_WARRIOR_LENGTH,
@@ -47,7 +47,7 @@ def get_or_insert_warrior(body, body_sha_256):
     The Warrior with this text, and whether this call created it.
 
     An insert that skips a conflict, then a read by hash,
-    so a spell inserted with the same text in the meantime is found instead of failing the insert.
+    so a warrior inserted with the same text in the meantime is found instead of failing the insert.
     """
     candidate = Warrior(
         body=body,
@@ -203,7 +203,7 @@ def generate_warrior_name(warrior, samples=20):
     system_prompt = (
         "You are an AI assistant that generates names for warriors in a game called Prompt Wars. "
         "This game is inspired by Core War and involves players crafting text pieces "
-        "(warriors/spells/prompts) designed to manipulate large language models (LLMs) into "
+        "(warriors/prompts) designed to manipulate large language models (LLMs) into "
         "echoing the original prompt. Your task is to generate a name for each warrior. "
         "The name should fit within a database field "
         "of 40 characters maximum. "

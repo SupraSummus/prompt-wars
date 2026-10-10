@@ -42,7 +42,7 @@ def test_an_attack_starts_its_battle_at_once(hill_request, open_round):
     warrior = attempt.warrior
     assert (warrior.body, warrior.name, warrior.author_name, warrior.created_by) == (ATTACK, '', '', None)
     assert warrior.moderation_passed is None
-    # nothing enrolls the spell on the ladder or grants it to anyone
+    # nothing enrolls the warrior on the ladder or grants it to anyone
     assert not WarriorArena.objects.filter(warrior=warrior).exists()
     assert not WarriorUserPermission.objects.filter(warrior=warrior).exists()
     assert 'authorized_warriors' not in hill_request.session
@@ -104,11 +104,11 @@ def test_a_recent_boss_cannot_return(hill, hill_request, open_round, rounds_ago,
 
 @pytest.mark.django_db
 def test_someone_elses_text_is_refused(rf, user, hill_request, open_round):
-    # a ladder spell, even its author's own
+    # a ladder prompt, even its author's own
     ladder = WarriorFactory(body=ATTACK, created_by=user)
     assert refusal(hill_request, open_round) == 'exists'
     assert refusal(new_request(rf, user=user), open_round) == 'exists'
-    # another player's hill spell
+    # another player's hill prompt
     others = HillAttemptFactory(hill_round=open_round, warrior__body='My hill spell, sealed.')
     assert refusal(hill_request, open_round, others.warrior.body) == 'exists'
     assert list(HillAttempt.objects.all()) == [others]
@@ -116,7 +116,7 @@ def test_someone_elses_text_is_refused(rf, user, hill_request, open_round):
 
 
 @pytest.mark.django_db
-def test_a_player_may_bring_back_their_own_hill_spell(hill_request, earlier_round, open_round):
+def test_a_player_may_bring_back_their_own_hill_prompt(hill_request, earlier_round, open_round):
     earlier = HillAttemptFactory(
         hill_round=earlier_round, identity=get_identity(hill_request),
         warrior__body=ATTACK, state=AttemptState.SCORED,
@@ -131,7 +131,7 @@ def test_a_player_may_bring_back_their_own_hill_spell(hill_request, earlier_roun
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('resent', [ATTACK, ATTACK.upper(), ATTACK.replace(' ', '   ').replace(',', '')])
-def test_resending_a_spell_in_a_round_leads_back_to_it_for_free(rf, hill_request, open_round, resent):
+def test_resending_a_prompt_in_a_round_leads_back_to_it_for_free(rf, hill_request, open_round, resent):
     """Even while it is in battle, and with the player at the cap."""
     first = attack(hill_request, open_round).attempt
     HillAttemptFactory.create_batch(

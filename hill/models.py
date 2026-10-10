@@ -252,14 +252,14 @@ class HillAttemptQuerySet(models.QuerySet):
     def eligible(self):
         """
         Counted attempts that may take the hill, given the margin (`hill.rules.beats_boss`):
-        past the crown gates, and with a spell moderation passed, which a takedown revokes.
+        past the crown gates, and with a prompt that moderation passed, which a takedown revokes.
         """
         return self.counted().filter(crown_block=CrownBlock.NONE, warrior__moderation_passed=True)
 
 
 class HillAttempt(models.Model):
     """
-    One attack: one spell against its round's boss, fought as one unrated battle.
+    One attack: one prompt against its round's boss, fought as one unrated battle.
 
     The text stays sealed to its author
     unless the attempt becomes a boss.
