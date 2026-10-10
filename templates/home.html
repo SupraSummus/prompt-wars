@@ -70,29 +70,81 @@
 
     .pw-example {
       margin: 0;
+      counter-reset: pw-example-step;
     }
     .pw-example pre {
       margin-bottom: 0.75rem;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
     }
+    .pw-example-step {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+    }
+    .pw-example-step::before {
+      content: counter(pw-example-step);
+      counter-increment: pw-example-step;
+      display: inline-grid;
+      flex-shrink: 0;
+      place-items: center;
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 50%;
+      background: var(--pico-primary-background);
+      color: var(--pico-primary-inverse);
+      font-size: 0.75rem;
+    }
     .pw-example .pw-name {
       font-size: 0.875rem;
       font-weight: 600;
     }
-    .pw-example-glue {
-      margin: 0 0 0.5rem;
+    .pw-example-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0 1rem;
+      margin: 0 0 0.375rem;
+      padding: 0;
+    }
+    .pw-example-legend li {
+      margin: 0;
+      list-style: none;
+    }
+    .pw-example-prompt > span {
+      background: color-mix(in srgb, var(--pw-side) 15%, transparent);
+      color: var(--pico-color);
+      -webkit-box-decoration-break: clone;
+      box-decoration-break: clone;
+    }
+    .pw-example-prompt mark {
+      background: color-mix(in srgb, var(--pw-side) 40%, transparent);
+      transition: background-color 0.25s, text-decoration-color 0.25s;
+    }
+    .pw-example-hint {
       color: var(--pw-muted-color);
       font-size: 0.875rem;
-      text-align: center;
     }
-    .pw-example-survived {
-      display: flex;
-      justify-content: space-between;
-      gap: 0.5rem;
+    .pw-example-replay {
+      margin-bottom: var(--pico-spacing);
+      padding: 0.25rem 0.75rem;
+      font-size: 0.875rem;
     }
-    .pw-example-survived small {
-      color: var(--pw-muted-color);
+    /*
+      While playing, the reply is written out a character at a time,
+      and each character lights up the ones it repeats in the spells (lcs_pairs).
+    */
+    .pw-example-playing .pw-example-prompt mark:not(.pw-lit) {
+      background: transparent;
+      text-decoration-color: transparent;
+    }
+    .pw-example-playing .pw-example-reply > :not(.pw-said) {
+      opacity: 0;
+    }
+    .pw-example-playing .pw-example-reply > .pw-caret {
+      box-shadow: 2px 0 var(--pico-color);
     }
     .pw-yours header {
       display: flex;
@@ -299,32 +351,39 @@
       </ul>
     </div>
 
+    {% comment %}
+      The spells are marked where the reply repeats them,
+      lighting up as the reply is typed out:
+      a visitor reads marked text as quoted, with no new idea to learn.
+      A spell lined up over the reply in columns read as a puzzle,
+      and threads between one-line texts need texts so short that chance letters make a near tie.
+    {% endcomment %}
     <article class="pw-example pw-game" aria-labelledby="example-title">
       <p class="pw-example-label" id="example-title">One game, for example</p>
-      {% for side in example %}
-        <div class="pw-side-{{ side.side }}">
-          <span class="pw-name"><span class="pw-dot" aria-hidden="true"></span>{{ side.label }}</span>
-          <pre>{{ side.body }}</pre>
-        </div>
-      {% endfor %}
-      <p class="pw-example-glue">
-        <span aria-hidden="true">&darr;</span>
-        glued together and sent to the model
-        <span aria-hidden="true">&darr;</span>
-      </p>
-      <p class="pw-example-label">What the reply kept</p>
-      {% for side in example %}
-        <div class="pw-side-{{ side.side }}">
-          <div class="pw-example-survived">
+
+      <p class="pw-example-step">Both spells, glued into one message</p>
+      <ul class="pw-example-legend">
+        {% for side in example.sides %}
+          <li class="pw-side-{{ side.side }}">
             <span class="pw-name"><span class="pw-dot" aria-hidden="true"></span>{{ side.label }}</span>
-            <small>{{ side.kept }} of {{ side.length }} characters</small>
-          </div>
-          <pre>{{ side.reply_marked }}</pre>
-        </div>
-      {% endfor %}
+            <small class="pw-muted"><span data-kept="{{ side.side }}">{{ side.kept }}</span> of {{ side.length }} repeated</small>
+          </li>
+        {% endfor %}
+      </ul>
+      <pre class="pw-example-prompt">{% for side in example.sides %}<span class="pw-side-{{ side.side }}"><span class="pw-sr-only">{{ side.label }}: </span>{% for char, repeated_at in side.chars %}{% if repeated_at is None %}{{ char }}{% else %}<mark data-side="{{ side.side }}" data-repeated-at="{{ repeated_at }}">{{ char }}</mark>{% endif %}{% endfor %}</span>{% endfor %}</pre>
+
+      <p class="pw-example-step">The model's reply</p>
+      <pre class="pw-example-reply">{% for char in example.reply %}<span>{{ char }}</span>{% endfor %}</pre>
+      <p class="pw-example-hint">
+        Marked: what the reply repeats of each spell, character by character, in order.
+        Even a spell it ignores shares a few letters by chance.
+      </p>
+      <button type="button" class="secondary outline pw-example-replay" hidden>Play it again</button>
+
       <footer>
+        <p class="pw-example-step">The game, split</p>
         <ul class="pw-split-sides">
-          {% for side in example %}
+          {% for side in example.sides %}
             <li class="pw-side-{{ side.side }}">
               <span class="pw-split-score">{{ side.score|percentage }}</span>
               <small>{{ side.label }}</small>
@@ -332,16 +391,63 @@
           {% endfor %}
         </ul>
         <div class="pw-split-bar" aria-hidden="true">
-          {% for side in example %}
+          {% for side in example.sides %}
             <span class="pw-side-{{ side.side }}" style="width: {% widthratio side.score 1 100 %}%"></span>
           {% endfor %}
         </div>
         <p><small>
-          Marked: the characters each spell got into the reply, in order.
+          Each spell's share follows how much of it the reply repeats:
+          {% for side in example.sides %}{{ side.similarity|percentage }}{% if not forloop.last %} to {% endif %}{% endfor %}.
           A battle plays two such games, each spell going first once.
         </small></p>
       </footer>
     </article>
+    <script>
+      // Plays the example once as it comes into view, and again on request.
+      // The page is rendered with everything marked, so without this it reads as the end state;
+      // with it, the card waits blank, rather than blanking as the reader scrolls to it.
+      (() => {
+        const card = document.querySelector('.pw-example');
+        if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          return;
+        }
+        const reply = [...card.querySelectorAll('.pw-example-reply > span')];
+        const marks = [...card.querySelectorAll('.pw-example-prompt mark')];
+        const counts = [...card.querySelectorAll('[data-kept]')];
+        const replay = card.querySelector('.pw-example-replay');
+        let timers = [];
+        const reset = () => {
+          timers.forEach(clearTimeout);
+          card.classList.add('pw-example-playing');
+          reply.forEach(char => char.classList.remove('pw-said', 'pw-caret'));
+          marks.forEach(mark => mark.classList.remove('pw-lit'));
+          counts.forEach(count => { count.textContent = 0; });
+        };
+        const play = () => {
+          reset();
+          timers = reply.map((char, index) => setTimeout(() => {
+            reply[index - 1]?.classList.remove('pw-caret');
+            char.classList.add('pw-said', 'pw-caret');
+            for (const mark of marks.filter(mark => mark.dataset.repeatedAt === String(index))) {
+              mark.classList.add('pw-lit');
+              const count = counts.find(count => count.dataset.kept === mark.dataset.side);
+              count.textContent = Number(count.textContent) + 1;
+            }
+          }, 600 + index * 70));
+          timers.push(setTimeout(() => card.classList.remove('pw-example-playing'), 600 + reply.length * 70 + 400));
+        };
+        reset();
+        replay.hidden = false;
+        replay.addEventListener('click', play);
+        const observer = new IntersectionObserver(entries => {
+          if (entries.some(entry => entry.isIntersecting)) {
+            observer.disconnect();
+            play();
+          }
+        }, {threshold: 0.6});
+        observer.observe(card.querySelector('.pw-example-reply'));
+      })();
+    </script>
   </section>
 
   {% if stats %}

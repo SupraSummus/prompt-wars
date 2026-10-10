@@ -1,6 +1,7 @@
 import pytest
 from django.urls import reverse
 
+from llm_wars.home_view import example_battle
 from warriors.tests.factories import (
     WarriorArenaFactory, WarriorUserPermissionFactory,
 )
@@ -44,3 +45,9 @@ def test_home_lists_an_accounts_spells(user, user_client, default_arena):
     WarriorArenaFactory(arena=default_arena)
     response = user_client.get(reverse('home'))
     assert response.context['your_spells'] == [mine]
+
+
+def test_example_marks_agree_with_its_percentages():
+    """The card counts its marks as "kept of length repeated" and puts that beside each similarity."""
+    for side in example_battle()['sides']:
+        assert side['kept'] / side['length'] == side['similarity']
