@@ -164,6 +164,10 @@ ANTHROPIC_API_KEY = env.str('ANTHROPIC_API_KEY', default='')
 VOYAGE_API_KEY = env.str('VOYAGE_API_KEY', default='')
 GOOGLE_AI_API_KEY = env.str('GOOGLE_AI_API_KEY', default='')
 
+# Log in with Google is on when both are set (`users.google_login`).
+GOOGLE_OAUTH_CLIENT_ID = env.str('GOOGLE_OAUTH_CLIENT_ID', default='')
+GOOGLE_OAUTH_CLIENT_SECRET = env.str('GOOGLE_OAUTH_CLIENT_SECRET', default='')
+
 # recaptcha (default are disclosed testing keys)
 RECAPTCHA_PUBLIC_KEY = env.str('RECAPTCHA_PUBLIC_KEY', '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI')
 RECAPTCHA_PRIVATE_KEY = env.str('RECAPTCHA_PRIVATE_KEY', '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe')
@@ -218,6 +222,10 @@ LOGGING = {
             'level': 'INFO',
         },
         'hill': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'users': {
             'handlers': ['console'],
             'level': 'INFO',
         },

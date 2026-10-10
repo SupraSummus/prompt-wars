@@ -290,3 +290,10 @@ and the hill tests build games with `attempts=` directly, so they would not noti
 Next move: have `_run_llm` store a distinct finish reason when it gives up,
 check that in `hill.status`, and keep `MAX_TRANSIENT_RETRIES` private to `warriors.tasks`.
 It changes the Finish chip on ladder battle pages, so it needs sign-off.
+
+`embedding_explorer` imports `requests` (`models.py`, `voyage.py`),
+which `pyproject.toml` doesn't list:
+it is installed only because `google-genai` and `voyageai` depend on it,
+so dropping or replacing either would break the import at startup.
+Next move: add `requests = "*"` to `pyproject.toml` and run `poetry lock`,
+which leaves the locked versions as they are.

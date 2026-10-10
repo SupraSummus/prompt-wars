@@ -4,16 +4,15 @@ from django.contrib.auth import views as auth_views
 from django.shortcuts import redirect
 from django.views.generic.edit import CreateView
 
-from warriors.views import claim_session_warriors
-
+from . import google_login
 from .forms import SignupForm
 
 
 class LoginView(auth_views.LoginView):
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        claim_session_warriors(self.request)
-        return response
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['google_login_enabled'] = google_login.is_enabled()
+        return context
 
 
 class SignupView(auth_views.RedirectURLMixin, CreateView):
@@ -28,10 +27,10 @@ class SignupView(auth_views.RedirectURLMixin, CreateView):
     def form_valid(self, form):
         user = form.save()
         login(self.request, user)
-        claim_session_warriors(self.request)
         return redirect(self.get_success_url())
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context[self.redirect_field_name] = self.get_redirect_url()
+        context['google_login_enabled'] = google_login.is_enabled()
         return context

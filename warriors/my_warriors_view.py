@@ -3,6 +3,7 @@ from django.core.paginator import Paginator
 from django.template.response import TemplateResponse
 
 from djsfc import Router, parse_template
+from users import google_login
 
 from .models import Arena
 from .warriors import Warrior
@@ -17,7 +18,7 @@ template = parse_template('''\
 {% extends "base.html" %}
 
 {% block main %}
-    <h1>My Warriors</h1>
+    <h1>My spells</h1>
     <table>
         <thead>
             <tr>
@@ -62,6 +63,18 @@ template = parse_template('''\
             {% endif %}
         </nav>
     {% endif %}
+
+    {% if offer_google_login %}
+        <section>
+            <h2>Log in with Google</h2>
+            <p>Connect a Google account to log in to this one with it, instead of the password.</p>
+            <form method="post" action="{% url 'google_login:start' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="secondary outline">Connect Google</button>
+            </form>
+        </section>
+    {% endif %}
 {% endblock %}
 ''', router=router)
 
@@ -86,6 +99,8 @@ def index(request):
     context = {
         'listed_arenas': listed_arenas,
         'page_obj': page_obj,
+        # the way an account made with a password gets Google login
+        'offer_google_login': google_login.is_enabled() and not request.user.google_accounts.exists(),
     }
     return TemplateResponse(request, template, context)
 

@@ -20,6 +20,14 @@
     <button type="submit">Log in</button>
   </form>
 
+  {% if google_login_enabled %}
+    {% include 'registration/google_login_button.html' %}
+    <p class="pw-muted"><small>
+      Have an account with a password?
+      Log in with it, then connect Google on <em>My spells</em>.
+    </small></p>
+  {% endif %}
+
   <p>
     New here?
     <a href="{% url 'signup' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Create an account</a>
