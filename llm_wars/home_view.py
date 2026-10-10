@@ -1,10 +1,11 @@
+from functools import cache
+
 from django.contrib.sites.models import Site
 from django.contrib.sites.shortcuts import get_current_site
 from django.template.response import TemplateResponse
 
 from hill.display import home_card
-from warriors.battles import lcs_mark
-from warriors.lcs import lcs_len
+from warriors.lcs import lcs_pairs
 from warriors.models import Arena, WarriorArena
 from warriors.score import GameScore, ScoreAlgorithm, lcs_similarity
 from warriors.stats import ArenaStats
@@ -62,28 +63,29 @@ def your_spells(request, arena):
     ).select_related('warrior').order_by('-warrior__created_at')[:YOUR_SPELLS])
 
 
+@cache
 def example_battle():
     """
-    One game of the worked example, scored and marked by the code that scores real games,
+    One game of the worked example, scored and paired up by the code that scores real games,
     so the page's numbers follow the rules rather than a copy of them.
+    Pairing up is quadratic (`lcs_pairs`) and the texts are constants,
+    so a process works it out once.
     """
+    sides = [
+        {'side': 1, 'label': 'Your spell', 'body': EXAMPLE_SPELL},
+        {'side': 2, 'label': "Opponent's spell", 'body': EXAMPLE_OPPONENT},
+    ]
+    for side in sides:
+        repeated_at = dict(lcs_pairs(side['body'], EXAMPLE_REPLY))
+        # each character with the place in the reply that repeats it, if one does
+        side['chars'] = [(char, repeated_at.get(i)) for i, char in enumerate(side['body'])]
+        side['kept'] = len(repeated_at)
+        side['length'] = len(side['body'])
+        side['similarity'] = lcs_similarity(side['body'], EXAMPLE_REPLY)
     score = GameScore(
         algorithm=ScoreAlgorithm.LCS,
-        warrior_1_similarity=lcs_similarity(EXAMPLE_SPELL, EXAMPLE_REPLY),
-        warrior_2_similarity=lcs_similarity(EXAMPLE_OPPONENT, EXAMPLE_REPLY),
+        warrior_1_similarity=sides[0]['similarity'],
+        warrior_2_similarity=sides[1]['similarity'],
     ).score
-    return [
-        {
-            'side': side,
-            'label': label,
-            'body': body,
-            'reply_marked': lcs_mark(EXAMPLE_REPLY, body),
-            'kept': lcs_len(body, EXAMPLE_REPLY),
-            'length': len(body),
-            'score': side_score,
-        }
-        for side, label, body, side_score in (
-            (1, 'Your spell', EXAMPLE_SPELL, score),
-            (2, "Opponent's spell", EXAMPLE_OPPONENT, 1 - score),
-        )
-    ]
+    sides[0]['score'], sides[1]['score'] = score, 1 - score
+    return {'reply': EXAMPLE_REPLY, 'sides': sides}

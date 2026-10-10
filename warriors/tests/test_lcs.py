@@ -2,7 +2,7 @@ import random
 
 import pytest
 
-from warriors.lcs import lcs_len, lcs_ranges
+from warriors.lcs import lcs_len, lcs_pairs, lcs_ranges
 from warriors.warriors import MAX_WARRIOR_LENGTH
 
 
@@ -45,6 +45,52 @@ def test_lcs_ranges():
 def test_lcs_ranges_eager():
     """It selects LCS that is at the front"""
     assert lcs_ranges('aaabbbccc', 'abc') == [(0, 1), (3, 4), (6, 7)]
+
+
+def test_lcs_pairs():
+    assert lcs_pairs('', 'abc') == []
+    assert lcs_pairs('xaby', 'zab') == [(1, 1), (2, 2)]
+    # the "A" of "START" would make two runs of the one "As"
+    assert lcs_pairs('START As', 'As') == [(6, 0), (7, 1)]
+
+
+def reference_fewest_runs(a, b):
+    """The fewest runs of any longest common subsequence, by brute force over the matrix's optimal paths."""
+    dp = reference_lcs_matrix(a, b)
+
+    def paths(i, j):
+        if i == 0 or j == 0:
+            yield []
+            return
+        if a[i - 1] == b[j - 1]:
+            for path in paths(i - 1, j - 1):
+                yield path + [(i - 1, j - 1)]
+        if dp[i - 1][j] == dp[i][j]:
+            yield from paths(i - 1, j)
+        if dp[i][j - 1] == dp[i][j]:
+            yield from paths(i, j - 1)
+    return min(runs(path) for path in paths(len(a), len(b)))
+
+
+def runs(pairs):
+    return sum(
+        1 for k, (i, j) in enumerate(pairs)
+        if k == 0 or pairs[k - 1] != (i - 1, j - 1)
+    )
+
+
+@pytest.mark.parametrize('alphabet', ['ab', 'ab c', 'aaab', 'промпт'])
+def test_lcs_pairs_matches_reference(alphabet):
+    rng = random.Random(str(alphabet))
+    for _ in range(100):
+        a = random_text(rng, alphabet, rng.randint(0, 9))
+        b = random_text(rng, alphabet, rng.randint(0, 9))
+        pairs = lcs_pairs(a, b)
+        # a common subsequence, as long as any, in as few runs as any
+        assert all(a[i] == b[j] for i, j in pairs), (a, b)
+        assert all(i < next_i and j < next_j for (i, j), (next_i, next_j) in zip(pairs, pairs[1:])), (a, b)
+        assert len(pairs) == lcs_len(a, b), (a, b)
+        assert runs(pairs) == reference_fewest_runs(a, b), (a, b)
 
 
 def reference_lcs_matrix(a, b):
