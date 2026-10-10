@@ -1,6 +1,6 @@
 {% load percentage %}
 {% comment %}
-  An attempt's status block, which its page polls while the battle is judged (`hill.views.attempt_status`).
+  An attempt's status block, which its page polls while its battle is in progress (`hill.views.attempt_status`).
   Once the outcome is in it comes back without hx-* attributes, and the polling stops.
   Its status line carries data-announce, which the page's own live region repeats after each swap (hill/attempt.html).
 {% endcomment %}
@@ -9,12 +9,12 @@
   {% if state == 'pending' %}
     <p data-announce>
       <span aria-busy="true" aria-hidden="true"></span>
-      {% if key == 'judging+slow' %}
+      {% if key == 'pending+slow' %}
         This is taking longer than usual
         (the model may have asked us to slow down; we retry automatically).
         You can close this page; the result will be at this link.
       {% else %}
-        The model is reading both spells, in both orders&hellip;
+        The model is replying to the two spells glued together, once in each order&hellip;
       {% endif %}
     </p>
 
@@ -69,7 +69,7 @@
     </p>
   {% elif state == 'failed' %}
     <p data-announce>
-      The referee returned nothing usable for this pair (blocked or empty).
+      The model returned nothing usable for this pair (blocked or empty).
       It counts as an attack but can't take the hill.
     </p>
   {% else %}

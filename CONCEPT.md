@@ -17,6 +17,32 @@ Players create prompts designed to make an LLM reproduce their text while ignori
 
 A 100% score means complete dominance; your prompt was effectively reproduced while your opponent's was completely ignored.
 
+## What the model is
+
+The model is told nothing about the game.
+It gets the two spells glued into one message,
+with no system prompt (`_run_llm` in `warriors/tasks.py`),
+and answers it like any other message.
+The score is worked out afterwards, outside the model,
+from how much of each spell the reply repeats (`warriors/score.py`).
+
+So the model is no referee:
+it doesn't know a contest is on,
+can't tell where one spell ends and the other begins,
+and gives a reply, not a verdict.
+A spell that argues it deserves to win
+scores only the words of the argument the model repeats.
+
+Nor is it a ring, a neutral place where spells fight each other.
+Spells can't touch each other;
+each acts only by steering what the model writes,
+and the model brings leanings of its own —
+answering rather than repeating, refusing, favoring one position.
+That is why every pair plays both orders.
+
+In copy, docs and comments, say what the model does: it answers, it replies.
+"Judge" and "verdict" belong to moderation, which does decide.
+
 ## Effective Strategies
 
 Through battles and experimentation, several effective approaches have emerged:

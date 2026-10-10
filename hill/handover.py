@@ -170,7 +170,7 @@ def close_round(hill, hill_round, now, forced=None):
 
     The caller holds the Hill lock, then the Round lock.
     Pending attempts are finalized first, so one already scored counts and can be crowned;
-    the ones still being judged become late: shown to their authors, never counted.
+    the ones still in battle become late: shown to their authors, never counted.
     A failing decision closes the round with the boss holding, logged,
     rather than leaving the hill stuck.
     """
@@ -217,7 +217,7 @@ def hill_handover(now):
     The scheduler's minute job: close the open round once it has ended.
 
     Idempotent: a closed round has a successor whose `ends_at` is in the future.
-    It waits up to `HILL_HANDOVER_GRACE` for attacks still being judged
+    It waits up to `HILL_HANDOVER_GRACE` for attacks still in battle
     and for scored ones whose spell has no moderation verdict yet,
     so a busy queue at the cutoff doesn't drop an attack that could take the hill.
     A disabled hill is left alone; re-enabled after its round ended, it hands over at once.

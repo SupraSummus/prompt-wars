@@ -96,8 +96,8 @@ def test_a_stored_outcome_stands(attempt):
 @pytest.mark.django_db
 def test_stage_key(attempt):
     now = timezone.now()
-    assert stage_key(reload(attempt), AttemptState.PENDING, now) == 'judging'
-    assert stage_key(reload(attempt), AttemptState.PENDING, now + datetime.timedelta(minutes=6)) == 'judging+slow'
+    assert stage_key(reload(attempt), AttemptState.PENDING, now) == 'pending'
+    assert stage_key(reload(attempt), AttemptState.PENDING, now + datetime.timedelta(minutes=6)) == 'pending+slow'
     assert stage_key(reload(attempt), AttemptState.SCORED, now) == 'scored'
 
 

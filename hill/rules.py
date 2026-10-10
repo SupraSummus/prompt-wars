@@ -28,7 +28,7 @@ HILL_MAX_REIGN_ROUNDS = 3
 # so a dethroned spell's family can't alternate with its conqueror.
 HILL_NO_RETURN_ROUNDS = 7
 
-# How long the handover waits for attacks still being judged at the cutoff before marking them late.
+# How long the handover waits for attacks still in battle at the cutoff before marking them late.
 HILL_HANDOVER_GRACE = datetime.timedelta(minutes=10)
 # No round is shorter, so a restart or a forced crown near the boundary can't make a round of minutes.
 HILL_MIN_ROUND = datetime.timedelta(hours=12)
@@ -36,7 +36,7 @@ HILL_MIN_ROUND = datetime.timedelta(hours=12)
 # Crown gates (`crown_block`), against bosses whose battles force a degenerate reply.
 # Characters of the attacker that must survive, summed over both games: a glyph echo wins on almost nothing.
 HILL_MIN_SURVIVED_CHARS = 50
-# Distinct character bigrams each reply needs: floods and fixed verdicts have few.
+# Distinct character bigrams each reply needs: floods and fixed phrases have few.
 HILL_MIN_REPLY_BIGRAMS = 20
 
 # An attack pending this long is shown as slow: several times the minute a battle normally takes,
@@ -79,7 +79,7 @@ def crown_block(survived, results):
     Why a scored attempt can't take the hill, or '' if it can.
 
     These gates stop a boss that forces a degenerate reply —
-    a lone glyph, a flood, a fixed verdict —
+    a lone glyph, a flood, a fixed phrase —
     from being beaten, or held, by attacks that fit the same degenerate reply.
     """
     if survived < HILL_MIN_SURVIVED_CHARS:

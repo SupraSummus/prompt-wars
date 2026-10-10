@@ -41,7 +41,7 @@
             <li>
               <a href="{% url 'hill:attempt' mine.attempt.id %}">Attack {{ forloop.counter }}</a>:
               {% if mine.state == 'pending' %}
-                being judged
+                in battle
               {% elif mine.state == 'scored' %}
                 {{ mine.attempt.score|percentage:1 }}{% if mine.attempt.late %} (too late to count){% endif %}
               {% elif mine.state == 'failed' %}

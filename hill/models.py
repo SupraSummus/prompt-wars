@@ -25,7 +25,7 @@ class Hill(models.Model):
     enabled = models.BooleanField(
         default=False,
     )
-    # Only the referees that run at temperature 0:
+    # Only the models that run at temperature 0:
     # the repeat rule and charging a failed battle to its player assume a battle replays.
     llm = models.CharField(
         max_length=20,
@@ -40,7 +40,7 @@ class Hill(models.Model):
     max_pending = models.PositiveSmallIntegerField(
         default=10,
         help_text=_(
-            'Attacks being judged at once, across rounds, before new ones are refused. '
+            'Attacks in battle at once, across rounds, before new ones are refused. '
             'Lower it to hand the worker back to the ladder during a spike.'
         ),
     )
@@ -227,7 +227,7 @@ class Round(models.Model):
 class AttemptState(models.TextChoices):
     PENDING = 'pending', _('Pending')
     SCORED = 'scored', _('Scored')
-    # the referee returned nothing usable; counts against the player
+    # the model returned nothing usable; counts against the player
     FAILED = 'failed', _('Failed')
     FLAGGED = 'flagged', _('Flagged by moderation')
     # lost to infrastructure; refunded
@@ -305,7 +305,7 @@ class HillAttempt(models.Model):
     )
     late = models.BooleanField(
         default=False,
-        help_text=_('Still being judged when its round closed: shown to its author, never counted.'),
+        help_text=_('Still in battle when its round closed: shown to its author, never counted.'),
     )
     battle = models.OneToOneField(
         to=Battle,

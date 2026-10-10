@@ -228,7 +228,7 @@ def test_with_no_attackers_the_next_round_keeps_the_boss(ended_round):
     ({'state': AttemptState.SCORED, 'score': 0.9, 'warrior__moderation_passed': None,
       'crown_block': CrownBlock.REPETITIVE_REPLY}, datetime.timedelta(minutes=1), False),
     ({'state': AttemptState.SCORED, 'score': 0.3}, datetime.timedelta(minutes=1), False),
-], ids=['being judged', 'awaiting moderation', 'grace over', 'crown-blocked', 'settled'])
+], ids=['in battle', 'awaiting moderation', 'grace over', 'crown-blocked', 'settled'])
 def test_the_handover_waits_within_the_grace_for_an_attack_still_unsettled(ended_round, attempt, after, waits):
     HillAttemptFactory(hill_round=ended_round, **attempt)
     hill_handover(now=ended_round.ends_at + after)
@@ -256,7 +256,7 @@ def test_a_winner_scored_but_not_yet_finalized_is_crowned_without_waiting(ended_
 
 
 @pytest.mark.django_db
-def test_after_the_grace_an_attack_still_judged_is_late(ended_round):
+def test_after_the_grace_an_attack_still_in_battle_is_late(ended_round):
     loser = scored(ended_round, 0.3)
     straggler = HillAttemptFactory(hill_round=ended_round, warrior__body=ATTACK)
 

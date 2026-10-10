@@ -59,7 +59,7 @@ class Migration(migrations.Migration):
                     'max_pending',
                     models.PositiveSmallIntegerField(
                         default=10,
-                        help_text='Attacks being judged at once, across rounds, before new ones are refused. Lower it to hand the worker back to the ladder during a spike.',
+                        help_text='Attacks in battle at once, across rounds, before new ones are refused. Lower it to hand the worker back to the ladder during a spike.',
                     ),
                 ),
             ],
@@ -98,7 +98,7 @@ class Migration(migrations.Migration):
                     'late',
                     models.BooleanField(
                         default=False,
-                        help_text='Still being judged when its round closed: shown to its author, never counted.',
+                        help_text='Still in battle when its round closed: shown to its author, never counted.',
                     ),
                 ),
                 ('score', models.FloatField(blank=True, null=True)),

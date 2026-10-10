@@ -121,7 +121,7 @@ def stage_key(attempt, status, now):
         game.resolved_at is None and game.attempts > 0
         for game in attempt.battle.games_list
     )
-    return 'judging+slow' if slow else 'judging'
+    return 'pending+slow' if slow else 'pending'
 
 
 def finalize_attempt(attempt, status):

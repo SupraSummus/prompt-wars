@@ -23,14 +23,11 @@ def _llm_version(response):
     return response.model + '/' + (response.system_fingerprint or '')
 
 
-def resolve_battle_openai(prompt_a, prompt_b, system_prompt=''):
-    messages = []
-    if system_prompt:
-        messages.append({'role': 'system', 'content': system_prompt})
-    messages.append({
+def resolve_battle_openai(prompt_a, prompt_b):
+    messages = [{
         'role': 'user',
         'content': prompt_a + prompt_b,
-    })
+    }]
     try:
         response = openai_client.chat.completions.create(
             messages=messages,
