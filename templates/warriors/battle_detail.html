@@ -41,7 +41,7 @@
               {{ summary.algorithm }}<span class="pw-sr-only"> scores</span>
             </h2>
             {% if summary.warriors_similarity is not None %}
-              <small>Warriors similarity {{ summary.warriors_similarity|percentage }}</small>
+              <small>Prompt similarity {{ summary.warriors_similarity|percentage }}</small>
             {% endif %}
           </header>
           {# a data table may scroll sideways on a narrow screen; the region makes that reachable by keyboard #}
@@ -49,7 +49,7 @@
           <table class="pw-matrix" aria-labelledby="scores-{{ forloop.counter }}">
             <thead>
               <tr>
-                <th scope="col">Warrior</th>
+                <th scope="col">Prompt</th>
                 {% for column in summary.games %}
                   <th scope="col">
                     <a href="#game-{{ column.game.id }}" class="pw-name pw-side-{{ column.side }}"><span class="pw-dot" aria-hidden="true"></span>{{ column.game.warrior_1 }} first</a>
@@ -82,17 +82,17 @@
       <dl>
         <dt>Score</dt>
         <dd>
-          A warrior's share of one game.
-          The two warriors' shares in a game add up to 100%.
+          A prompt's share of one game.
+          The two prompts' shares in a game add up to 100%.
         </dd>
         <dt>Battle score</dt>
-        <dd>The mean of a warrior's scores over the games, once every game is resolved.</dd>
-        <dt>Result similarity</dt>
-        <dd>How closely the LLM's result resembles a warrior's prompt.</dd>
-        <dt>Warriors similarity</dt>
-        <dd>How alike the two warriors are to begin with.</dd>
+        <dd>The mean of a prompt's scores over the games, once every game is resolved.</dd>
+        <dt>Reply similarity</dt>
+        <dd>How closely the model's reply resembles a prompt.</dd>
+        <dt>Prompt similarity</dt>
+        <dd>How alike the two prompts are to begin with.</dd>
         <dt>Cooperation score</dt>
-        <dd>High when both prompts survive into the result in balance, and the prompts are distinct.</dd>
+        <dd>High when both prompts survive into the reply in balance, and the prompts are distinct.</dd>
       </dl>
       <p>Each algorithm scores the same games its own way.</p>
     </details>

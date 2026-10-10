@@ -22,7 +22,7 @@ def unmoderated_attempt(open_round):
 
 
 @pytest.mark.django_db
-def test_an_attacks_spell_is_moderated(moderation, open_round):
+def test_an_attacks_prompt_is_moderated(moderation, open_round):
     attempt = unmoderated_attempt(open_round)
 
     moderate_attempt(None, str(attempt.id))
@@ -31,12 +31,12 @@ def test_an_attacks_spell_is_moderated(moderation, open_round):
     attempt.warrior.refresh_from_db()
     assert (attempt.warrior.moderation_passed, attempt.warrior.moderation_model) == (True, 'omni-moderation-latest')
     assert attempt.warrior.moderation_date is not None
-    # hill spells get no generated name and no embedding
+    # hill warriors get no generated name and no embedding
     assert not Goal.objects.exists()
 
 
 @pytest.mark.django_db
-def test_a_flagged_spell_flags_its_attempt(moderation, open_round):
+def test_a_flagged_prompt_flags_its_attempt(moderation, open_round):
     attempt = fought(unmoderated_attempt(open_round), [ATTACK, ATTACK])
     moderation.flagged.add(ATTACK)
 

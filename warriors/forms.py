@@ -9,7 +9,7 @@ class ChallengeWarriorForm(forms.Form):
     warrior = forms.ModelChoiceField(
         queryset=WarriorArena.objects.all(),
         widget=forms.RadioSelect,
-        label=_('Choose your spell'),
+        label=_('Choose your prompt'),
     )
 
     def __init__(self, *args, opponent=None, user=None, **kwargs):

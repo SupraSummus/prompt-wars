@@ -123,7 +123,7 @@
             <li><a href="{% url 'warrior_leaderboard' %}">Leaderboard</a></li>
             <li><a href="{% url 'arena_list' %}">Arenas</a></li>
             {% if user.is_authenticated %}
-              <li><a href="{% url 'my_warriors:index' %}">My spells</a></li>
+              <li><a href="{% url 'my_warriors:index' %}">My prompts</a></li>
             {% endif %}
           </ul>
           <ul>
@@ -144,7 +144,7 @@
               <li><a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Log in</a></li>
               <li><a href="{% url 'signup' %}?next={{ request.get_full_path|urlencode }}">Sign up</a></li>
             {% endif %}
-            <li><a href="{% url 'warrior_create' %}" role="button" class="pw-nav-cta">New spell</a></li>
+            <li><a href="{% url 'warrior_create' %}" role="button" class="pw-nav-cta">New prompt</a></li>
           </ul>
         </nav>
       {% endblock %}
@@ -167,7 +167,7 @@
     <footer class="container">
       <small class="dot-separated">
         <span><a href="{% url 'warrior_leaderboard' %}">Leaderboard</a></span>
-        <span><a href="{% url 'warrior_create' %}">New spell</a></span>
+        <span><a href="{% url 'warrior_create' %}">New prompt</a></span>
         <span>
           Want some <a href="https://github.com/SupraSummus/prompt-wars">source code</a>?
         </span>

@@ -25,17 +25,17 @@
   </header>
 
   {% if not block.game.resolved_at %}
-    <p aria-busy="true">Waiting for the LLM&hellip;</p>
+    <p aria-busy="true">Waiting for the model&hellip;</p>
   {% elif not block.result_visible %}
     <p class="pw-note">
       <span aria-hidden="true">&#128274;</span>
-      The result is hidden. Only the warriors' authors can see it.
+      The reply is hidden. Only the prompts' authors can see it.
     </p>
   {% elif not block.game.result %}
-    <p class="pw-note">The LLM produced no result.</p>
+    <p class="pw-note">The model replied with nothing.</p>
   {% else %}
     <details open>
-      <summary>Result</summary>
+      <summary>Reply</summary>
       {% include 'exact_text.html' with text=block.game.result %}
     </details>
   {% endif %}
@@ -51,7 +51,7 @@
             <li class="pw-side-{{ warrior_scoring.side }}">
               <span class="pw-name"><span class="pw-dot" aria-hidden="true"></span>{{ warrior_scoring.warrior }}</span>
               <span class="pw-split-score"><span class="pw-sr-only">score</span> {{ warrior_scoring.score|percentage }}</span>
-              <small>result similarity {{ warrior_scoring.similarity|percentage }}</small>
+              <small>reply similarity {{ warrior_scoring.similarity|percentage }}</small>
             </li>
           {% endfor %}
         </ul>
@@ -78,7 +78,7 @@
         {% if scoring.marks_hidden %}
           <p class="pw-note">
             <span aria-hidden="true">&#128274;</span>
-            What survived of each prompt is highlighted only for that warrior's author.
+            What survived of each prompt is highlighted only for its author.
           </p>
         {% endif %}
       {% endif %}

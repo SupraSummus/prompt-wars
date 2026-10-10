@@ -14,7 +14,7 @@
 
   {% if holder %}
     <p>
-      <mark>Your spell holds the hill.</mark>
+      <mark>Your prompt holds the hill.</mark>
       <a href="{% url 'hill:attempt' hill_round.boss_attempt_id %}">Share it</a>
     </p>
   {% endif %}
@@ -22,7 +22,7 @@
   {% if not hill_round.boss_shown %}
     <p class="pw-note">The boss's text is hidden pending review. You can still attack it.</p>
   {% else %}
-    <div class="overflow-auto pw-boss-text" role="region" tabindex="0" aria-label="The boss's spell">
+    <div class="overflow-auto pw-boss-text" role="region" tabindex="0" aria-label="The boss's prompt">
       {% include 'exact_text.html' with text=hill_round.boss.body %}
     </div>
   {% endif %}

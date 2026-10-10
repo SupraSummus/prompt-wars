@@ -71,7 +71,7 @@ def authorize_in_session(client, *warriors):
 
 
 @pytest.mark.django_db
-def test_signup_logs_in_and_keeps_the_browsers_spells(client, mocked_recaptcha, warrior):
+def test_signup_logs_in_and_keeps_the_browsers_prompts(client, mocked_recaptcha, warrior):
     authorize_in_session(client, warrior)
     response = client.post(reverse('signup'), signup_data())
     assert response.status_code == 302, response.context['form'].errors
@@ -93,7 +93,7 @@ def test_signup_goes_where_the_visitor_was_headed(client, mocked_recaptcha, next
 
 
 @pytest.mark.django_db
-def test_login_keeps_the_browsers_spells(client, user, warrior, other_warrior):
+def test_login_keeps_the_browsers_prompts(client, user, warrior, other_warrior):
     user.set_password('secret password')
     user.save()
     # one the account already has, which logging in leaves be

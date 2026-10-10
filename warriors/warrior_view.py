@@ -28,7 +28,7 @@ template = parse_template('''\
 
     {% if show_secrets %}
         <details>
-            <summary role="button" class="outline">Body</summary>
+            <summary role="button" class="outline">Prompt text</summary>
             {% include 'exact_text.html' with text=warrior.body %}
         </details>
     {% endif %}
@@ -68,7 +68,7 @@ template = parse_template('''\
           <input type="checkbox" name="public_battle_results"
             {% if warrior_user_permission.public_battle_results %}checked{% endif %}
           />
-          Make battle results public
+          Make the model's replies public
         </label>
         <input type="submit" value="Save" />
       </form>

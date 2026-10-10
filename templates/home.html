@@ -2,7 +2,7 @@
 {% load percentage %}
 
 {% block head %}
-  <meta name="description" content="Prompt Wars is a game of prompts: two spells are glued together and sent to an AI model, and whichever one the reply repeats more of wins. Write a spell and watch it battle.">
+  <meta name="description" content="Prompt Wars is a game of prompts: two of them are glued together and sent to an AI model, and whichever one the reply repeats more of wins. Write a prompt and watch it battle.">
   {% include 'warriors/partials/battle_styles.html' %}
   <style>
     .pw-landing h2 {
@@ -134,7 +134,7 @@
     }
     /*
       While playing, the reply is written out a character at a time,
-      and each character lights up the ones it repeats in the spells (lcs_pairs).
+      and each character lights up the ones it repeats in the prompts (lcs_pairs).
     */
     .pw-example-playing .pw-example-prompt mark:not(.pw-lit) {
       background: transparent;
@@ -273,34 +273,34 @@
 {% block content %}
 <main class="pw-landing">
 
-  {% if your_spells %}
+  {% if your_warriors %}
     {# not a landmark of its own: the table's scroll region, inside, carries the name #}
     <section class="container pw-yours">
       <article>
         <header>
-          <h2 id="yours-title">{% if user.is_authenticated %}Your spells{% else %}Your spells in this browser{% endif %}</h2>
-          <a href="{% url 'warrior_create' %}" role="button" class="outline">Write another</a>
+          <h2 id="yours-title">{% if user.is_authenticated %}Your prompts{% else %}Your prompts in this browser{% endif %}</h2>
+          <a href="{% url 'warrior_create' %}" role="button" class="outline">Write another prompt</a>
         </header>
         <div class="overflow-auto" role="region" tabindex="0" aria-labelledby="yours-title">
           <table>
             <thead>
               <tr>
-                <th scope="col">Spell</th>
+                <th scope="col">Prompt</th>
                 <th scope="col">Rating</th>
                 <th scope="col">Games played</th>
               </tr>
             </thead>
             <tbody>
-              {% for warrior in your_spells %}
+              {% for warrior in your_warriors %}
                 <tr>
                   <th scope="row">
                     <a href="{{ warrior.get_absolute_url }}">
                       {% if warrior.moderation_passed is None %}
-                        New spell <small class="pw-muted">(being checked)</small>
+                        Your new prompt <small class="pw-muted">(being checked)</small>
                       {% elif not warrior.moderation_passed %}
-                        Flagged spell <small class="pw-muted">(won't battle)</small>
+                        Flagged prompt <small class="pw-muted">(won't battle)</small>
                       {% else %}
-                        {{ warrior.name|default:'Unnamed spell' }}
+                        {{ warrior.name|default:'Unnamed prompt' }}
                       {% endif %}
                     </a>
                   </th>
@@ -313,13 +313,13 @@
         </div>
         <footer>
           {% if user.is_authenticated %}
-            <a href="{% url 'my_warriors:index' %}">All your spells <span aria-hidden="true">→</span></a>
+            <a href="{% url 'my_warriors:index' %}">All your prompts <span aria-hidden="true">→</span></a>
           {% else %}
             <p>
-              Only this browser remembers {{ your_spells|length|pluralize:'this spell,these spells' }}, and not forever.
+              Only this browser remembers {{ your_warriors|length|pluralize:'this prompt,these prompts' }}, and not forever.
               <a href="{% url 'signup' %}?next={{ request.get_full_path|urlencode }}">Create an account</a>
-              to keep {{ your_spells|length|pluralize:'it,them' }}, follow {{ your_spells|length|pluralize:'it,them' }} from any device
-              and challenge other spells to duels.
+              to keep {{ your_warriors|length|pluralize:'it,them' }}, follow {{ your_warriors|length|pluralize:'it,them' }} from any device
+              and challenge other prompts to duels.
             </p>
           {% endif %}
         </footer>
@@ -332,12 +332,12 @@
       <p class="pw-eyebrow">An arena for LLM prompts</p>
       <h1 id="hero-title">Two prompts enter.<br><span class="pw-accent">One survives.</span></h1>
       <p class="pw-lead">
-        Your spell and an opponent's are glued together and sent to an AI model.
+        Your prompt and an opponent's are glued together and sent to an AI model.
         Whichever one the reply repeats more of wins.
-        Write a spell once, and it keeps fighting other players' spells around the clock.
+        Write a prompt once, and it keeps fighting other players' prompts around the clock.
       </p>
       <p class="pw-cta">
-        <a href="{% url 'warrior_create' %}" role="button">{% if your_spells %}Write a new spell{% else %}Write your first spell{% endif %} <span aria-hidden="true">→</span></a>
+        <a href="{% url 'warrior_create' %}" role="button">{% if your_warriors %}Write a new prompt{% else %}Write your first prompt{% endif %} <span aria-hidden="true">→</span></a>
         {% if hill_card.open %}
           <a href="{% url 'hill:index' %}#attack" role="button" class="secondary outline">Attack today's boss</a>
         {% else %}
@@ -352,16 +352,16 @@
     </div>
 
     {% comment %}
-      The spells are marked where the reply repeats them,
+      The prompts are marked where the reply repeats them,
       lighting up as the reply is typed out:
       a visitor reads marked text as quoted, with no new idea to learn.
-      A spell lined up over the reply in columns read as a puzzle,
+      A prompt lined up over the reply in columns read as a puzzle,
       and threads between one-line texts need texts so short that chance letters make a near tie.
     {% endcomment %}
     <article class="pw-example pw-game" aria-labelledby="example-title">
       <p class="pw-example-label" id="example-title">One game, for example</p>
 
-      <p class="pw-example-step">Both spells, glued into one message</p>
+      <p class="pw-example-step">Both prompts, glued into one message</p>
       <ul class="pw-example-legend">
         {% for side in example.sides %}
           <li class="pw-side-{{ side.side }}">
@@ -375,8 +375,8 @@
       <p class="pw-example-step">The model's reply</p>
       <pre class="pw-example-reply">{% for char in example.reply %}<span>{{ char }}</span>{% endfor %}</pre>
       <p class="pw-example-hint">
-        Marked: what the reply repeats of each spell, character by character, in order.
-        Even a spell it ignores shares a few letters by chance.
+        Marked: what the reply repeats of each prompt, character by character, in order.
+        Even a prompt it ignores shares a few letters by chance.
       </p>
       <button type="button" class="secondary outline pw-example-replay" hidden>Play it again</button>
 
@@ -396,9 +396,9 @@
           {% endfor %}
         </div>
         <p><small>
-          Each spell's share follows how much of it the reply repeats:
+          Each prompt's share follows how much of it the reply repeats:
           {% for side in example.sides %}{{ side.similarity|percentage }}{% if not forloop.last %} to {% endif %}{% endfor %}.
-          A battle plays two such games, each spell going first once.
+          A battle plays two such games, each prompt going first once.
         </small></p>
       </footer>
     </article>
@@ -454,7 +454,7 @@
     <section class="container pw-numbers" aria-label="The arena in numbers">
       <dl>
         <div>
-          <dt>spells in the arena</dt>
+          <dt>prompts in the arena</dt>
           <dd>{{ stats.warrior_count|floatformat:'0g' }}</dd>
         </div>
         <div>
@@ -469,9 +469,9 @@
     <h2 id="how-title">How it works</h2>
     <ol class="pw-steps">
       <li>
-        <h3>Write a spell</h3>
+        <h3>Write a prompt</h3>
         <p>
-          Up to {{ max_spell_length }} characters of anything:
+          Up to {{ max_warrior_length }} characters of anything:
           instructions, tricks, poems, emoji, any language.
           Whatever gets a model to repeat you and ignore the other text.
         </p>
@@ -479,7 +479,7 @@
       <li>
         <h3>It battles on its own</h3>
         <p>
-          The arena pairs your spell with others of similar strength
+          The arena pairs your prompt with others of similar strength
           and sends each pair to {% if arena %}{{ arena.get_llm_display }}{% else %}the model{% endif %}, in both orders.
           The first battles come within minutes.
         </p>
@@ -487,7 +487,7 @@
       <li>
         <h3>Climb the ladder</h3>
         <p>
-          Every battle moves your spell's rating.
+          Every battle moves your prompt's rating.
           Come back to see whom it beat, and what the model said.
         </p>
       </li>
@@ -503,12 +503,12 @@
           <h3 id="ladder-title">The ladder</h3>
         </header>
         <p>
-          Your spell stays in the arena for good.
+          Your prompt stays in the arena for good.
           It fights often at first, then less and less as its rating settles,
           and keeps a record of every battle with the model's replies.
         </p>
         <footer>
-          <a href="{% url 'warrior_create' %}" role="button">Write a spell <span aria-hidden="true">→</span></a>
+          <a href="{% url 'warrior_create' %}" role="button">Write a prompt <span aria-hidden="true">→</span></a>
           <a href="{% url 'warrior_leaderboard' %}">See the leaderboard</a>
         </footer>
       </article>
@@ -518,9 +518,9 @@
     </div>
   </section>
 
-  {% if top_spells %}
+  {% if top_warriors %}
     <section class="container">
-      <h2 id="top-title">Strongest spells right now</h2>
+      <h2 id="top-title">Strongest prompts right now</h2>
       <p class="pw-section-intro">
         Their text is their authors' secret,
         but a battle against one shows you the model's replies.
@@ -530,13 +530,13 @@
           <thead>
             <tr>
               <th scope="col">Rank</th>
-              <th scope="col">Spell</th>
+              <th scope="col">Prompt</th>
               <th scope="col">Rating</th>
               <th scope="col">Games played</th>
             </tr>
           </thead>
           <tbody>
-            {% for warrior in top_spells %}
+            {% for warrior in top_warriors %}
               <tr>
                 <td>{{ forloop.counter }}</td>
                 <th scope="row"><a href="{% url 'warrior_detail' warrior.id %}">{{ warrior }}</a></th>
@@ -556,10 +556,10 @@
     <details>
       <summary>Do I need an account?</summary>
       <p>
-        No. Without one, this browser remembers your spells for a while,
+        No. Without one, this browser remembers your prompts for a while,
         and signing up later moves them into your account.
         An account keeps them on any device
-        and lets you challenge other spells to duels.
+        and lets you challenge other prompts to duels.
       </p>
     </details>
     <details>
@@ -567,16 +567,16 @@
       <p>
         No. The model isn't told there's a game:
         it just answers the glued text.
-        The score is counted afterwards, from how much of each spell the reply repeats,
+        The score is counted afterwards, from how much of each prompt the reply repeats,
         so arguing that you should win helps only as far as the model repeats it.
       </p>
     </details>
     <details>
-      <summary>Who can read my spell?</summary>
+      <summary>Who can read my prompt?</summary>
       <p>
-        Its text is shown to you, and to anyone who writes exactly the same text.
+        It is shown to you, and to anyone who writes exactly the same text.
         Your opponents read the model's replies in their battles against you,
-        and a reply often echoes your spell,
+        and a reply often echoes your prompt,
         so don't put anything private in one.
         See the <a href="{% url 'data_policy:root' %}">data policy</a>.
       </p>
@@ -590,7 +590,7 @@
       Smart machine hears both, speaks one.
       Who is strong?
     </blockquote>
-    <a href="{% url 'warrior_create' %}" role="button">Write a spell <span aria-hidden="true">→</span></a>
+    <a href="{% url 'warrior_create' %}" role="button">Write a prompt <span aria-hidden="true">→</span></a>
   </section>
 
 </main>

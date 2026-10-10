@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}{% if warrior.moderation_passed is None and show_secrets %}Your new spell{% else %}{{ warrior }}{% endif %}{% endblock %}
+{% block title %}{% if warrior.moderation_passed is None and show_secrets %}Your new prompt{% else %}{{ warrior }}{% endif %}{% endblock %}
 
 {% block head %}
   <style>
@@ -18,13 +18,13 @@
       <ul>
         <li><a href="{% url 'arena_list' %}">Arenas</a></li>
         <li><a href="{% url 'arena_detail' arena.id %}">{{ arena }}</a></li>
-        <li>Warrior</li>
+        <li>Prompt</li>
       </ul>
     </nav>
 
     <hgroup>
       {# before moderation the name stays hidden from everyone, and its author needs no id to know what this is #}
-      <h1>{% if warrior.moderation_passed is None and show_secrets %}Your new spell{% else %}{{ warrior }}{% endif %}</h1>
+      <h1>{% if warrior.moderation_passed is None and show_secrets %}Your new prompt{% else %}{{ warrior }}{% endif %}</h1>
       {% if warrior.moderation_passed and warrior.author_name %}
         <p>by {{ warrior.author_name }}</p>
       {% endif %}
@@ -32,7 +32,7 @@
 
     {% if show_secrets and not user.is_authenticated %}
       <article class="pw-keep">
-        <strong>This spell lives in this browser.</strong>
+        <strong>This prompt lives in this browser.</strong>
         Only this browser can open its text, and not forever.
         <a href="{% url 'signup' %}?next={{ request.get_full_path|urlencode }}">Create an account</a>
         or <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">log in</a>
@@ -43,7 +43,7 @@
     {% if warrior.moderation_passed is None %}
       <p role="status">
         <span aria-busy="true"></span>
-        Hold on for a second, please. We are checking if this warrior is battleworthy.
+        Hold on for a second, please. We are checking if this prompt is battleworthy.
       </p>
       <p>
         Once it passes, it meets opponents of similar strength, the first within minutes.
@@ -52,18 +52,18 @@
 
     {% elif not warrior.moderation_passed %}
       <p>
-        Sorry, but we cannot battle this warrior.
+        Sorry, but we cannot battle this prompt.
         Our AI moderator flagged it as not appropriate.
       <p>
       <p>
-        You may <a href="{% url 'arena_warrior_create' arena.id %}">submit another warrior</a>, of course.
+        You may <a href="{% url 'arena_warrior_create' arena.id %}">write another prompt</a>, of course.
       </p>
 
     {% else %}
 
       {% if show_secrets %}
         <details>
-          <summary role="button" class="outline">Spell text</summary>
+          <summary role="button" class="outline">Prompt text</summary>
           {% include 'exact_text.html' with text=warrior.body %}
         </details>
       {% endif %}
@@ -73,9 +73,9 @@
       <h2 id="battles">Battles</h2>
       <p>
         {% if request.user.is_authenticated %}
-          <a href="{% url 'challenge_warrior' warrior.id %}" role="button">Challenge this warrior to a duel</a>
+          <a href="{% url 'challenge_warrior' warrior.id %}" role="button">Challenge this prompt to a duel</a>
         {% else %}
-          <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Log in</a> to challenge this warrior to a duel.
+          <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Log in</a> to challenge this prompt to a duel.
         {% endif %}
       </p>
       <p>
@@ -126,10 +126,10 @@
       </div>
       {% endif %}
       <p><small>
-        A score is this warrior's share of one game,
-        with its prompt going first or second.
+        A score is this prompt's share of one game,
+        in which it goes first or second.
         Performance is the battle score
-        minus the score the two warriors' ratings predicted.
+        minus the score the two prompts' ratings predicted.
       </small></p>
       </section>
 
@@ -177,7 +177,7 @@
             <input type="checkbox" name="public_battle_results"
               {% if warrior_user_permission.public_battle_results %}checked{% endif %}
             />
-            Make battle results public
+            Make the model's replies public
           </label>
           <input type="submit" value="Save" />
         </form>

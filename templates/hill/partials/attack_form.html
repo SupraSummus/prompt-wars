@@ -14,7 +14,7 @@
     {% if busy_count %}
       <p class="pw-note">
         Busy right now: {{ busy_count }} attack{{ busy_count|pluralize }} in battle.
-        You can write your spell; if it's still busy when you send it, we keep your text.
+        You can write your prompt; if it's still busy when you send it, we keep your text.
       </p>
     {% endif %}
     {% if attacks_left is not None %}
@@ -40,7 +40,7 @@
       </fieldset>
       <p>
         <small>
-          Unless it takes the hill, your spell and the model's replies stay private to you.
+          Unless it takes the hill, your prompt and the model's replies stay private to you.
           Don't share any private, secret, or classified information!
           See the <a href="{% url 'data_policy:root' %}">data policy</a>.
         </small>

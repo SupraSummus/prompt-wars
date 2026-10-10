@@ -112,7 +112,7 @@ def callback(request):
     if google_account is None:
         with transaction.atomic():
             # no password: the account logs in with Google only
-            user = User.objects.create_user(username=f'spellcaster-{secrets.token_hex(4)}')
+            user = User.objects.create_user(username=f'player-{secrets.token_hex(4)}')
             GoogleAccount.objects.create(sub=sub, user=user)
     else:
         user = google_account.user

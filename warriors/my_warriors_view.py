@@ -18,7 +18,7 @@ template = parse_template('''\
 {% extends "base.html" %}
 
 {% block main %}
-    <h1>My spells</h1>
+    <h1>My prompts</h1>
     <table>
         <thead>
             <tr>

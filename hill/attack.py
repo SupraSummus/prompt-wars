@@ -12,7 +12,7 @@ from django_goals.models import schedule
 
 from warriors.battles import Battle
 from warriors.warriors import (
-    Warrior, get_or_insert_warrior, normalize_spell_body,
+    Warrior, get_or_insert_warrior, normalize_warrior_body,
 )
 
 from .identity import get_identity
@@ -37,12 +37,12 @@ class Refused(Exception):
 @dataclasses.dataclass(frozen=True)
 class Accepted:
     attempt: HillAttempt
-    # The player sent a spell they already sent this round,
+    # The player sent a prompt they already sent this round,
     # and `attempt` is that earlier attack: nothing new was charged or fought.
     repeated: bool = False
 
     REPEAT_NOTICE = (
-        "You already sent this spell this round "
+        "You already sent this prompt this round "
         "(spacing, case and punctuation don't count as changes)."
     )
 
@@ -122,9 +122,9 @@ def captcha_needed(request, hill_round, identity):
 
 def _repeated_attempt(hill_round, identity, body, body_sha_256):
     """
-    The identity's live attempt this round with the same spell, by hash or by skeleton.
+    The identity's live attempt this round with the same prompt, by hash or by skeleton.
 
-    At temperature 0 the same spell mostly replays the same battle,
+    At temperature 0 the same prompt mostly replays the same battle,
     and a variant in spacing, case or punctuation is not a new idea,
     so neither earns another roll.
     Compared in Python: an identity has at most `HILL_ATTEMPTS_PER_PLAYER` live attempts.
@@ -143,7 +143,7 @@ def _copy_refusal(hill_round, body):
     """
     Refuse a copy of the boss, or of a boss of the last `HILL_NO_RETURN_ROUNDS` rounds.
 
-    A spell can't fight itself, and a dethroned boss's family can't alternate with its conqueror.
+    A prompt can't battle itself, and a dethroned boss's family can't alternate with its conqueror.
     """
     for boss in recent_bosses(hill_round):
         share = copied_share(boss.body, body)
@@ -151,14 +151,14 @@ def _copy_refusal(hill_round, body):
             whose = "the boss's" if boss.id == hill_round.boss_id else "a recent boss's"
             return Refused(
                 'copies_boss',
-                f'Your spell copies {whose} text ({share:.0%} match). The hill needs your own words.',
+                f'Your prompt copies {whose} text ({share:.0%} match). The hill needs your own words.',
             )
     return None
 
 
 def _warrior_refusal(warrior, identity):
     """
-    Refuse a spell whose text already exists (`warrior`, None if it doesn't),
+    Refuse a prompt that already exists (`warrior`, None if it doesn't),
     unless it is this player's own hill text.
 
     A ladder text, or another player's, would otherwise be published on the hill
@@ -184,8 +184,8 @@ def submit_attack(request, *, round_number, body, display_name='', display_autho
     The checks run under the open Round's row lock, which the handover also takes,
     so an attack never lands in a round the handover has closed,
     and two attacks with one new text serialize: the second finds the first's Warrior.
-    The battle starts at once, ahead of the spell's moderation:
-    the first result is what the hill is for, and a spell flagged meanwhile is never shown or crowned.
+    The battle starts at once, ahead of the prompt's moderation:
+    the first result is what the hill is for, and a prompt flagged meanwhile is never shown or crowned.
     """
     hill = Hill.current()
     hill_round = Round.objects.open_in(hill)
@@ -194,7 +194,7 @@ def submit_attack(request, *, round_number, body, display_name='', display_autho
         raise refusal
     if round_number != hill_round.number:
         raise Refused('round_changed', 'The hill changed hands while you were writing; here is the new boss.')
-    body, body_sha_256 = normalize_spell_body(body)
+    body, body_sha_256 = normalize_warrior_body(body)
     identity = get_identity(request)
 
     with transaction.atomic():

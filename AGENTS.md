@@ -64,10 +64,13 @@ write the plain present instead.
 ## Words about the model
 
 The model in a battle is no referee:
-it answers two glued spells without knowing there is a game.
+it answers two glued prompts without knowing there is a game.
 Before describing what it does —
 in page copy, docs or a comment —
 read "What the model is" in `CONCEPT.md`.
+Before naming a player's text, the message or the reply
+in anything a player reads,
+read "Vocabulary" there.
 
 ## Tracking debt you notice in passing
 

@@ -146,7 +146,7 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
         return context
 
 
-# A new spell's page refreshes itself while its author waits for the verdict and the first result;
+# A new warrior's page refreshes itself while its author waits for the verdict and the first result;
 # past this age nobody is watching it come in.
 WARRIOR_POLL_WINDOW = datetime.timedelta(hours=1)
 WARRIOR_POLL_SECONDS = 5
@@ -242,7 +242,7 @@ def format_performance(performance):
 class PublicBattleResutsForm(forms.Form):
     public_battle_results = forms.BooleanField(
         required=False,
-        label='Public battle results',
+        label="Make the model's replies public",
     )
 
 

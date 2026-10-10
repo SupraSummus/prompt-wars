@@ -92,7 +92,8 @@ a firehose would not.
 
 King of the Hill applies it narrowly
 ("Privacy and consent" in `docs/king-of-the-hill.md`):
-it publishes only the spell that takes the hill, with consent asked on every attack.
+it publishes only the prompt that takes the hill,
+with consent asked on every attack.
 
 ## The only test that matters first
 

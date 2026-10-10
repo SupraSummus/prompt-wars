@@ -21,7 +21,7 @@ a password account has no email to match on,
 and the only proof that it and a Google account are one person's
 is a browser session that holds both.
 So the owner logs in with the password
-and connects Google from *My spells*.
+and connects Google from *My prompts*.
 Password login stays:
 without an email there is no reset to move anyone off it.
 
@@ -31,7 +31,7 @@ Pressing *Continue with Google* without logging in first
 gives a password account's owner a second, empty account,
 and connecting that Google account to the first one is then refused.
 A merge is cheap,
-since a spell's owners are many-to-many (`WarriorUserPermission`):
+since a warrior's owners are many-to-many (`WarriorUserPermission`):
 copy the rows, move the `GoogleAccount`, deactivate the emptied account.
 Offer it at the refusal,
 the one moment both accounts are proven in one session,

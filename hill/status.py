@@ -25,7 +25,7 @@ def with_status_data(attempts):
     """
     `attempts` with every row `attempt_status` and `finalize_attempt` read, fetched up front.
 
-    The embedding vectors of the spell and the replies are left behind:
+    The embedding vectors of the prompt and the replies are left behind:
     the hill never reads them, and the status poll runs this every few seconds.
     """
     return attempts.select_related(
@@ -158,7 +158,7 @@ def finalize_attempt(attempt, status):
 def finalize_pending(attempts):
     """
     Finalize every pending attempt among `attempts` that has an outcome,
-    and flag scored ones whose spell moderation flagged since.
+    and flag scored ones whose prompt has since been flagged by moderation.
 
     One savepoint per attempt, so an attempt that can't be read is logged
     and the rest still finalize.

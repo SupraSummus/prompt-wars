@@ -5,7 +5,7 @@
 {% block auth %}
   <hgroup>
     <h1>Log in</h1>
-    <p>Welcome back, spellcaster.</p>
+    <p>Welcome back.</p>
   </hgroup>
 
   {% if next and user.is_authenticated %}
@@ -24,7 +24,7 @@
     {% include 'registration/google_login_button.html' %}
     <p class="pw-muted"><small>
       Have an account with a password?
-      Log in with it, then connect Google on <em>My spells</em>.
+      Log in with it, then connect Google on <em>My prompts</em>.
     </small></p>
   {% endif %}
 

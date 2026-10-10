@@ -4,7 +4,7 @@ from django import forms
 from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV2Checkbox
 
-from warriors.warriors import MAX_WARRIOR_LENGTH, normalize_spell_body
+from warriors.warriors import MAX_WARRIOR_LENGTH, normalize_warrior_body
 
 from .models import HillAttempt
 
@@ -46,13 +46,13 @@ class HillAttackForm(forms.Form):
         required=False,
     )
     body = forms.CharField(
-        label='Your spell',
+        label='Your prompt',
         widget=forms.Textarea(attrs={'rows': 6}),
         strip=False,
         help_text=f'Up to {MAX_WARRIOR_LENGTH} characters.',
     )
     display_name = forms.CharField(
-        label='Name your spell (optional)',
+        label='Name your prompt (optional)',
         max_length=NAME_MAX_LENGTH,
         required=False,
     )
@@ -63,7 +63,7 @@ class HillAttackForm(forms.Form):
     )
     consent = forms.BooleanField(
         label=(
-            'I agree that if this spell takes the hill, '
+            'I agree that if this prompt takes the hill, '
             "its text, the names I give it and the model's replies will be published."
         ),
         error_messages={'required': 'Agree to the publication terms to attack.'},
@@ -85,7 +85,7 @@ class HillAttackForm(forms.Form):
             del self.fields['captcha']
 
     def clean_body(self):
-        body, _ = normalize_spell_body(self.cleaned_data['body'])
+        body, _ = normalize_warrior_body(self.cleaned_data['body'])
         return body
 
     def clean_display_name(self):

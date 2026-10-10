@@ -78,7 +78,7 @@ def test_a_goal_that_gave_up_before_the_score_voids_the_attack(attempt, gave_up_
 
 
 @pytest.mark.django_db
-def test_a_flagged_spell_is_flagged_even_once_scored(attempt):
+def test_a_flagged_prompt_is_flagged_even_once_scored(attempt):
     fought(attempt, [ATTACK, ATTACK])
     attempt.warrior.moderation_passed = False
     attempt.warrior.save(update_fields=['moderation_passed'])
@@ -114,7 +114,7 @@ def test_finalize_stores_the_score_once(attempt):
     attempt.refresh_from_db()
     assert attempt.state == AttemptState.SCORED
     assert attempt.score == attempt.battle.warrior_score(attempt.warrior_id, ScoreAlgorithm.LCS) > 0.5
-    # the whole spell survived, in both games
+    # the whole prompt survived, in both games
     assert attempt.survived_chars == 2 * len(ATTACK)
     assert attempt.crown_block == CrownBlock.NONE
     assert attempt.late

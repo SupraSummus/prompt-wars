@@ -158,7 +158,7 @@ def _run_llm(game, now):
     }[game.llm]
 
     try:
-        # Nothing but the two spells ("What the model is" in CONCEPT.md).
+        # Nothing but the two prompts ("What the model is" in CONCEPT.md).
         (
             result,
             finish_reason,

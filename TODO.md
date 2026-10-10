@@ -201,19 +201,21 @@ Dropping SDK retries changes battle timing, so it needs sign-off.
 `do_moderation` (`warriors/tasks.py`) catches nothing around its moderation call,
 so a rate limit, a 5xx or a dropped connection fails the goal,
 and once django_goals gives up, `moderation_passed` stays None for good:
-nothing schedules it again, and a warrior without a verdict is never `battleworthy`.
+nothing schedules it again,
+and a warrior without a verdict is never `battleworthy`.
 It also asserts `moderation_date is None`,
 so `hill_crown --warrior` or the admin's take-down action (`WarriorAdmin.take_down`)
-on a ladder spell whose `do_moderation` is still queued records a verdict first
+on a ladder warrior whose `do_moderation` is still queued records a verdict first
 and makes that goal fail:
-the spell never gets its generated name or its embedding.
+the warrior never gets its generated name or its embedding.
 Next move: move `moderation_client`, `TRANSIENT_MODERATION_ERRORS` and `moderate`
 from `hill/tasks.py` to `warriors/llms/openai.py`,
-and `record_spell_moderation` next to `Warrior`, as the one writer of its verdict;
+and `record_warrior_moderation` next to `Warrior`, as the one writer of its verdict;
 have `do_moderation` use both and answer transient errors with `RetryMeLater`;
 add a repair command that re-schedules moderation for warriors whose goal gave up with no verdict,
 and log here the condition for deleting it.
-Retrying instead of giving up changes ladder behavior, so it needs sign-off.
+Retrying instead of giving up changes ladder behavior,
+so it needs sign-off.
 
 A Voyage embedding that fails on anything but a rate limit is lost for good:
 `_ensure_voyage_3_embedding` (`warriors/embeddings.py`) retries only `voyageai.error.RateLimitError`,
@@ -231,14 +233,16 @@ Retrying a 5xx is a behavior change, so it needs sign-off.
 
 Pasting a King of the Hill text into the ladder's `/create/` form
 is a discovery like any other (`WarriorCreateForm.save`, `warriors/create_view.py`):
-the paster gets ladder access to the spell, as a session grant or a `WarriorUserPermission`,
+the paster gets ladder access to the warrior, as a session grant or a `WarriorUserPermission`,
 and a `WarriorArena` enrolls it in matchmaking.
-Boss texts are public, so anyone can put any boss on the ladder,
-and a logged-in paster who ticks public battle results
-publishes its ladder battles' outputs (`update_public_battle_results`);
+Boss texts are public,
+so anyone can put any boss on the ladder,
+and a logged-in paster who ticks `public_battle_results`
+publishes the model's replies in its ladder battles (`update_public_battle_results`);
 a guess at a sealed attack's text is told whether it exists.
 Hill battles stay unreadable either way:
-they are unrated, so no ladder page lists or opens them.
+they are unrated,
+so no ladder page lists or opens them.
 Next move: in `WarriorCreateForm.clean`,
 read the hash with `cleaned_data.get` (`clean_body` may have failed),
 and refuse a text whose Warrior is a hill boss, a house boss or has a `HillAttempt`,
@@ -246,20 +250,22 @@ unless the requester already holds a grant for it,
 checked without `Warrior.is_user_authorized`'s cache (next entry),
 with copy that doesn't say whether the text is public;
 test that a refusal creates no `WarriorArena` and no grant.
-It changes what the ladder accepts, so it needs sign-off.
+It changes what the ladder accepts,
+so it needs sign-off.
 
 `Warrior.is_user_authorized` (`warriors/warriors.py`) sits behind a process-wide `lru_cache`
 keyed by the warrior and the user,
 and model instances hash by primary key,
 so an answer outlives the request that computed it:
-a user who opens a spell, then discovers it through `/create/`,
+a user who opens a warrior, then discovers it through `/create/`,
 reads as unauthorized in that process until the entry is evicted
 (reproduced: a fresh instance answers False after a `WarriorUserPermission` is created).
 Next move: drop the `lru_cache`,
 and if the warrior and battle pages' query counts suffer,
 memoize on the instance in a dict keyed by user id,
 which lives no longer than the request.
-It changes who reads as authorized, so it needs sign-off.
+It changes who reads as authorized,
+so it needs sign-off.
 
 An anonymous GET of `/challenge/<id>/` (`ChallengeWarriorView`, `warriors/views.py`) is a 500:
 `ChallengeWarriorForm` filters its choices by `warrior__users=self.user`,
@@ -297,3 +303,22 @@ it is installed only because `google-genai` and `voyageai` depend on it,
 so dropping or replacing either would break the import at startup.
 Next move: add `requests = "*"` to `pyproject.toml` and run `poetry lock`,
 which leaves the locked versions as they are.
+
+Saving "Make the model's replies public" on a prompt's all-arenas page (`warriors/warrior_view.py`) is a 404:
+the form posts a `Warrior` id to `warrior_set_public_battle_results` (`warriors/views.py`),
+which looks the permission up by a `WarriorArena` id;
+its only test posts a `WarriorArena` id.
+The checkbox is also written out by hand there and in `warriorarena_detail.html`,
+while `PublicBattleResutsForm` (sic) only validates.
+Next move: key the endpoint by `Warrior` id,
+render the checkbox from that form in one partial used by both pages,
+and test a post from the all-arenas page.
+Changing what the URL takes changes behavior, so it needs sign-off.
+
+`Game.result` and `Game.result_marked_for` (`warriors/battles.py`) hold what CONCEPT.md "Vocabulary" calls the reply,
+and the `result`, `marked_result` and `result_visible` keys
+that `game_block` (`warriors/views.py`) and `hill.display.battle_view` hand to templates
+are named after them.
+`result` is a property, so renaming needs no migration.
+Next move: rename them to `reply`, `reply_marked_for` and so on,
+then drop `Game.result` from the code's own names in the Vocabulary section.

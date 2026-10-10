@@ -14,7 +14,7 @@
         (the model may have asked us to slow down; we retry automatically).
         You can close this page; the result will be at this link.
       {% else %}
-        The model is replying to the two spells glued together, once in each order&hellip;
+        The model is replying to the two prompts glued together, once in each order&hellip;
       {% endif %}
     </p>
 
@@ -28,7 +28,7 @@
     </p>
     <p class="pw-note">
       <span aria-hidden="true">&#128274;</span>
-      Its spell and the model's replies stay private to its author unless it takes the hill.
+      Its prompt and the model's replies stay private to its author unless it takes the hill.
     </p>
 
   {% elif state == 'scored' %}
@@ -38,13 +38,13 @@
         {% if attempt.late %}
           This result arrived after Hill #{{ hill_round.number }} closed, so it doesn't count toward that round.
         {% elif attempt.crown_block == 'too_little_survived' %}
-          Too little of your spell survived to hold the hill
+          Too little of your prompt survived to hold the hill
           ({{ min_survived_chars }} characters across both games).
         {% elif attempt.crown_block == 'repetitive_reply' %}
           The reply was too repetitive to count as holding the hill.
         {% elif beats_boss %}
           That beats the boss.
-          {% if round_open %}If nobody does better by {% include 'hill/partials/utc_time.html' with time=hill_round.ends_at %}, your spell takes the hill.{% endif %}
+          {% if round_open %}If nobody does better by {% include 'hill/partials/utc_time.html' with time=hill_round.ends_at %}, your prompt takes the hill.{% endif %}
         {% elif attempt.score < win_score %}
           To take the hill you need {{ win_score|percentage }}.
         {% endif %}
@@ -64,7 +64,7 @@
 
   {% elif state == 'flagged' %}
     <p data-announce>
-      The moderator flagged this spell, so its battle isn't shown and it can't take the hill.
+      The moderator flagged this prompt, so its battle isn't shown and it can't take the hill.
       It counts as one of this round's attacks.
     </p>
   {% elif state == 'failed' %}

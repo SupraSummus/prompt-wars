@@ -6,8 +6,8 @@ the owner's switches are the fields of `Hill` (`hill/models.py`).
 
 ## What it is for
 
-The hill shows one public boss spell a day, numbered "Hill #N",
-and anyone may attack it with a spell of their own.
+The hill shows one public boss prompt a day, numbered "Hill #N",
+and anyone may attack it with a prompt of their own.
 An attack is one battle against the boss, in both prompt orders,
 and its result arrives in about a minute.
 At the daily handover, the best attack that beat the boss by a margin becomes the next boss.
@@ -37,13 +37,15 @@ and can't be marked in a reply, and what survived is what the hill shows.
 `hill.handover.decide_successor` picks who holds the hill after a round.
 
 An attack takes the hill only by beating the boss by a margin (`hill.rules.beats_boss`),
-because when little of either spell survives, the score swings across half on noise.
+because when little of either prompt survives,
+the score swings across half on noise.
 Otherwise the boss holds for a term at most (`HILL_MAX_REIGN_ROUNDS`),
 so a strong boss doesn't sit on the home page through a quiet week.
 At the end of a term, the best attack of the reign inherits the hill
-even though it lost its battle, and the boss card says it inherited.
+even though it lost its battle,
+and the boss card says it inherited.
 With no eligible attack in the reign, the house boss that served longest ago steps in (`next_house_boss`),
-so no single counter-spell owns the fallback;
+so no single counter-prompt owns the fallback;
 with no house boss either, the boss holds on.
 The term counts rounds of one text, not of one player, because identities are free.
 
@@ -63,7 +65,7 @@ not by the battle's `warriors_similarity`, which padding dilutes.
 **Not someone else's text.**
 A text that already exists is refused unless this player attacked with it before (`_warrior_refusal`),
 so nobody consents to publishing a text they didn't write.
-So a ladder author can't bring their own spell:
+So a ladder author can't bring their own prompt:
 anonymous ladder ownership looks the same as having discovered the text.
 
 **A repeat is not a new attack.**
@@ -79,9 +81,10 @@ so a visitor's first attack is the first battle they see.
 
 **A normal day.**
 The battle starts when the attack is accepted,
-and the spell's moderation runs beside it (`hill.tasks.moderate_attempt`),
+and the prompt's moderation runs beside it (`hill.tasks.moderate_attempt`),
 because moderation in front would add its latency and outages to every first result.
-A spell flagged meanwhile is never shown or crowned, but its battle is paid for.
+A prompt flagged meanwhile is never shown or crowned,
+but its battle is paid for.
 
 **A spike.**
 `Hill.max_pending` caps the attacks in battle at once;
@@ -132,7 +135,7 @@ It hides the text, its names and the replies that echo it (`Round.boss_shown`)
 from everyone but a player looking at their own attacks,
 and ends the boss's term at the next handover (`hill.handover.term_over`).
 It works the same for attack, owner and house bosses,
-and it takes the spell off the ladder too.
+and it takes the warrior off the ladder too.
 Requests come through the contact the data policy names.
 
 The hill doesn't use the ladder's `public_battle_results`:
@@ -161,8 +164,9 @@ but the captcha sends the visitor's to Google, as the data policy says (`llm_war
   It would publish texts their authors never agreed to publish,
   and on a busy day it would be the unmoderated feed `docs/twitter-for-prompts.md` rules out.
 - **Generated boss names.**
-  The ladder's generated names are never moderated, and a boss's name is on the home page.
-  Hill spells keep blank names, which also keeps sealed texts out of `generate_warrior_name`'s samples.
+  The ladder's generated names are never moderated,
+  and a boss's name is on the home page.
+  Hill warriors keep blank names, which also keeps sealed texts out of `generate_warrior_name`'s samples.
 - **IP-based caps.**
   More personal data, and a block on everyone behind a carrier's shared address,
   for a cost the round's budget bounds anyway.
@@ -204,7 +208,7 @@ Each with what would bring it back.
   never a link that switches identity on a GET:
   that is login CSRF, and the link's sender would read the victim's sealed attacks.
   Trigger: players asking to continue on a second device.
-- **A spell crossing between hill and ladder**, in either direction.
+- **A prompt crossing between hill and ladder**, in either direction.
   Each direction needs its own review of discovery and of what the other side's battles expose.
   Trigger: players asking for it.
 
@@ -274,7 +278,7 @@ it is the trigger for "Email and a claim flow for winners", not a mark against t
 
 1. **Seed the first boss and the house, soon after deploying:**
    the nav links the hill from the deploy on, to a "closed" page until it is enabled.
-   `hill_crown` moderates the spell, creates the hill switched off if there is none,
+   `hill_crown` moderates the prompt, creates the hill switched off if there is none,
    and with `--now` opens a round under it.
    Both seeds are texts the project publishes elsewhere:
 
@@ -301,8 +305,10 @@ it is the trigger for "Email and a claim flow for winners", not a mark against t
    the hill page for its busy and used-up states, and the pending attempts in admin.
    Lowering `max_pending` hands the worker back to the ladder without a deploy.
 6. **Take something down** with the "Take down" action in the Warrior admin.
-   A boss taken down is hidden at once, and its term ends at the next handover.
+   A boss taken down is hidden at once,
+   and its term ends at the next handover.
    To replace it at once, run `hill_crown --now`;
-   `--warrior` takes an existing spell's id, and a house boss keeps its names.
+   `--warrior` takes an existing warrior's id,
+   and a house boss keeps its names.
 7. **Switch it off** by unticking `enabled`.
    The open round stays as it is, and nothing needs migrating back.

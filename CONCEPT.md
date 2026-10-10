@@ -10,31 +10,53 @@ Players create prompts designed to make an LLM reproduce their text while ignori
 
 1. Each battle is one-on-one
 2. Two prompts are concatenated (joined with no separator) and sent to an LLM
-3. The LLM generates a response
-4. Success is measured by identifying the longest common subsequence (LCS) of each prompt within the response
-5. This is calculated as a percentage: (Length of LCS) ÷ (Length of prompt or response, whichever is greater)
+3. The LLM writes a reply
+4. Success is measured by identifying the longest common subsequence (LCS) of each prompt within the reply
+5. This is calculated as a percentage: (Length of LCS) ÷ (Length of prompt or reply, whichever is greater)
 6. These percentages are normalized so they sum to 100% - this gives the final score
 
 A 100% score means complete dominance; your prompt was effectively reproduced while your opponent's was completely ignored.
 
+## Vocabulary
+
+A player writes a **prompt**.
+The two prompts glued together are the **message** the model gets,
+and what it writes back is its **reply**;
+a battle's **result** is what it comes to, never the reply.
+Everything a player reads uses these words,
+screen-reader text included:
+two names for one thing make a reader wonder whether they differ
+([Nielsen's "Consistency and standards"](https://www.nngroup.com/articles/ten-usability-heuristics/)).
+
+"Prompt" is the word in the game's name and the one players arrive with.
+**Spell** and **warrior** are rejected:
+each is a second name for the prompt, a metaphor to translate back.
+"Battle" and "duel" stay:
+they name the contest, not the text.
+
+The code keeps names of its own, since renaming them would change nothing a player reads:
+`Warrior`, Core War's word, is the record that holds a prompt (`Warrior.body`),
+in the URLs and developer docs too,
+and `result` in code is the reply (`Game.result`, `public_battle_results`).
+
 ## What the model is
 
 The model is told nothing about the game.
-It gets the two spells glued into one message,
+It gets the two prompts glued into one message,
 with no system prompt (`_run_llm` in `warriors/tasks.py`),
 and answers it like any other message.
 The score is worked out afterwards, outside the model,
-from how much of each spell the reply repeats (`warriors/score.py`).
+from how much of each prompt the reply repeats (`warriors/score.py`).
 
 So the model is no referee:
 it doesn't know a contest is on,
-can't tell where one spell ends and the other begins,
+can't tell where one prompt ends and the other begins,
 and gives a reply, not a verdict.
-A spell that argues it deserves to win
+A prompt that argues it deserves to win
 scores only the words of the argument the model repeats.
 
-Nor is it a ring, a neutral place where spells fight each other.
-Spells can't touch each other;
+Nor is it a ring, a neutral place where prompts fight each other.
+Prompts can't touch each other;
 each acts only by steering what the model writes,
 and the model brings leanings of its own —
 answering rather than repeating, refusing, favoring one position.
@@ -114,10 +136,10 @@ Different LLMs require different approaches:
 
 ## Current Features and Future Directions
 
-### Public Battle Results
+### Public Replies
 
-- Players can choose to make their battle results public by enabling a flag on their warrior
-- When enabled, anyone (including non-logged-in users) can view the outputs from battles involving that warrior
+- Players can choose to make the model's replies public by enabling a flag on their warrior (`public_battle_results`)
+- When enabled, anyone (including non-logged-in users) can read the replies in battles involving that warrior
 - This applies even if the opponent's warrior doesn't have the public flag enabled
 - This feature increases transparency and allows the wider community to learn from battle outcomes
 

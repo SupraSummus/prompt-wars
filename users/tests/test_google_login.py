@@ -113,7 +113,7 @@ def test_both_legs_agree_as_google_checks(client, google):
 
 
 @pytest.mark.django_db
-def test_first_login_makes_an_account_that_keeps_the_browsers_spells(client, google, warrior):
+def test_first_login_makes_an_account_that_keeps_the_browsers_prompts(client, google, warrior):
     authorize_in_session(client, warrior)
     log_in_with_google(client, signed_token(google, sub='new-sub'))
     user = get_user(client)
@@ -140,7 +140,7 @@ def test_login_goes_where_the_visitor_was_headed(client, google, next_url, lands
 
 
 @pytest.mark.django_db
-def test_my_spells_offers_connecting_until_connected(user_client, user, google):
+def test_my_prompts_offers_connecting_until_connected(user_client, user, google):
     assert 'Connect Google' in user_client.get(reverse('my_warriors:index')).content.decode()
     GoogleAccount.objects.create(sub='known-sub', user=user)
     assert 'Connect Google' not in user_client.get(reverse('my_warriors:index')).content.decode()

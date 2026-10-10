@@ -50,7 +50,7 @@
           <p class="pw-note">The model replied with nothing.</p>
         {% else %}
           <details open class="pw-side-1">
-            <summary><span class="pw-dot" aria-hidden="true"></span>The reply, marking what survived of <bdi>{{ battle.attacker_spell }}</bdi></summary>
+            <summary><span class="pw-dot" aria-hidden="true"></span>The reply, marking what survived of <bdi>{{ battle.attacker_prompt_label }}</bdi></summary>
             {% include 'exact_text.html' with text=game.attacker_marked %}
           </details>
           <details class="pw-side-2">

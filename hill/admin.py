@@ -50,11 +50,11 @@ class HillAttemptAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
     date_hierarchy = 'created_at'
     fields = (
         'hill_round', 'created_at', 'identity',
-        'warrior', 'spell', 'display_name', 'display_author',
+        'warrior', 'prompt', 'display_name', 'display_author',
         'state', 'late', 'battle',
         'score', 'survived_chars', 'crown_block', 'output_moderation_passed',
     )
 
-    @admin.display(description='Spell')
-    def spell(self, obj):
+    @admin.display(description='Prompt')
+    def prompt(self, obj):
         return obj.warrior.body

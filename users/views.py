@@ -18,7 +18,7 @@ class LoginView(auth_views.LoginView):
 class SignupView(auth_views.RedirectURLMixin, CreateView):
     """
     A new account is logged in at once and goes where the visitor was headed,
-    so signing up from a spell's page lands back on that spell, now kept by the account.
+    so signing up from a warrior's page lands back on that warrior, now kept by the account.
     """
     form_class = SignupForm
     template_name = 'registration/signup.html'

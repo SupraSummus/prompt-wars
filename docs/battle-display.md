@@ -67,7 +67,7 @@ The alternative, a hand-written block per algorithm,
 drifts between blocks that nothing forces to agree.
 
 Symmetric does not mean identical.
-LCS can mark the surviving subsequence inside the result text
+LCS can mark the surviving subsequence inside the reply
 and an embedding similarity has nothing to mark,
 so algorithm-specific extras hang off their own algorithm's block.
 What goes away is one algorithm's numbers standing unqualified
@@ -87,17 +87,17 @@ and a margin column holding the mean, which is the battle score.
 Every column sums to one, the margin column included,
 so a reader can check the arithmetic by eye —
 the practical test of a symmetric presentation.
-Warrior similarity is per battle and per algorithm —
-it compares the two prompts and no result —
+Prompt similarity (`warriors_similarity`) is per battle and per algorithm —
+it compares the two prompts and no reply —
 so it sits beside that algorithm's matrix
 instead of being repeated in every game block.
 The cooperation score built from it does not follow it up there:
-it weighs how much of each prompt survived into *one* result,
+it weighs how much of each prompt survived into *one* reply,
 so the two games earn different numbers
 and each stays in its own block.
 
 Each game then gets its own block:
-the result text, and its scores by algorithm and by warrior.
+the reply, and its scores by algorithm and by warrior.
 
 For a cell to be addressable at all,
 a game's score has to be askable *for a named warrior*,
