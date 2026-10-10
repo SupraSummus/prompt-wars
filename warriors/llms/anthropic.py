@@ -14,21 +14,17 @@ client = anthropic.Anthropic(
 )
 
 
-def resolve_battle(prompt_a, prompt_b, system_prompt=''):
+def resolve_battle(prompt_a, prompt_b):
     messages = [{
         'role': 'user',
         'content': prompt_a + prompt_b,
     }]
-    extra_kwargs = {}
-    if system_prompt:
-        extra_kwargs['system_prompt'] = system_prompt
     try:
         response = client.messages.create(
             model="claude-3-5-haiku-20241022",
             max_tokens=MAX_WARRIOR_LENGTH,
             temperature=0,
             messages=messages,
-            **extra_kwargs,
         )
     except anthropic.RateLimitError as e:
         raise RateLimitError() from e

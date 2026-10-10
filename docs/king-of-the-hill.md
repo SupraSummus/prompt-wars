@@ -48,7 +48,7 @@ with no house boss either, the boss holds on.
 The term counts rounds of one text, not of one player, because identities are free.
 
 The crown goes to the best of everything a player sends.
-The referee runs at temperature 0 (`Hill.llm`), so a battle mostly replays,
+The model runs at temperature 0 (`Hill.llm`), so a battle mostly replays,
 and the luck is in the variants: several real edits are several rolls.
 The margin and the per-player cap bound it.
 
@@ -84,7 +84,7 @@ because moderation in front would add its latency and outages to every first res
 A spell flagged meanwhile is never shown or crowned, but its battle is paid for.
 
 **A spike.**
-`Hill.max_pending` caps the attacks being judged at once;
+`Hill.max_pending` caps the attacks in battle at once;
 past it, the form refuses and keeps the player's text (`hill.attack.admission_refusal`),
 so every admitted attack gets its result in about a minute.
 `Hill.daily_attempt_limit` is a flat cap on a round's battles, and so on the day's spend.
@@ -152,7 +152,7 @@ but the captcha sends the visitor's to Google, as the data policy says (`llm_war
   The boss would usually have lost its battle, and its share text would announce a defeat.
   Inheritance does this only at the end of a term, as the price of rotation.
 - **Winning both prompt orders.**
-  The referee's preference for a position would decide the crown.
+  The model's bias toward one position would decide the crown.
 - **A confirmation rematch, or a final between the best attacks.**
   At temperature 0 a rematch mostly replays the lucky battle: more calls, nothing confirmed.
 - **Ending a reign early when most attacks fail.**
@@ -212,7 +212,7 @@ Each with what would bring it back.
 
 - Whether `HILL_WIN_SCORE`, `HILL_MAX_REIGN_ROUNDS`, `HILL_BOSS_COPY_THRESHOLD` and the crown gates are right:
   they come from reasoning and a few measurements, not from real rounds.
-- Whether the referee is deterministic in practice; if not, the rematch is worth another look.
+- Whether the model is deterministic in practice; if not, the rematch is worth another look.
 - Whether reigns settle into bosses nobody can beat, despite the gates and the term.
 - Whether the share text travels.
 
@@ -284,7 +284,7 @@ it is the trigger for "Email and a claim flow for winners", not a mark against t
 2. **Check the switches, then enable.**
    In admin, check the `Hill` row's `llm`, `daily_attempt_limit` and `max_pending`, then tick `enabled`.
 3. **Before an announced post, raise the limits.**
-   Raise `daily_attempt_limit`; each attack is one battle of two referee calls.
+   Raise `daily_attempt_limit`; each attack is one battle of two model calls.
    Raise the worker's threads (`--threads` in `Procfile`, a deploy)
    within the database's connection limit, since every running goal holds a connection,
    and raise `max_pending` to what those threads drain in a few minutes.

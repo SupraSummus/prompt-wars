@@ -40,17 +40,17 @@ Where the money actually goes, in order:
    These are billed as output tokens and dominate both token bills;
    the visible battle text itself costs single-digit euros per month.
    This spend is not waste:
-   a thinking referee is harder to hijack,
+   a thinking model is harder to hijack,
    and resistance to manipulation is the game's difficulty setting
    (see the data–instruction separation theme in `docs/parallels.md`).
-   Whether the referee thinks at all is a game-design dial
+   Whether the model thinks at all is a game-design dial
    that happens to cost money,
-   priced at roughly €15–20/month for a smarter adversary.
+   priced at roughly €15–20/month for a model that is harder to steer.
    On the Gemini side that dial is close to binary:
    the requested budget is a hint the model reasons past,
    so the choice is whether to ask for thinking, not how much
    (see the `thinking_config` note in `warriors/llms/google.py`).
-   Levers that leave the referee untouched: discounted pricing tiers.
+   Levers that leave the model untouched: discounted pricing tiers.
    OpenAI's flex service tier
    (in beta — verify model coverage before relying on it)
    halves the price of the same synchronous call —
@@ -170,8 +170,8 @@ It is judged by whether its attackers come back in later rounds.
   the managed platform is what makes near-zero-maintenance possible.
 - **Zeroing the thinking/reasoning budgets to save tokens.**
   Tempting because these tokens dominate the LLM bills,
-  wrong because they buy referee intelligence:
-  a non-thinking referee is easier to hijack,
+  wrong because they buy model intelligence:
+  a non-thinking model is easier to hijack,
   which favors degenerate strategies and shallows the core mechanic.
   It also devalues the dataset —
   adversarial battles against reasoning models

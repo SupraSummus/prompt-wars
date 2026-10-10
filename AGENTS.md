@@ -61,6 +61,14 @@ A word-level tell: temporal adverbs —
 anchor a sentence to the moment it was written;
 write the plain present instead.
 
+## Words about the model
+
+The model in a battle is no referee:
+it answers two glued spells without knowing there is a game.
+Before describing what it does —
+in page copy, docs or a comment —
+read "What the model is" in `CONCEPT.md`.
+
 ## Tracking debt you notice in passing
 
 When you spot a rough edge while working on something else —
@@ -107,6 +115,10 @@ turning off a foreign key's `db_index` also drops and re-validates the constrain
 locking both tables for a full scan.
 `manage.py sqlmigrate <app> <migration>` shows what will run;
 `0064_gamescore_game_no_index.py` shows how to run only the part you want.
+
+A change with no SQL at all, like a `help_text`, gets no migration of its own:
+edit the field in the migration that created it,
+so `makemigrations` stays clean without a file that does nothing.
 
 ## Prose uses semantic line breaks
 

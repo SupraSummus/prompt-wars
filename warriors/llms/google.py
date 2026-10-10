@@ -18,8 +18,7 @@ client = genai.Client(
 )
 
 
-def resolve_battle_google(prompt_a, prompt_b, system_prompt=''):
-    assert not system_prompt
+def resolve_battle_google(prompt_a, prompt_b):
     return call_gemini(prompt_a + prompt_b)
 
 

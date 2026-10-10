@@ -71,7 +71,7 @@ def admission_refusal(hill, hill_round, identity):
     """
     Refuse an attack the hill has no room for.
 
-    The player's cap and the player's previous attack still being judged,
+    The player's cap and the player's previous attack still in battle,
     then the round's budget and the global queue (`Hill.max_pending`).
     The player's own limits come first: they hold whatever the budget and the queue do,
     and "send it again in a minute" would bring a capped player back only to be refused again.
@@ -85,7 +85,7 @@ def admission_refusal(hill, hill_round, identity):
                 f"You've used your {HILL_ATTEMPTS_PER_PLAYER} attacks on Hill #{hill_round.number}.",
             )
         if attempts.filter(state=AttemptState.PENDING).exists():
-            return Refused('in_flight', 'Your last attack is still being judged.')
+            return Refused('in_flight', "Your last attack's battle isn't over yet.")
     if budget_used(hill_round) >= hill.daily_attempt_limit:
         return Refused(
             'used_up',
@@ -96,7 +96,7 @@ def admission_refusal(hill, hill_round, identity):
     if pending >= hill.max_pending:
         return Refused(
             'busy',
-            f'Busy right now: {pending} attacks are being judged. '
+            f'Busy right now: {pending} attacks are in battle. '
             'Your text is kept; send it again in a minute.',
         )
     return None

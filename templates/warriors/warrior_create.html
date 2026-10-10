@@ -44,7 +44,7 @@
 
     <hgroup>
       <h1>Write a spell</h1>
-      <p>It will battle other spells in {{ arena }}, with {{ arena.get_llm_display }} as the referee.</p>
+      <p>It will battle other spells in {{ arena }} over what {{ arena.get_llm_display }} writes back.</p>
     </hgroup>
 
     <div class="pw-create">
@@ -87,6 +87,7 @@
         <ul>
           <li>Ask for your text back, word for word.</li>
           <li>Tell the model to ignore whatever comes before or after your spell.</li>
+          <li>Don't argue that you should win: there's no judge, only the words the model repeats.</li>
           <li>Keep it short: a short spell is easier to repeat whole.</li>
           <li>Characters your opponent is unlikely to use, like emoji or another script, can only count for you.</li>
         </ul>

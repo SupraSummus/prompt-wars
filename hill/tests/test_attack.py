@@ -132,7 +132,7 @@ def test_a_player_may_bring_back_their_own_hill_spell(hill_request, earlier_roun
 @pytest.mark.django_db
 @pytest.mark.parametrize('resent', [ATTACK, ATTACK.upper(), ATTACK.replace(' ', '   ').replace(',', '')])
 def test_resending_a_spell_in_a_round_leads_back_to_it_for_free(rf, hill_request, open_round, resent):
-    """Even while it is being judged, and with the player at the cap."""
+    """Even while it is in battle, and with the player at the cap."""
     first = attack(hill_request, open_round).attempt
     HillAttemptFactory.create_batch(
         HILL_ATTEMPTS_PER_PLAYER - 1, hill_round=open_round, identity=first.identity, state=AttemptState.FAILED,
@@ -171,7 +171,7 @@ def test_the_per_player_cap(hill_request, open_round, states, allowed):
 
 @pytest.mark.django_db
 def test_one_attack_at_a_time(hill_request, earlier_round, open_round):
-    # even one left judging in the previous round
+    # even one left in battle in the previous round
     HillAttemptFactory(hill_round=earlier_round, identity=get_identity(hill_request), late=True)
     assert refusal(hill_request, open_round) == 'in_flight'
 

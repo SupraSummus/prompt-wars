@@ -101,7 +101,7 @@ def test_looking_at_the_hill_leaves_no_session(client, open_round):
 
     client.get(reverse('hill:index'), {'via': 'share'})
     client.get(reverse('hill:attempt', args=[attempt.id]))
-    client.get(reverse('hill:attempt_status', args=[attempt.id]), {'key': 'judging'})
+    client.get(reverse('hill:attempt_status', args=[attempt.id]), {'key': 'pending'})
 
     assert not Session.objects.exists()
     assert 'sessionid' not in client.cookies
@@ -130,7 +130,7 @@ def test_a_player_who_attacked_skips_the_captcha_and_sees_their_attacks(client, 
 def test_a_busy_hill_still_lets_you_write(client, hill, open_round):
     HillAttemptFactory(hill_round=open_round)
     response = client.get(reverse('hill:index'))
-    assert 'Busy right now: 1 attack being judged.' in visible(response)
+    assert 'Busy right now: 1 attack in battle.' in visible(response)
     assert reverse('hill:attack') in response.content.decode()
 
 
@@ -138,7 +138,7 @@ def test_a_busy_hill_still_lets_you_write(client, hill, open_round):
 @pytest.mark.parametrize('hill', [{'max_pending': 1}], indirect=True)
 @pytest.mark.parametrize('setup, text', [
     ('capped', f"You've used your {HILL_ATTEMPTS_PER_PLAYER} attacks"),
-    ('in_flight', 'Your last attack is still being judged.'),
+    ('in_flight', "Your last attack's battle isn't over yet."),
 ], ids=['player cap, busy', 'in flight, busy'])
 def test_what_keeps_a_visitor_from_attacking_replaces_the_form(client, open_round, setup, text):
     """A player's own limits outlast a full queue, so they show through it."""
@@ -237,7 +237,7 @@ def test_pages_run_no_more_queries_for_more_attackers(client, hill, open_round):
     pages = [
         (reverse('hill:index'), {}),
         (reverse('hill:attempt', args=[mine.id]), {}),
-        (reverse('hill:attempt_status', args=[pending.id]), {'key': 'judging'}),
+        (reverse('hill:attempt_status', args=[pending.id]), {'key': 'pending'}),
     ]
     for url, params in pages:
         # once to warm up whatever is cached per process
@@ -320,7 +320,7 @@ def test_a_stranger_sees_only_the_score(client, open_round):
         reverse('hill:attempt', args=[attempt.id]),
         reverse('hill:attempt_status', args=[attempt.id]),
     ):
-        response = client.get(url, {'key': 'judging'})
+        response = client.get(url, {'key': 'pending'})
         page = visible(response)
         assert f'This attack took {attempt.score:.1%} of its battle against the boss.' in page, url
         for text in (ATTACK, 'oracle of zebras', 'Riverstone', 'Ana', BOSS_BODY):
@@ -361,7 +361,7 @@ def test_a_disabled_hill_shows_nobodys_text(client, named_round):
         reverse('hill:attempt_status', args=[attempt.id]),
         reverse('hill:round_detail', args=[named_round.number]),
     ):
-        response = client.get(url, {'key': 'judging'})
+        response = client.get(url, {'key': 'pending'})
         page = visible(response)
         for text in (BOSS_BODY, 'Ziggurat', 'Tess', ATTACK, 'oracle of zebras'):
             assert text not in page, url
@@ -375,24 +375,24 @@ def test_a_pending_attempt_polls_until_its_result(client, open_round):
     status_url = reverse('hill:attempt_status', args=[attempt.id])
 
     page = client.get(reverse('hill:attempt', args=[attempt.id])).content.decode()
-    assert f'hx-get="{status_url}?key=judging"' in page
+    assert f'hx-get="{status_url}?key=pending"' in page
 
     # nothing changed: nothing to swap
-    assert client.get(status_url, {'key': 'judging'}).status_code == 204
+    assert client.get(status_url, {'key': 'pending'}).status_code == 204
 
     # a retry makes it slow, which the page must say
     game = attempt.battle.games_list[0]
     game.attempts = 1
     game.save(update_fields=['attempts'])
-    slow = client.get(status_url, {'key': 'judging'})
+    slow = client.get(status_url, {'key': 'pending'})
     assert slow.status_code == 200
-    assert 'key=judging%2Bslow' in slow.content.decode()
-    assert client.get(status_url, {'key': 'judging+slow'}).status_code == 204
+    assert 'key=pending%2Bslow' in slow.content.decode()
+    assert client.get(status_url, {'key': 'pending+slow'}).status_code == 204
 
     # the result ends the polling, and is stored
     for game in attempt.battle.games_list:
         resolve(game, REPLY)
-    done = client.get(status_url, {'key': 'judging+slow'})
+    done = client.get(status_url, {'key': 'pending+slow'})
     assert done.status_code == 200
     assert 'hx-' not in done.content.decode()
     assert 'oracle of zebras' in visible(done)
