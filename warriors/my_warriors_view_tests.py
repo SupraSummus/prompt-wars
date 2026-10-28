@@ -18,3 +18,9 @@ def test_index(
     assert warrior.name in response.content.decode()
     assert str(warrior_arena.id) in response.content.decode()
     assert other_arena.name in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_logged_out_visitor_is_sent_to_log_in(client):
+    response = client.get(reverse('my_warriors:index'))
+    assert response.url.startswith(reverse('login') + '?next=')
