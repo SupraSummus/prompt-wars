@@ -18,27 +18,28 @@ and the part worth a library, checking the ID token, is `google-auth`'s.
 
 No migration links existing accounts to Google accounts:
 a password account has no email to match on,
-and the only proof that it and a Google account are one person's
-is a browser session that holds both.
-So the owner logs in with the password
-and connects Google from *My prompts*.
+so only its owner can show that it and a Google account are one person's.
+They log in with the password
+and connect Google from *My prompts*.
 Password login stays:
 without an email there is no reset to move anyone off it.
 
-## Not built: merging two accounts
+## Two accounts of one person become the password account
 
 Pressing *Continue with Google* without logging in first
-gives a password account's owner a second, empty account,
-and connecting that Google account to the first one is then refused.
-A merge is cheap,
-since a warrior's owners are many-to-many (`WarriorUserPermission`):
-copy the rows, move the `GoogleAccount`, deactivate the emptied account.
-Offer it at the refusal,
-the one moment both accounts are proven in one session,
-as a POST after a confirmation page
-(see "Cross-device identity" in `docs/king-of-the-hill.md`).
-Trigger: refusals in the logs,
-where `users.google_login` warns of each.
+gives a password account's owner a second, Google-only account,
+and connecting that Google account from the first one is then refused.
+The way out starts from the Google-only account:
+it logs in to the password account, which takes it over (`users.connect_password`).
+The password account is the one kept,
+since it has the name its owner chose and a password.
+
+The typed password proves the other account,
+so nothing waits in the session between requests.
+Offering the merge at the refusal is the rejected alternative:
+the Google account's proof would wait in the session for a confirmation page,
+with an expiry to pick,
+and a player who left the page would be stuck again.
 
 ## Open question: the email address
 
