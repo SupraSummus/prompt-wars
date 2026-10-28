@@ -104,9 +104,14 @@ def callback(request):
             GoogleAccount.objects.create(sub=sub, user=request.user)
             messages.success(request, "Google account connected: you can log in with it from now on.")
         elif google_account.user_id != request.user.id:
-            # the two accounts would have to merge (`docs/accounts.md`), and this counts who needs it
+            # two accounts of one person: they merge from the Google account's side (`users.connect_password`)
             logger.warning('Google login: user %s tried to connect the Google account of user %s', request.user.id, google_account.user_id)
-            messages.error(request, "That Google account logs in to another account here, so it can't be connected to this one.")
+            messages.error(
+                request,
+                "That Google account logs in to another account here. "
+                "To bring the two together, log in with Google, "
+                "then connect this account on My prompts.",
+            )
         return redirect(flow['next'])
 
     if google_account is None:
