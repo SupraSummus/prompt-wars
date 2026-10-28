@@ -156,6 +156,7 @@ STORAGES = {
 
 AUTH_USER_MODEL = 'users.User'
 # the home page lists a logged-in player's warriors
+LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'home'
 
