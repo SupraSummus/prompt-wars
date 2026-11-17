@@ -1,152 +1,120 @@
-# Gameplay data model: what arenas couple, and the direction out
+# Gameplay data model: one battle stream, rankings over it
 
 This doc owns the design-level reading of the gameplay data model:
-which concern each model actually carries,
-where the arena concept couples independent concerns,
-and the proposed target shape.
+which concern each model carries,
+why the ladder is one pool of battles across models,
+and why rankings are code rather than rows.
 Mechanics live in code (`warriors/`);
 this doc is about what the schema should mean.
 
-## Four concerns, mostly separated already
+## Four concerns
 
 Gameplay decomposes into four independent axes:
 
 1. **Which LLM performs the battle** —
-   the `LLM` enum on `Battle` and `Game` (`warriors/battles.py`).
+   drawn per ladder battle from `LADDER_LLMS` (`warriors/battles.py`)
+   and recorded on `Battle` and `Game`.
 2. **Warrior–result similarity** —
    `GameScore` rows keyed by (game, algorithm),
    with `ScoreAlgorithm` an enum (`warriors/score.py`).
-   Every game gets a score row for every algorithm,
-   regardless of any arena's configuration
+   Every game gets a score row for every algorithm
    (see `resolve_battle` in `warriors/tasks.py`).
 3. **Winner computation** —
    pure code deriving a score from the similarities,
    per algorithm (`GameScore.score` in `warriors/score.py`).
 4. **Leaderboard rating** —
-   mELO state on `WarriorArena` (`warriors/rating_models.py`).
+   mELO state on `WarriorRating`, keyed by (warrior, ranking)
+   (`warriors/rating_models.py`).
 
-The first three are already enum-keyed or code-level:
-no DB object encodes a combination of them.
-Battles are keyed by LLM, not by arena —
-`Battle.arena` exists but is nullable and vestigial;
-every gameplay query goes through `llm`
-(`BattleQuerySet.with_warrior_arena`, matchmaking cooldown,
-`ArenaStats.battle_count`),
-and `Game` has no arena at all.
-Only the fourth concern hangs off a DB combination object:
-`Arena` binds (llm, score_algorithm) as a row,
-and `WarriorArena` keys rating state by it.
+Each is an enum or code;
+no database row encodes a combination of them.
 
 Not every battle in the stream feeds the ladder.
 Unrated battles, King of the Hill's, are played and scored,
 but the ladder never reads them;
 `BattleQuerySet.rated` draws the line.
 
-## The one bag of warriors already exists — implicitly
+## The ladder is one pool across models
 
-`Warrior` is global:
-body, moderation, ownership, and embedding
-live on the shared object,
-and `WarriorArena` is a thin per-arena shell
-(rating state, `games_played`, `next_battle_schedule`,
-plus delegating properties).
+A ladder battle goes to one model, drawn at random,
+and a warrior's rating reads every battle it fought,
+whichever model answered (`BattleQuerySet.with_warrior`).
+The matchmaking cooldown is per pair, across models, too.
+So a prompt is measured by how it does over the draw,
+not on the one model it was tuned for,
+and the set of models is a dial on cost per battle,
+not on how many battles are fought.
 
-Cross-arena spread happens automatically within an LLM:
-`transfer_rating` (`warriors/tasks.py`) fans a rated battle's result
-out to every arena with the same llm,
-lazily creating `WarriorArena` rows via
-`get_or_create_warrior_arenas`,
-battle-eligible in that arena immediately.
-So "submit once, play everywhere" is the de facto behavior
-for arenas sharing an LLM —
-but as a side effect of rating transfer,
-not as a stated rule,
-and with quirks that follow from the accident:
+`LLM` names a model, never a pool:
+the draw is what pools battles,
+so a value that meant "the hill's battles" or "this ranking's battles"
+would be a second, hidden pooling mechanism.
 
-- **Duplicate matchmaking clocks.**
-  Each same-llm arena keeps an independent
-  `next_battle_schedule` for the same warrior,
-  all feeding one shared battle pool,
-  so a warrior's battle frequency scales with
-  how many arenas share its LLM.
-- **Veterans jump the queue once.**
-  A lazily created row is battle-eligible immediately,
-  so an old warrior crossing into another arena
-  gets one out-of-cadence battle
-  before `create_battle` recomputes `games_played`
-  from the llm-wide count and restores its cadence.
-- **Nonsense configurations are expressible.**
-  Two arenas with identical (llm, score_algorithm)
-  are two independent rating states
-  converging over the same battle set.
+Battles fought before the draw were pinned to one model each,
+so a long-lived warrior's history leans on that model.
+They count as if drawn;
+`update_rating` keeps only the most recent battle with each opponent,
+so fresh drawn battles displace them without special handling.
 
-## What Arena actually earns its keep for
+Rejected alternatives:
 
-Presentation and operations, not gameplay:
-a name and description,
-a `Site` binding for domain-based routing
-(`ArenaViewMixin` in `warriors/views.py`),
-and the `listed`/`enabled` toggles.
-Those are CMS concerns;
-the only gameplay decision an arena makes
-is which similarity signal feeds the rating
-(`update_rating` reads `arena.score_algorithm`).
+- **Every battle resolved by every model.**
+  It multiplies the cost of a battle by the number of models
+  for a signal the draw gives on average,
+  and makes adding a model a decision about volume.
+- **A model set per leaderboard.**
+  Leaderboards with different sets could not share a battle,
+  which splits the pool back into per-model ladders.
 
-## Target shape
+## Rankings in code
 
 A leaderboard is a *view* over the battle stream,
 not a place where warriors live.
-The schema should say so:
+`Ranking` (`warriors/rankings.py`) lists them,
+each reading the stream through a score algorithm,
+and every one ranks every battle:
+`transfer_rating` refits both warriors in each.
 
-- **Warrior** stays the global unit of submission —
-  one bag, entered once.
-- **The battle stream is keyed by LLM** (already true),
-  with the per-direction `Game` as its canonical record
-  (`docs/games.md`);
-  `Battle.arena` gets dropped.
-- **Ranking configuration moves to code**:
-  a registry mapping a ranking key (enum)
-  to (llm, score_algorithm, mELO parameters).
-  Combinations become code review material,
-  not runtime rows;
-  nonsense configurations become unrepresentable.
-- **Per-warrior rating state is keyed by (warrior, ranking key)** —
-  the successor of `WarriorArena`,
-  stripped to rating fields and `games_played`.
-- **The matchmaking clock is keyed by (warrior, llm)** —
-  one clock per battle pool,
-  so adding a ranking never multiplies battles.
-- **Arena survives, if at all, as pure presentation**:
-  a page (or DB row, for deploy-free `enabled`/`listed` flips)
-  that binds name, description, and site to a ranking key,
-  carrying no gameplay state.
+Adding a ranking takes code anyway —
+a new algorithm, or new parameters for one —
+so a database row naming the combination
+would buy only a way to configure one nobody reviewed,
+such as two rows with the same algorithm:
+two rating states converging over the same battles.
+The cost is that a ranking cannot be switched on or off without a deploy.
 
-## The one genuine open decision: which LLMs does a warrior enter?
+The rankings are peers in what players see:
+each has its leaderboard (`/leaderboard/<ranking>/`),
+and a warrior's page shows its rating in all of them,
+its battle list read through the one asked for.
+Where only one ranking fits, `LEADING_RANKING` is it:
+one battle pool can be paired by only one rating,
+and a page showing one ranking has to open on some ranking.
 
-Today the arena a player submits through
-selects the LLM pool the warrior battles in
-(spread to other pools happens only via same-llm arenas).
-With one bag and rankings-as-views,
-the natural rule is "a submission enters every battle pool" —
-but that multiplies battle volume by the number of LLMs,
-which is a cost decision, not a schema decision
-(see the economic frame in `docs/strategy.md`).
-Options, in increasing cost:
-keep per-LLM enrollment as an explicit player choice;
-enroll everywhere but with per-LLM cadence dialed down;
-enroll everywhere at full cadence.
-The rounds proposal (`docs/rounds.md`) cuts across this:
-under fixed-cadence rounds,
-per-round participation is the enrollment mechanism anyway.
+## One clock per warrior
 
-## Migration is incremental
+The matchmaking clock is `Warrior.next_battle_schedule`:
+one per warrior, whatever the number of rankings,
+so adding a ranking never multiplies battles.
+Its pace comes from the warrior's battle count (`create_battle`);
+`WarriorRating.games_played` is a different number,
+the opponents a rating's last fit read,
+and matchmaking does not read it.
 
-Each step is independently shippable:
-keying the matchmaking clock by (warrior, llm);
-introducing the ranking registry
-and pointing `update_rating` at it instead of `arena.score_algorithm`;
-backfilling and dropping `Battle.arena`;
-reducing `Arena` to presentation.
-Nothing requires a big-bang rewrite,
-because battles, scores, and winner computation
-are already keyed the right way.
+A warrior with no clock is off the ladder:
+a King of the Hill attacker plays only the hill,
+and submitting a text through the prompt form puts it on.
+Going on the ladder starts the clock and gives a rating in every ranking at once (`enter_ladder`),
+the one place either happens,
+so the rest of the code reads ratings and never creates them.
+A ranking added later needs its rows backfilled for the warriors already there,
+and a `refit_ratings` run to fit them.
+
+## Arena-era URLs
+
+Links of the forms `warrior-arena/<id>/` and `arena/<id>/…`
+circulate outside the site,
+each naming a page of a per-arena warrior or of an arena.
+`LegacyWarriorArena` keeps every warrior-arena id and the warrior it names,
+so each leads to the warrior's page;
+an arena URL redirects to the page that serves every ranking.

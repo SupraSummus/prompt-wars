@@ -12,7 +12,7 @@ from openai.types.chat.chat_completion import (
 from openai.types.completion_usage import CompletionUsage
 
 from ..tasks import (
-    do_moderation, openai_client, resolve_battle, schedule_battle_top_arena,
+    do_moderation, openai_client, resolve_battle, schedule_battle_top,
     transfer_rating,
 )
 from ..warriors import MAX_WARRIOR_LENGTH
@@ -92,17 +92,17 @@ def test_do_moderation(warrior, monkeypatch, moderation_flagged):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior_arena', [{'rating': 100}], indirect=True)
-@pytest.mark.parametrize('other_warrior_arena', [{'rating': 250}], indirect=True)
-def test_schedule_battle_top(warrior_arena, other_warrior_arena, arena, monkeypatch):
+@pytest.mark.parametrize('warrior_rating', [{'rating': 100}], indirect=True)
+@pytest.mark.parametrize('other_warrior_rating', [{'rating': 250}], indirect=True)
+def test_schedule_battle_top(warrior_rating, other_warrior_rating, monkeypatch):
     monkeypatch.setattr('random.random', lambda: 0.9999)
-    battle = schedule_battle_top_arena(str(arena.id))
+    battle = schedule_battle_top()
     assert battle is not None
-    assert {warrior_arena.warrior, other_warrior_arena.warrior} == {battle.warrior_1, battle.warrior_2}
+    assert {warrior_rating.warrior, other_warrior_rating.warrior} == {battle.warrior_1, battle.warrior_2}
 
 
 @pytest.mark.django_db
-def test_resolve_battle(arena, battle, monkeypatch):
+def test_resolve_battle(battle, monkeypatch):
     assert battle.warrior_1.body
     assert battle.warrior_2.body
 

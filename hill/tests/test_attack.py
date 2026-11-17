@@ -2,7 +2,7 @@ import pytest
 from django.utils import timezone
 from django_goals.models import Goal
 
-from warriors.models import WarriorArena, WarriorUserPermission
+from warriors.models import WarriorUserPermission
 from warriors.tests.factories import WarriorFactory
 
 from ..attack import Refused, captcha_needed, submit_attack
@@ -43,12 +43,13 @@ def test_an_attack_starts_its_battle_at_once(hill_request, open_round):
     assert (warrior.body, warrior.name, warrior.author_name, warrior.created_by) == (ATTACK, '', '', None)
     assert warrior.moderation_passed is None
     # nothing enrolls the warrior on the ladder or grants it to anyone
-    assert not WarriorArena.objects.filter(warrior=warrior).exists()
+    assert warrior.next_battle_schedule is None
+    assert not warrior.ratings.exists()
     assert not WarriorUserPermission.objects.filter(warrior=warrior).exists()
     assert 'authorized_warriors' not in hill_request.session
 
     battle = attempt.battle
-    assert (battle.rated, battle.arena, battle.llm) == (False, None, open_round.llm)
+    assert (battle.rated, battle.llm) == (False, open_round.llm)
     assert {battle.warrior_1, battle.warrior_2} == {open_round.boss, warrior}
     assert [game.processed_goal.deadline for game in battle.games_list] == [attempt.created_at] * 2
     assert not goals('warriors.tasks.transfer_rating')

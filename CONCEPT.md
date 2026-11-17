@@ -168,7 +168,7 @@ in [docs/precedents.md](docs/precedents.md);
 the doctrinal gap around blended outputs,
 used as a novelty detector,
 in [docs/authorship.md](docs/authorship.md);
-the gameplay data model's coupling analysis and target shape
+the gameplay data model, its one battle pool across models and its rankings in code
 in [docs/data-model.md](docs/data-model.md);
 this doc stays about the game's concept and mechanics.
 

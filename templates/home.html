@@ -291,21 +291,21 @@
               </tr>
             </thead>
             <tbody>
-              {% for warrior in your_warriors %}
+              {% for rating in your_warriors %}
                 <tr>
                   <th scope="row">
-                    <a href="{{ warrior.get_absolute_url }}">
-                      {% if warrior.moderation_passed is None %}
+                    <a href="{{ rating.get_absolute_url }}">
+                      {% if rating.warrior.moderation_passed is None %}
                         Your new prompt <small class="pw-muted">(being checked)</small>
-                      {% elif not warrior.moderation_passed %}
+                      {% elif not rating.warrior.moderation_passed %}
                         Flagged prompt <small class="pw-muted">(won't battle)</small>
                       {% else %}
-                        {{ warrior.name|default:'Unnamed prompt' }}
+                        {{ rating.warrior.name|default:'Unnamed prompt' }}
                       {% endif %}
                     </a>
                   </th>
-                  <td>{% if warrior.moderation_passed %}{{ warrior.rating|floatformat:0 }}{% else %}<span aria-hidden="true">&ndash;</span><span class="pw-sr-only">none</span>{% endif %}</td>
-                  <td>{{ warrior.games_played }}</td>
+                  <td>{% if rating.warrior.moderation_passed %}{{ rating.rating|floatformat:0 }}{% else %}<span aria-hidden="true">&ndash;</span><span class="pw-sr-only">none</span>{% endif %}</td>
+                  <td>{{ rating.games_played }}</td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -480,7 +480,7 @@
         <h3>It battles on its own</h3>
         <p>
           The arena pairs your prompt with others of similar strength
-          and sends each pair to {% if arena %}{{ arena.get_llm_display }}{% else %}the model{% endif %}, in both orders.
+          and sends each pair, in both orders, to a model drawn for that battle.
           The first battles come within minutes.
         </p>
       </li>
@@ -536,18 +536,18 @@
             </tr>
           </thead>
           <tbody>
-            {% for warrior in top_warriors %}
+            {% for rating in top_warriors %}
               <tr>
                 <td>{{ forloop.counter }}</td>
-                <th scope="row"><a href="{% url 'warrior_detail' warrior.id %}">{{ warrior }}</a></th>
-                <td>{{ warrior.rating|floatformat:0 }}</td>
-                <td>{{ warrior.games_played }}</td>
+                <th scope="row"><a href="{{ rating.get_absolute_url }}">{{ rating.warrior }}</a></th>
+                <td>{{ rating.rating|floatformat:0 }}</td>
+                <td>{{ rating.games_played }}</td>
               </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
-      <p><a href="{% url 'warrior_leaderboard' %}">Full leaderboard <span aria-hidden="true">→</span></a></p>
+      <p><a href="{% url 'ranking_leaderboard' ranking %}">Full {{ ranking.label }} <span aria-hidden="true">→</span></a></p>
     </section>
   {% endif %}
 

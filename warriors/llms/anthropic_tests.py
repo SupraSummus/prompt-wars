@@ -3,7 +3,7 @@ from unittest import mock
 import anthropic
 import pytest
 
-from ..models import LLM
+from ..battles import LLM
 from ..tasks import resolve_battle
 
 
@@ -31,7 +31,7 @@ def anthropic_messages_create_mock(monkeypatch):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('arena', [{'llm': LLM.CLAUDE_3_HAIKU}], indirect=True)
+@pytest.mark.parametrize('battle', [{'llm': LLM.CLAUDE_3_HAIKU}], indirect=True)
 def test_resolve_battle(battle, anthropic_messages_create_mock):
     resolve_battle(None, battle.id, '1_2')
     game = battle.games.get(warrior_1=battle.warrior_1)

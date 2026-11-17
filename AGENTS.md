@@ -16,7 +16,8 @@ Split by ownership:
 
 - **Code (comments/docstrings)** owns "what is implemented and how".
   Battle resolution, scoring, and matchmaking live in `warriors/`
-  (`battles.py`, `score.py`, `lcs.py`, `random_matchmaking.py`);
+  (`battles.py`, `score.py`, `lcs.py`, `random_matchmaking.py`,
+  `rankings.py`, `rating_models.py`);
   if you're about to write a doc paragraph describing behavior,
   put the one-or-two-sentence rationale in a docstring or comment
   at the source and have the doc point at the file or function by name.

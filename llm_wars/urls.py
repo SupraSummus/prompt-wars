@@ -26,11 +26,12 @@ from guessing import views as guessing_views
 from hill import views as hill_views
 from users import connect_password, google_login
 from users.views import LoginView, SignupView
-from warriors import my_warriors_view, warrior_view
+from warriors import my_warriors_view
 from warriors.create_view import WarriorCreateView
 from warriors.views import (
-    ArenaDetailView, BattleDetailView, ChallengeWarriorView, WarriorDetailView,
-    WarriorLeaderboard, warrior_set_public_battle_results,
+    ArenaPageRedirect, BattleDetailView, ChallengeWarriorView,
+    WarriorDetailView, WarriorLeaderboard, legacy_warrior_arena,
+    warrior_set_public_battle_results,
 )
 
 from . import data_policy_view, home_view
@@ -51,7 +52,6 @@ register_converter(SignedIntConverter, 'signed_int')
 
 router = Router(__name__)
 router.route_all('my-warriors/', my_warriors_view.router, name='my_warriors')
-router.route_all('warrior/', warrior_view.router, name='warrior')
 router.route_all('data-policy/', data_policy_view.router, name='data_policy')
 router.route_all('embedding-explorer/', embedding_explorer_views.router, name='embedding_explorer')
 router.route_all('guessing/', guessing_views.router, name='guessing')
@@ -63,20 +63,27 @@ urlpatterns = (
     path('', home_view.home, name='home'),
     path("admin/", admin.site.urls),
 
-    # urls for default arena
     path('create/', WarriorCreateView.as_view(), name='warrior_create'),
-    path('leaderboard/', WarriorLeaderboard.as_view(), name='warrior_leaderboard'),
+    path('leaderboard/', warriors.views.leaderboard_redirect, name='warrior_leaderboard'),
+    path('leaderboard/<str:ranking>/', WarriorLeaderboard.as_view(), name='ranking_leaderboard'),
     path('upcoming-battles/', warriors.views.UpcomingBattlesView.as_view(), name='upcoming_battles'),
     path('recent-battles/', warriors.views.RecentBattlesView.as_view(), name='recent_battles'),
 
-    path('arenas/', warriors.views.arena_list, name='arena_list'),
-    path('arena/<uuid:arena_id>/', ArenaDetailView.as_view(), name='arena_detail'),
-    path('arena/<uuid:arena_id>/create/', WarriorCreateView.as_view(), name='arena_warrior_create'),
-    path('arena/<uuid:arena_id>/leaderboard/', WarriorLeaderboard.as_view(), name='arena_leaderboard'),
-    path('arena/<uuid:arena_id>/upcoming-battles/', warriors.views.UpcomingBattlesView.as_view(), name='arena_upcoming_battles'),
-    path('arena/<uuid:arena_id>/recent-battles/', warriors.views.RecentBattlesView.as_view(), name='arena_recent_battles'),
+    # The arena pages, linked from outside, land on what replaced them.
+    path('arenas/', ArenaPageRedirect.as_view(pattern_name='warrior_leaderboard')),
+    *[
+        path(f'arena/<uuid:arena_id>/{page}', ArenaPageRedirect.as_view(pattern_name=name))
+        for page, name in (
+            ('', 'home'),
+            ('create/', 'warrior_create'),
+            ('leaderboard/', 'warrior_leaderboard'),
+            ('upcoming-battles/', 'upcoming_battles'),
+            ('recent-battles/', 'recent_battles'),
+        )
+    ],
 
-    path('warrior-arena/<uuid:pk>/', WarriorDetailView.as_view(), name='warrior_detail'),
+    path('warrior/<uuid:pk>/', WarriorDetailView.as_view(), name='warrior_detail'),
+    path('warrior-arena/<uuid:pk>/', legacy_warrior_arena),
     path(
         'warrior/<uuid:pk>/set-public-battles/',
         warrior_set_public_battle_results,

@@ -6,12 +6,14 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .battles import Battle
+from .rankings import Ranking
+from .rating_models import WarriorRating
 
 
-class ArenaStats(models.Model):
+class RankingStats(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     date = models.DateTimeField(default=timezone.now, db_index=True)
-    arena = models.ForeignKey(to='Arena', on_delete=models.CASCADE)
+    ranking = models.CharField(max_length=20, choices=Ranking.choices)
 
     warrior_count = models.PositiveIntegerField()
     battle_count = models.PositiveIntegerField()
@@ -33,30 +35,25 @@ def rating_quantile_labels():
     return [i / 100 for i in range(101)]
 
 
-def create_arena_stats(now=None):
-    from .models import Arena
+def create_ranking_stats(now=None):
     if now is None:
         now = timezone.now()
-    for arena in Arena.objects.all():
-        create_arena_stats_for_arena(arena, now)
+    for ranking in Ranking:
+        create_ranking_stats_for(ranking, now)
 
 
-def create_arena_stats_for_arena(arena, now):
-    if ArenaStats.objects.filter(arena=arena, date__date=now.date()).exists():
+def create_ranking_stats_for(ranking, now):
+    if RankingStats.objects.filter(ranking=ranking, date__date=now.date()).exists():
         return
-    warriors_qs = arena.warriors.battleworthy()
-    warrior_count = warriors_qs.count()
-    battle_count = Battle.objects.rated().filter(
-        llm=arena.llm,
-    ).count()
-    rating_quantiles = warriors_qs.aggregate(
+    ratings = WarriorRating.objects.battleworthy().filter(ranking=ranking)
+    rating_quantiles = ratings.aggregate(
         percentiles=PercentileDisc('rating', rating_quantile_labels())
     )['percentiles'] or []
-    ArenaStats.objects.create(
-        arena=arena,
+    RankingStats.objects.create(
+        ranking=ranking,
         date=now,
-        warrior_count=warrior_count,
-        battle_count=battle_count,
+        warrior_count=ratings.count(),
+        battle_count=Battle.objects.rated().count(),
         rating_quantiles=rating_quantiles,
     )
 

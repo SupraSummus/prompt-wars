@@ -8,9 +8,8 @@ from django_goals.busy_worker import worker
 from django_goals.factories import GoalFactory
 from django_goals.models import GoalState
 
-from warriors.battles import LLM
-from warriors.models import WarriorArena
-from warriors.tests.factories import WarriorArenaFactory
+from warriors.rating_models import WarriorRating
+from warriors.tests.factories import WarriorRatingFactory
 
 from ..attack import submit_attack
 from ..handover import hill_handover
@@ -22,8 +21,8 @@ from .fixtures import ATTACK, reload
 
 @pytest.fixture
 def ladder_boss(boss):
-    """The boss also plays the ladder, in an arena of the hill's LLM."""
-    return WarriorArenaFactory(warrior=boss, arena__llm=LLM.GOOGLE_GEMINI)
+    """The boss also plays the ladder."""
+    return WarriorRatingFactory(warrior=boss)
 
 
 def send(request, hill_round, body=ATTACK):
@@ -38,7 +37,7 @@ def send(request, hill_round, body=ATTACK):
 @pytest.mark.django_db
 def test_an_attack_that_breaks_the_hill(moderation, gemini, hill_request, ladder_boss, open_round):
     gemini.return_value = (ATTACK, 'STOP', 'gemini-test')
-    warrior_arenas = WarriorArena.objects.count()
+    ratings = WarriorRating.objects.count()
 
     attempt = send(hill_request, open_round)
     worker(once=True)
@@ -67,7 +66,7 @@ def test_an_attack_that_breaks_the_hill(moderation, gemini, hill_request, ladder
     # the boss's ladder life never noticed
     ladder_boss.refresh_from_db()
     assert (ladder_boss.rating, ladder_boss.games_played) == (0.0, 0)
-    assert WarriorArena.objects.count() == warrior_arenas
+    assert WarriorRating.objects.count() == ratings
 
 
 @pytest.mark.django_db

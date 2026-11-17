@@ -1,23 +1,22 @@
 import pytest
 from django.urls import reverse
 
-from .tests.factories import ArenaFactory
+from .rankings import Ranking
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('arena', [{'listed': True}], indirect=True)
 @pytest.mark.parametrize('warrior', [{'name': 'Warrior 1'}], indirect=True)
 def test_index(
     user_client, warrior_user_permission,
-    warrior, warrior_arena,
+    warrior, warrior_rating,
 ):
-    assert warrior.name
-    other_arena = ArenaFactory(listed=True, name="The other arena")
     response = user_client.get(reverse('my_warriors:index'))
     assert response.status_code == 200
-    assert warrior.name in response.content.decode()
-    assert str(warrior_arena.id) in response.content.decode()
-    assert other_arena.name in response.content.decode()
+    content = response.content.decode()
+    assert warrior.name in content
+    assert warrior_rating.get_absolute_url() in content
+    for ranking in Ranking:
+        assert str(ranking.label) in content
 
 
 @pytest.mark.django_db

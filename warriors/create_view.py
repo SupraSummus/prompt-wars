@@ -5,9 +5,9 @@ from django.views.generic.edit import CreateView
 from django_goals.models import schedule
 from django_recaptcha.fields import ReCaptchaField
 
-from .models import WarriorArena, WarriorUserPermission
+from .models import WarriorUserPermission
+from .rating_models import enter_ladder
 from .tasks import do_moderation
-from .views import ArenaViewMixin
 from .warriors import MAX_WARRIOR_LENGTH, Warrior, normalize_warrior_body
 
 
@@ -48,21 +48,12 @@ class WarriorCreateForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, arena=None, user=None, session=None, request=None, **kwargs):
+    def __init__(self, *args, user=None, session=None, request=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.label_suffix = ''
-        self.arena = arena
         self.user = user
         self.session = session
         self.request = request
-
-    def clean(self):
-        if not self.arena.enabled:
-            raise forms.ValidationError(
-                _('Creating prompts in this arena is disabled.'),
-                code='arena_disabled',
-            )
-        return super().clean()
 
     def clean_body(self):
         body, body_sha_256 = normalize_warrior_body(self.cleaned_data['body'])
@@ -94,10 +85,7 @@ class WarriorCreateForm(forms.ModelForm):
                 _('The prompt already existed. You have discovered it and now you have full access to its secrets.'),
             )
 
-        warrior_arena, warrior_arena_created = WarriorArena.objects.get_or_create(
-            arena=self.arena,
-            warrior=warrior,
-        )
+        enter_ladder(warrior)
 
         # give the user permission to the warrior
         if self.user.is_authenticated:
@@ -112,22 +100,19 @@ class WarriorCreateForm(forms.ModelForm):
             warrior.update_public_battle_results()
         else:
             authorized_warriors = self.session.setdefault('authorized_warriors', [])
-            if str(warrior_arena.id) not in authorized_warriors:
-                authorized_warriors.append(str(warrior_arena.id))
             if str(warrior.id) not in authorized_warriors:
                 authorized_warriors.append(str(warrior.id))
             self.session.save()
 
-        return warrior_arena
+        return warrior
 
 
-class WarriorCreateView(ArenaViewMixin, CreateView):
+class WarriorCreateView(CreateView):
     form_class = WarriorCreateForm
     template_name = 'warriors/warrior_create.html'
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['arena'] = self.arena
         kwargs['user'] = self.request.user
         kwargs['session'] = self.request.session
         kwargs['request'] = self.request

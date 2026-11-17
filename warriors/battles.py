@@ -1,4 +1,5 @@
 import datetime
+import random
 import uuid
 from functools import cached_property
 
@@ -13,6 +14,7 @@ from django_goals.models import schedule
 from django_goals.utils import GoalRelatedMixin
 
 from .lcs import lcs_ranges
+from .rankings import Ranking
 from .rating import get_expected_game_score
 from .rating_models import M_ELO_K, normalize_playstyle_len
 from .score import ScoreAlgorithm
@@ -37,24 +39,17 @@ class BattleQuerySet(models.QuerySet):
         """
         return self.filter(rated=True)
 
-    def with_warrior_arena(self, warrior_arena):
-        """A warrior's ladder battles: every rated battle it fought under its arena's LLM."""
+    def with_warrior(self, warrior_id):
+        """A warrior's ladder battles, whichever model each was drawn for."""
         return self.rated().filter(
-            llm=warrior_arena.arena.llm,
-        ).filter(
-            models.Q(warrior_1_id=warrior_arena.warrior_id) |
-            models.Q(warrior_2_id=warrior_arena.warrior_id),
+            models.Q(warrior_1_id=warrior_id) |
+            models.Q(warrior_2_id=warrior_id),
         )
 
-    def with_warrior_arenas(self, warrior_arena_1, warrior_arena_2):
-        """The ladder battles between two warriors of one arena."""
-        assert warrior_arena_1.arena_id == warrior_arena_2.arena_id
-        warrior_1_id = warrior_arena_1.warrior_id
-        warrior_2_id = warrior_arena_2.warrior_id
-        if warrior_1_id > warrior_2_id:
-            warrior_1_id, warrior_2_id = warrior_2_id, warrior_1_id
+    def with_warriors(self, warrior_a_id, warrior_b_id):
+        """The ladder battles between two warriors, given in either order."""
+        warrior_1_id, warrior_2_id = sorted((warrior_a_id, warrior_b_id))
         return self.rated().filter(
-            llm=warrior_arena_1.arena.llm,
             warrior_1_id=warrior_1_id,
             warrior_2_id=warrior_2_id,
         )
@@ -84,16 +79,19 @@ class LLM(models.TextChoices):
     GOOGLE_GEMINI = 'google-gemini', _('Google Gemini')
 
 
+# The models a ladder battle is drawn from, uniformly
+# ("The ladder is one pool across models" in docs/data-model.md).
+# A constant, not a setting: which models play is a cost decision worth a review.
+LADDER_LLMS = (
+    LLM.GOOGLE_GEMINI,
+)
+
+
 class Battle(models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
         editable=False
-    )
-    arena = models.ForeignKey(
-        to='Arena',
-        on_delete=models.CASCADE,
-        null=True,
     )
     llm = models.CharField(
         max_length=20,
@@ -136,20 +134,18 @@ class Battle(models.Model):
         ]
 
     @classmethod
-    def create_from_warriors(cls, warrior_arena_1, warrior_arena_2):
-        """A ladder battle between two warriors of one arena."""
-        assert warrior_arena_1.arena_id == warrior_arena_2.arena_id
+    def create_from_warriors(cls, warrior_a, warrior_b):
+        """A ladder battle between two warriors, on a model drawn from `LADDER_LLMS`."""
         return cls.create(
-            llm=warrior_arena_1.arena.llm,
-            arena_id=warrior_arena_1.arena_id,
-            warrior_a=warrior_arena_1.warrior,
-            warrior_b=warrior_arena_2.warrior,
+            llm=random.choice(LADDER_LLMS),
+            warrior_a=warrior_a,
+            warrior_b=warrior_b,
         )
 
     @classmethod
     def create(
         cls, *, llm, warrior_a, warrior_b,
-        arena_id=None, rated=True, deadline=None,
+        rated=True, deadline=None,
     ):
         """
         A battle between two warriors, with both its games and the goals that play them.
@@ -174,7 +170,6 @@ class Battle(models.Model):
         # ensures a battle never exists without its two games.
         with transaction.atomic():
             battle = cls.objects.create(
-                arena_id=arena_id,
                 llm=llm,
                 warrior_1=warrior_1,
                 warrior_2=warrior_2,
@@ -257,23 +252,26 @@ class Battle(models.Model):
             return None
         return sum(scores) / len(scores)
 
-    def warrior_performance(self, warrior_arena, opponent_arena, algorithm=ScoreAlgorithm.LCS):
+    def warrior_performance(self, warrior_rating, opponent_rating):
         """
-        How well a warrior did here, adjusted for the strength of both.
+        How well a warrior did here, adjusted for the strength of both,
+        in the ranking the two ratings belong to.
 
         Pairwise by construction: the expectation it subtracts
         is defined for two warriors and for no wider battle.
         """
-        score = self.warrior_score(warrior_arena.warrior_id, algorithm)
+        assert warrior_rating.ranking == opponent_rating.ranking
+        algorithm = Ranking(warrior_rating.ranking).score_algorithm
+        score = self.warrior_score(warrior_rating.warrior_id, algorithm)
         if score is None:
             return None
-        normalize_playstyle_len(warrior_arena.rating_playstyle)
-        normalize_playstyle_len(opponent_arena.rating_playstyle)
+        normalize_playstyle_len(warrior_rating.rating_playstyle)
+        normalize_playstyle_len(opponent_rating.rating_playstyle)
         return score - get_expected_game_score(
-            warrior_arena.rating,
-            warrior_arena.rating_playstyle,
-            opponent_arena.rating,
-            opponent_arena.rating_playstyle,
+            warrior_rating.rating,
+            warrior_rating.rating_playstyle,
+            opponent_rating.rating,
+            opponent_rating.rating_playstyle,
             k=M_ELO_K,
         )
 

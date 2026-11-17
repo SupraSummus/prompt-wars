@@ -141,21 +141,30 @@ unless the experiment is worth rerunning,
 in which case it becomes a management command
 in `warriors/management/commands/`.
 
-The arena walk in `battle_nav_context` (`warriors/views.py`)
-picks its battles two ways the warrior walk beside it does not.
-It joins `arena__llm` where `llm` is a column on the battle itself,
-and `Battle.arena` is nullable,
-so a battle with no arena drops out of the walk silently.
-It also runs the queryset through `for_user`,
-which narrows a signed-in visitor to battles of their own warriors:
-the same page then offers different neighbours to different people,
+The ladder walk in `battle_nav_context` (`warriors/views.py`)
+runs its queryset through `for_user`,
+which the warrior walk beside it does not:
+it narrows a signed-in visitor to battles of their own warriors,
+so the same page offers different neighbours to different people,
 and often none at all to someone reading a stranger's battle,
 while an anonymous visitor walks everything.
-Now that the arena walk is the one nav every battle page carries,
-that is the difference between a page with neighbours and a dead end.
-Next move: filter `llm=battle.llm` directly and drop the `for_user` call,
+The ladder walk is the one nav every battle page carries,
+so that is the difference between a page with neighbours and a dead end.
+Next move: drop the `for_user` call,
 leaving both walks scoped by nothing but what is being browsed.
-Both are behavior changes, so they need sign-off.
+That is a behavior change, so it needs sign-off.
+
+The `update_rating` job (`warriors/rating_models.py`) refits the rating with the largest `|rating_error|`,
+and a refit moves half its correction onto the opponents' errors,
+so the queue is right only while every change to a rating's inputs leaves a trace in some error.
+A change that leaves none —
+battles a rating reads redefined, a ranking added, a scoring fix —
+leaves ratings stale with nothing to say so,
+which is why `refit_ratings` exists.
+Next move: measure one full `refit_ratings` pass in production;
+if it fits the schedule, run it periodically instead of the queue
+and drop `rating_error`, its index and the error propagation.
+It changes when ratings move, so it needs sign-off.
 
 `Battle.warrior_performance` (`warriors/battles.py`)
 runs both warriors' playstyles through `normalize_playstyle_len`,
@@ -234,7 +243,7 @@ Retrying a 5xx is a behavior change, so it needs sign-off.
 Pasting a King of the Hill text into the ladder's `/create/` form
 is a discovery like any other (`WarriorCreateForm.save`, `warriors/create_view.py`):
 the paster gets ladder access to the warrior, as a session grant or a `WarriorUserPermission`,
-and a `WarriorArena` enrolls it in matchmaking.
+and starting its `next_battle_schedule` enrolls it in matchmaking.
 Boss texts are public,
 so anyone can put any boss on the ladder,
 and a logged-in paster who ticks `public_battle_results`
@@ -249,7 +258,7 @@ and refuse a text whose Warrior is a hill boss, a house boss or has a `HillAttem
 unless the requester already holds a grant for it,
 checked without `Warrior.is_user_authorized`'s cache (next entry),
 with copy that doesn't say whether the text is public;
-test that a refusal creates no `WarriorArena` and no grant.
+test that a refusal starts no clock and creates no grant.
 It changes what the ladder accepts,
 so it needs sign-off.
 
@@ -304,22 +313,16 @@ so dropping or replacing either would break the import at startup.
 Next move: add `requests = "*"` to `pyproject.toml` and run `poetry lock`,
 which leaves the locked versions as they are.
 
-The two Chart.js canvases have no text alternative (WCAG 1.1.1 Non-text Content):
-the arena's rating quantiles (`arena_detail.html`)
-and the leaderboard's playstyle scatter (`warrior_leaderboard.html`),
-so a screen reader passes over both in silence.
-Next move: give each `<canvas>` `role="img"` and an `aria-label` that says what it plots.
+The leaderboard's playstyle scatter (`warrior_leaderboard.html`), a Chart.js canvas,
+has no text alternative (WCAG 1.1.1 Non-text Content),
+so a screen reader passes over it in silence.
+Next move: give the `<canvas>` `role="img"` and an `aria-label` that says what it plots.
 
-Saving "Make the model's replies public" on a prompt's all-arenas page (`warriors/warrior_view.py`) is a 404:
-the form posts a `Warrior` id to `warrior_set_public_battle_results` (`warriors/views.py`),
-which looks the permission up by a `WarriorArena` id;
-its only test posts a `WarriorArena` id.
-The checkbox is also written out by hand there and in `warriorarena_detail.html`,
-while `PublicBattleResutsForm` (sic) only validates.
-Next move: key the endpoint by `Warrior` id,
-render the checkbox from that form in one partial used by both pages,
-and test a post from the all-arenas page.
-Changing what the URL takes changes behavior, so it needs sign-off.
+The "Make the model's replies public" checkbox on the warrior page (`warrior_detail.html`)
+is written out by hand,
+while `PublicBattleResutsForm` (sic, `warriors/views.py`) only validates the post,
+so the two can disagree on the field's name or label unnoticed.
+Next move: render the checkbox from the form, and fix the class name's spelling.
 
 `Game.result` and `Game.result_marked_for` (`warriors/battles.py`) hold what CONCEPT.md "Vocabulary" calls the reply,
 and the `result`, `marked_result` and `result_visible` keys

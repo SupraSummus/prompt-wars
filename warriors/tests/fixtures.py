@@ -6,24 +6,9 @@ from django.utils import timezone
 from .. import embeddings
 from ..score import ScoreAlgorithm
 from .factories import (
-    ArenaFactory, BattleFactory, GameScoreFactory, WarriorArenaFactory,
-    WarriorFactory, WarriorUserPermissionFactory, game_of,
+    BattleFactory, GameScoreFactory, WarriorFactory, WarriorRatingFactory,
+    WarriorUserPermissionFactory, game_of,
 )
-
-
-@pytest.fixture
-def arena(request):
-    return ArenaFactory(
-        **getattr(request, 'param', {}),
-    )
-
-
-@pytest.fixture
-def default_arena(arena, site, settings):
-    arena.site = site
-    arena.save(update_fields=['site'])
-    settings.SITE_ID = site.id
-    return arena
 
 
 @pytest.fixture
@@ -34,10 +19,10 @@ def warrior(request):
 
 
 @pytest.fixture
-def warrior_arena(request, warrior, arena):
-    return WarriorArenaFactory(
+def warrior_rating(request, warrior):
+    """The warrior's rating in `Ranking.LCS`, the one matchmaking reads."""
+    return WarriorRatingFactory(
         warrior=warrior,
-        arena=arena,
         **getattr(request, 'param', {}),
     )
 
@@ -59,21 +44,19 @@ def other_warrior(request):
 
 
 @pytest.fixture
-def other_warrior_arena(request, other_warrior, arena):
-    return WarriorArenaFactory(
+def other_warrior_rating(request, other_warrior):
+    return WarriorRatingFactory(
         warrior=other_warrior,
-        arena=arena,
         **getattr(request, 'param', {}),
     )
 
 
 @pytest.fixture
 def battle(
-    request, arena,
+    request,
     warrior, other_warrior,
 ):
     return BattleFactory(
-        llm=arena.llm,
         warrior_1=warrior,
         warrior_2=other_warrior,
         **getattr(request, 'param', {}),
@@ -82,12 +65,11 @@ def battle(
 
 @pytest.fixture
 def resolved_battle(
-    request, arena,
+    request,
     warrior, other_warrior,
 ):
     now = timezone.now()
     battle = BattleFactory(
-        llm=arena.llm,
         warrior_1=warrior,
         warrior_2=other_warrior,
         game_1_2__resolved_at=now,
@@ -107,16 +89,19 @@ def gemini(monkeypatch):
     return reply
 
 
-def create_scores(battle, score_1_2_1, score_1_2_2, score_2_1_1, score_2_1_2):
+def create_scores(
+    battle, score_1_2_1, score_1_2_2, score_2_1_1, score_2_1_2,
+    algorithm=ScoreAlgorithm.LCS,
+):
     GameScoreFactory(
         game=game_of(battle, '1_2'),
-        algorithm=ScoreAlgorithm.LCS,
+        algorithm=algorithm,
         warrior_1_similarity=score_1_2_1,
         warrior_2_similarity=score_1_2_2,
     )
     GameScoreFactory(
         game=game_of(battle, '2_1'),
-        algorithm=ScoreAlgorithm.LCS,
+        algorithm=algorithm,
         # in the game order "battle-level warrior 2" is the first one
         warrior_1_similarity=score_2_1_2,
         warrior_2_similarity=score_2_1_1,

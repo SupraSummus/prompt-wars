@@ -1,15 +1,14 @@
 from functools import cache
 
-from django.contrib.sites.models import Site
-from django.contrib.sites.shortcuts import get_current_site
 from django.template.response import TemplateResponse
 
 from hill.display import home_card
 from warriors.lcs import lcs_pairs
-from warriors.models import Arena, WarriorArena
+from warriors.rankings import LEADING_RANKING
+from warriors.rating_models import WarriorRating
 from warriors.score import GameScore, ScoreAlgorithm, lcs_similarity
-from warriors.stats import ArenaStats
-from warriors.views import own_warrior_arenas
+from warriors.stats import RankingStats
+from warriors.views import own_warriors
 from warriors.warriors import MAX_WARRIOR_LENGTH
 
 
@@ -26,41 +25,21 @@ EXAMPLE_REPLY = 'As an AI assistant I write this sentence exactly.'
 
 
 def home(request):
-    arena = site_arena(request)
+    ranking = LEADING_RANKING
     return TemplateResponse(request, 'home.html', {
-        'arena': arena,
-        'stats': ArenaStats.objects.filter(arena=arena).first() if arena else None,
-        'top_warriors': top_warriors(arena),
-        'your_warriors': your_warriors(request, arena),
+        'ranking': ranking,
+        'stats': RankingStats.objects.filter(ranking=ranking).first(),
+        'top_warriors': list(WarriorRating.objects.ranked().filter(
+            ranking=ranking,
+        ).select_related('warrior')[:TOP_WARRIORS]),
+        'your_warriors': list(WarriorRating.objects.filter(
+            ranking=ranking,
+            warrior__in=own_warriors(request),
+        ).select_related('warrior').order_by('-warrior__created_at')[:YOUR_WARRIORS]),
         'hill_card': home_card(),
         'example': example_battle(),
         'max_warrior_length': MAX_WARRIOR_LENGTH,
     })
-
-
-def site_arena(request):
-    """The arena this site's own pages (/create/, /leaderboard/) play in, if one is set up."""
-    try:
-        site = get_current_site(request)
-    except Site.DoesNotExist:
-        return None
-    return Arena.objects.filter(site=site).first()
-
-
-def top_warriors(arena):
-    if arena is None:
-        return []
-    return list(WarriorArena.objects.ranked().filter(
-        arena=arena,
-    ).select_related('warrior')[:TOP_WARRIORS])
-
-
-def your_warriors(request, arena):
-    if arena is None:
-        return []
-    return list(own_warrior_arenas(request).filter(
-        arena=arena,
-    ).select_related('warrior').order_by('-warrior__created_at')[:YOUR_WARRIORS])
 
 
 @cache

@@ -7,7 +7,7 @@
       <p>
         <span class="pw-sr-only">Prompt order:</span>
         {% for entry in block.prompt_order %}
-          <a href="{% url 'warrior:get' entry.warrior.id %}" class="pw-name pw-side-{{ entry.side }}"><span class="pw-dot" aria-hidden="true"></span>{{ entry.warrior }}</a>
+          <a href="{% url 'warrior_detail' entry.warrior.id %}" class="pw-name pw-side-{{ entry.side }}"><span class="pw-dot" aria-hidden="true"></span>{{ entry.warrior }}</a>
           {% if not forloop.last %}<span class="pw-muted">then</span>{% endif %}
         {% endfor %}
       </p>

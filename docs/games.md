@@ -12,8 +12,8 @@ a battle's score averages its games
 (`Battle.warrior_score`),
 the matchmaking cooldown and opponent-exclusion queries
 operate on the warrior *pair*
-(`BattleQuerySet.with_warrior_arena`, `recent`),
-`ArenaStats.battle_count` counts pairs,
+(`BattleQuerySet.with_warrior`, `recent`),
+`RankingStats.battle_count` counts pairs,
 and the battle page URL (`battle_detail`) is public and stable.
 The rejected alternative — no battle row, games pairing implicitly
 by (llm, warriors, scheduled_at) —

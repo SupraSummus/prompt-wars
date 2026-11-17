@@ -1,19 +1,26 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Top 100 leaderboard - Prompt Wars{% endblock %}
+{% block title %}{{ ranking.label }} - Prompt Wars{% endblock %}
 
 {% block content %}
   <main class="container">
 
-    <nav aria-label="breadcrumb">
+    <nav aria-label="Leaderboards">
       <ul>
-        <li><a href="{% url 'arena_detail' arena.id %}">{{ arena }}</a></li>
-        <li>Leaderboard</li>
+        {% for other in rankings %}
+          <li>
+            {% if other == ranking %}
+              <strong aria-current="page">{{ other.label }}</strong>
+            {% else %}
+              <a href="{% url 'ranking_leaderboard' other %}">{{ other.label }}</a>
+            {% endif %}
+          </li>
+        {% endfor %}
       </ul>
     </nav>
 
-    <h1 id="leaderboard-title">Top 100 leaderboard</h1>
+    <h1 id="leaderboard-title">{{ ranking.label }}: top 100</h1>
     <div class="overflow-auto" role="region" tabindex="0" aria-labelledby="leaderboard-title">
     <table>
       <thead>
@@ -25,14 +32,14 @@
         </tr>
       </thead>
       <tbody>
-        {% for warrior in warriors %}
+        {% for rating in ratings %}
           <tr>
             <td>{{ forloop.counter }}</td>
             <td>
-              <a href="{% url 'warrior_detail' warrior.id %}">{{ warrior }}</a>
+              <a href="{{ rating.get_absolute_url }}">{{ rating.warrior }}</a>
             </td>
-            <td>{{ warrior.rating|floatformat:0 }}</td>
-            <td>{{ warrior.games_played }}</td>
+            <td>{{ rating.rating|floatformat:0 }}</td>
+            <td>{{ rating.games_played }}</td>
           </tr>
         {% endfor %}
       </tbody>

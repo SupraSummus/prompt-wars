@@ -1,21 +1,21 @@
 import pytest
-from django.core.exceptions import NON_FIELD_ERRORS
 from django.urls import reverse
 from django_goals.models import Goal
 
-from .models import WarriorArena, WarriorUserPermission
-from .warriors import MAX_WARRIOR_LENGTH
+from .models import WarriorUserPermission
+from .rankings import Ranking
+from .warriors import MAX_WARRIOR_LENGTH, Warrior
 
 
 @pytest.mark.django_db
-def test_create_warrior_get(client, default_arena):
+def test_create_warrior_get(client):
     response = client.get(reverse('warrior_create'))
     assert response.status_code == 200
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('has_authorized_warriors', [True, False])
-def test_create_warrior(client, mocked_recaptcha, has_authorized_warriors, default_arena):
+def test_create_warrior(client, mocked_recaptcha, has_authorized_warriors):
     if has_authorized_warriors:
         session = client.session
         session['authorized_warriors'] = []
@@ -34,59 +34,48 @@ def test_create_warrior(client, mocked_recaptcha, has_authorized_warriors, defau
     warrior_id = path.split('/')[-2]
 
     # right database state
-    warrior = WarriorArena.objects.get(id=warrior_id)
-    assert warrior.arena == default_arena
+    warrior = Warrior.objects.get(id=warrior_id)
     assert warrior.name == 'Test Warrior'
     assert warrior.author_name == 'Test Author'
     assert warrior.body == 'Test Body'
     assert len(warrior.body_sha_256) == 32
-    assert warrior.rating == 0.0
-    assert warrior.games_played == 0
     assert warrior.moderation_date is None
+    # entered for the ladder: its clock runs, and it stands on every leaderboard
+    assert warrior.next_battle_schedule is not None
+    assert {
+        (rating.ranking, rating.rating, rating.games_played)
+        for rating in warrior.ratings.all()
+    } == {(ranking.value, 0.0, 0) for ranking in Ranking}
 
     # moderation task scheduled
     goal = Goal.objects.get()
     assert goal.handler == 'warriors.tasks.do_moderation'
-    assert goal.instructions['args'] == [str(warrior.warrior.id)]
+    assert goal.instructions['args'] == [str(warrior.id)]
 
     # session is athorized for new warrior
     assert str(warrior.id) in response.client.session['authorized_warriors']
-    assert str(warrior.warrior.id) in response.client.session['authorized_warriors']
 
 
 @pytest.mark.django_db
-def test_create_warrior_arena(client, mocked_recaptcha, arena):
+def test_create_warrior_enters_a_hill_warrior_for_the_ladder(client, mocked_recaptcha, warrior):
+    """Submitting the text of a warrior that played only the hill starts its ladder clock."""
+    warrior.next_battle_schedule = None
+    warrior.save(update_fields=['next_battle_schedule'])
     response = client.post(
-        reverse('arena_warrior_create', args=(arena.id,)),
+        reverse('warrior_create'),
         data={
-            'body': 'Test Warrior',
+            'body': warrior.body,
             'g-recaptcha-response': 'PASSED',
         },
     )
     assert response.status_code == 302
-    warrior = WarriorArena.objects.get()
-    assert warrior.arena == arena
+    warrior.refresh_from_db()
+    assert warrior.next_battle_schedule is not None
+    assert warrior.ratings.count() == len(Ranking)
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('arena', [{
-    'enabled': False,
-}], indirect=True)
-def test_create_warrior_arena_disabled(client, mocked_recaptcha, arena):
-    response = client.post(
-        reverse('arena_warrior_create', args=(arena.id,)),
-        data={
-            'body': 'Test Warrior',
-            'g-recaptcha-response': 'PASSED',
-        },
-    )
-    assert response.status_code == 200
-    assert response.context['form'].has_error(NON_FIELD_ERRORS, code='arena_disabled')
-    assert not arena.warriors.exists()
-
-
-@pytest.mark.django_db
-def test_create_warrior_duplicate(client, warrior_arena, mocked_recaptcha, default_arena):
+def test_create_warrior_duplicate(client, warrior, mocked_recaptcha):
     """
     It is not possible to create a warrior that has the same body as another.
     But we have a "discover" mechanics.
@@ -94,18 +83,18 @@ def test_create_warrior_duplicate(client, warrior_arena, mocked_recaptcha, defau
     response = client.post(
         reverse('warrior_create'),
         data={
-            'body': warrior_arena.body,
+            'body': warrior.body,
             'g-recaptcha-response': 'PASSED',
         },
     )
     assert response.status_code == 302
     warrior_id = response.url.split('/')[-2]
-    assert warrior_id == str(warrior_arena.id)
-    assert str(warrior_arena.id) in response.client.session['authorized_warriors']
+    assert warrior_id == str(warrior.id)
+    assert str(warrior.id) in response.client.session['authorized_warriors']
 
 
 @pytest.mark.django_db
-def test_create_no_strip(client, mocked_recaptcha, default_arena):
+def test_create_no_strip(client, mocked_recaptcha):
     response = client.post(
         reverse('warrior_create'),
         data={
@@ -114,7 +103,7 @@ def test_create_no_strip(client, mocked_recaptcha, default_arena):
         },
     )
     assert response.status_code == 302
-    warrior = WarriorArena.objects.get()
+    warrior = Warrior.objects.get()
     assert warrior.body == ' Test \nWarrior \n\n'
 
 
@@ -126,7 +115,7 @@ def test_create_no_strip(client, mocked_recaptcha, default_arena):
         (MAX_WARRIOR_LENGTH + 1, False),
     ],
 )
-def test_create_crlf_length(client, mocked_recaptcha, default_arena, length, expect_success):
+def test_create_crlf_length(client, mocked_recaptcha, length, expect_success):
     response = client.post(
         reverse('warrior_create'),
         data={
@@ -136,7 +125,7 @@ def test_create_crlf_length(client, mocked_recaptcha, default_arena, length, exp
     )
     if expect_success:
         assert response.status_code == 302
-        warrior = WarriorArena.objects.get()
+        warrior = Warrior.objects.get()
         assert warrior.body == '\n' * length
     else:
         assert response.status_code == 200
@@ -144,7 +133,7 @@ def test_create_crlf_length(client, mocked_recaptcha, default_arena, length, exp
 
 
 @pytest.mark.django_db
-def test_create_length_reported(client, mocked_recaptcha, default_arena):
+def test_create_length_reported(client, mocked_recaptcha):
     response = client.post(
         reverse('warrior_create'),
         data={
@@ -157,7 +146,7 @@ def test_create_length_reported(client, mocked_recaptcha, default_arena):
 
 
 @pytest.mark.django_db
-def test_create_authenticated(user, user_client, mocked_recaptcha, default_arena):
+def test_create_authenticated(user, user_client, mocked_recaptcha):
     response = user_client.post(
         reverse('warrior_create'),
         data={
@@ -166,9 +155,9 @@ def test_create_authenticated(user, user_client, mocked_recaptcha, default_arena
         },
     )
     assert response.status_code == 302
-    warrior_arena = WarriorArena.objects.get()
-    assert warrior_arena.created_by == user
-    assert user in warrior_arena.warrior.users.all()
+    warrior = Warrior.objects.get()
+    assert warrior.created_by == user
+    assert user in warrior.users.all()
 
 
 @pytest.mark.django_db
@@ -178,13 +167,13 @@ def test_create_authenticated(user, user_client, mocked_recaptcha, default_arena
 }], indirect=True)
 def test_create_authenticated_duplicate(
     user, user_client,
-    warrior_arena, warrior,
-    mocked_recaptcha, default_arena,
+    warrior,
+    mocked_recaptcha,
 ):
     response = user_client.post(
         reverse('warrior_create'),
         data={
-            'body': warrior_arena.body,
+            'body': warrior.body,
             'name': 'surely a duplicate',
             'public_battle_results': True,
             'g-recaptcha-response': 'PASSED',
@@ -192,14 +181,14 @@ def test_create_authenticated_duplicate(
     )
     assert response.status_code == 302
     warrior_id = response.url.split('/')[-2]
-    assert warrior_id == str(warrior_arena.id)
+    assert warrior_id == str(warrior.id)
 
     # name is not changed
-    warrior_arena.refresh_from_db()
-    assert warrior_arena.name == 'strongest'
+    warrior.refresh_from_db()
+    assert warrior.name == 'strongest'
 
     # at least one user marked battles as public, so the warrior have public battles
-    assert warrior_arena.public_battle_results is True
+    assert warrior.public_battle_results is True
 
     # user has access to the warrior
     warrior_user_permission = WarriorUserPermission.objects.get(

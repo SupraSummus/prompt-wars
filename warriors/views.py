@@ -3,88 +3,55 @@ import uuid
 
 from django import forms
 from django.contrib.auth.decorators import login_required
-from django.contrib.sites.shortcuts import get_current_site
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
-from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.views.decorators.http import require_POST
-from django.views.generic.base import ContextMixin
+from django.views.generic.base import ContextMixin, RedirectView
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormView
 from django.views.generic.list import ListView
 
 from .battles import Battle
 from .forms import ChallengeWarriorForm
-from .models import (
-    Arena, WarriorArena, WarriorUserPermission, get_or_create_warrior_arenas,
-)
+from .models import LegacyWarriorArena, WarriorUserPermission
+from .rankings import LEADING_RANKING, Ranking
+from .rating_models import WarriorRating, ratings_by_warrior
 from .score import ScoreAlgorithm
-from .stats import ArenaStats
 from .warriors import Warrior
 
 
-def arena_list(request):
-    return TemplateResponse(request, 'warriors/arena_list.html', {
-        'arenas': Arena.objects.filter(listed=True),
-    })
-
-
-class ArenaViewMixin(ContextMixin):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.arena = None
-
-    def dispatch(self, request, *args, arena_id=None, **kwargs):
-        if arena_id is None:
-            site = get_current_site(request)
-            self.arena = get_object_or_404(Arena, site=site)
-        else:
-            self.arena = get_object_or_404(Arena, id=arena_id)
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['arena'] = self.arena
-        return context
-
-
-class ArenaDetailView(ArenaViewMixin, DetailView):
-    context_object_name = 'arena'
-    template_name = 'warriors/arena_detail.html'
-
-    def get_object(self):
-        return self.arena
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        context['stats'] = ArenaStats.objects.filter(arena=self.arena).order_by('-date').first()
-
-        return context
-
-
 class WarriorViewMixin(ContextMixin):
+    warriors = Warrior.objects.all()
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.warrior = None
 
     def dispatch(self, request, *args, pk=None, **kwargs):
-        self.warrior = get_object_or_404(WarriorArena, id=pk)
+        self.warrior = get_object_or_404(self.warriors, id=pk)
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['arena'] = self.warrior.arena
         context['warrior'] = self.warrior
         return context
 
 
+def requested_ranking(request):
+    """The ranking a `?ranking=` parameter names, `LEADING_RANKING` if it names none."""
+    try:
+        return Ranking(request.GET.get('ranking'))
+    except ValueError:
+        return LEADING_RANKING
+
+
 class WarriorDetailView(WarriorViewMixin, DetailView):
     context_object_name = 'warrior'
+    template_name = 'warriors/warrior_detail.html'
 
     def get_object(self):
         return self.warrior
@@ -100,50 +67,56 @@ class WarriorDetailView(WarriorViewMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        warrior = self.object
 
-        warrior_arena = self.object
-        battles_qs = Battle.objects.with_warrior_arena(
-            warrior_arena,
-        )[:100].prefetch_related(
+        ranking = requested_ranking(self.request)
+        context['ranking'] = ranking
+        # none for a warrior off the ladder, which has no ladder battles to list either
+        ratings_by_ranking = {r.ranking: r for r in warrior.ratings.all()}
+        context['rating'] = ratings_by_ranking.get(ranking)
+        context['ratings'] = [
+            {'ranking': other, 'rating': ratings_by_ranking.get(other), 'url': warrior.get_ranking_url(other)}
+            for other in Ranking
+        ]
+
+        battles = list(Battle.objects.with_warrior(warrior.id)[:100].prefetch_related(
             # a battle score is the mean over its games,
             # and a game's score rows hang off the game they name
             'games__scores',
-        )
-        battles = list(battles_qs)
+        ))
         prefetch_warriors(battles)
-        prefetch_warrior_arenas(warrior_arena.arena, battles)
+        prefetch_warrior_ratings(ranking, battles)
         context['battles'] = [
-            warrior_battle_row(battle, warrior_arena)
+            warrior_battle_row(battle, context['rating'])
             for battle in battles
         ]
-        context['polling'] = warrior_page_polling(warrior_arena, context['battles'])
+        context['polling'] = warrior_page_polling(warrior, context['battles'])
         context['poll_seconds'] = WARRIOR_POLL_SECONDS
 
-        show_secrets = is_request_authorized(warrior_arena.warrior, self.request)
+        show_secrets = is_request_authorized(warrior, self.request)
         context['show_secrets'] = show_secrets
         context['warrior_user_permission'] = None
         if self.request.user.is_authenticated:
             context['warrior_user_permission'] = WarriorUserPermission.objects.filter(
-                warrior=warrior_arena.warrior,
+                warrior=warrior,
                 user=self.request.user,
             ).first()
 
         # save the authorization for user if it's not already saved
         user = self.request.user
-        if show_secrets and not warrior_arena.warrior.is_user_authorized(user) and user.is_authenticated:
+        if show_secrets and not warrior.is_user_authorized(user) and user.is_authenticated:
             WarriorUserPermission.objects.get_or_create(
-                warrior=warrior_arena.warrior,
+                warrior=warrior,
                 user=user,
             )
 
-        context['other_warrior_arenas'] = list(WarriorArena.objects.filter(
-            warrior=warrior_arena.warrior,
-            arena__listed=True,
-        ).exclude(
-            id=warrior_arena.id,
-        ).select_related('arena'))
-
         return context
+
+
+def legacy_warrior_arena(request, pk):
+    """A warrior-arena URL, sent on to its warrior's page ("Arena-era URLs" in docs/data-model.md)."""
+    legacy = get_object_or_404(LegacyWarriorArena, id=pk)
+    return redirect('warrior_detail', legacy.warrior_id, permanent=True)
 
 
 # A new warrior's page refreshes itself while its author waits for the verdict and the first result;
@@ -152,7 +125,7 @@ WARRIOR_POLL_WINDOW = datetime.timedelta(hours=1)
 WARRIOR_POLL_SECONDS = 5
 
 
-def warrior_page_polling(warrior_arena, battle_rows):
+def warrior_page_polling(warrior, battle_rows):
     """
     What part of a warrior's page polls for news, if any:
     the whole page while moderation decides what it shows,
@@ -160,11 +133,11 @@ def warrior_page_polling(warrior_arena, battle_rows):
     Only a fresh warrior's, as the first minutes are when a result is awaited
     (`get_next_battle_delay` front-loads its battles).
     """
-    if timezone.now() - warrior_arena.created_at > WARRIOR_POLL_WINDOW:
+    if timezone.now() - warrior.created_at > WARRIOR_POLL_WINDOW:
         return None
-    if warrior_arena.moderation_passed is None:
+    if warrior.moderation_passed is None:
         return 'page'
-    if warrior_arena.moderation_passed and all(row['performance'] == 'pending' for row in battle_rows):
+    if warrior.moderation_passed and all(row['performance'] == 'pending' for row in battle_rows):
         return 'battles'
     return None
 
@@ -180,15 +153,16 @@ def prefetch_warriors(battles):
         battle.warrior_2 = warriors[battle.warrior_2_id]
 
 
-def prefetch_warrior_arenas(arena, battles):
+def prefetch_warrior_ratings(ranking, battles):
+    """Both sides' ratings onto each battle: ladder battles are fought on the ladder (`enter_ladder`)."""
     warrior_ids = {battle.warrior_1_id for battle in battles} | {battle.warrior_2_id for battle in battles}
-    warrior_arenas = get_or_create_warrior_arenas(arena, warrior_ids)
+    ratings = ratings_by_warrior(ranking, warrior_ids)
     for battle in battles:
-        battle.warrior_arena_1 = warrior_arenas[battle.warrior_1_id]
-        battle.warrior_arena_2 = warrior_arenas[battle.warrior_2_id]
+        battle.warrior_rating_1 = ratings[battle.warrior_1_id]
+        battle.warrior_rating_2 = ratings[battle.warrior_2_id]
 
 
-def warrior_battle_row(battle, warrior_arena):
+def warrior_battle_row(battle, warrior_rating):
     """
     One battle as the warrior's own list shows it: a score column per game.
 
@@ -197,14 +171,14 @@ def warrior_battle_row(battle, warrior_arena):
     and every number is that warrior's own
     ("The battle lists keep a score column per game"
     in docs/battle-display.md).
-    The arena names the algorithm, being the one reader that has one.
+    The rating's ranking names the algorithm the numbers are read through.
     """
-    warrior_id = warrior_arena.warrior_id
-    algorithm = warrior_arena.arena.score_algorithm
+    warrior_id = warrior_rating.warrior_id
+    algorithm = Ranking(warrior_rating.ranking).score_algorithm
     if battle.warrior_1_id == warrior_id:
-        opponent, opponent_arena = battle.warrior_2, battle.warrior_arena_2
+        opponent, opponent_rating = battle.warrior_2, battle.warrior_rating_2
     else:
-        opponent, opponent_arena = battle.warrior_1, battle.warrior_arena_1
+        opponent, opponent_rating = battle.warrior_1, battle.warrior_rating_1
     games = sorted(
         battle.games_list,
         key=lambda game: game.warrior_1_id != warrior_id,
@@ -213,11 +187,11 @@ def warrior_battle_row(battle, warrior_arena):
         performance = 'pending'
     else:
         performance = format_performance(battle.warrior_performance(
-            warrior_arena, opponent_arena, algorithm,
+            warrior_rating, opponent_rating,
         ))
     return {
         'battle': battle,
-        'url': battle_url(battle, warrior_arena),
+        'url': battle_url(battle, warrior_rating.warrior),
         'opponent': opponent,
         'games': [
             {
@@ -251,7 +225,7 @@ class PublicBattleResutsForm(forms.Form):
 def warrior_set_public_battle_results(request, pk):
     warrior_user_perm = get_object_or_404(
         WarriorUserPermission,
-        warrior__warrior_arenas__id=pk,
+        warrior_id=pk,
         user=request.user,
     )
     form = PublicBattleResutsForm(request.POST)
@@ -264,6 +238,8 @@ def warrior_set_public_battle_results(request, pk):
 
 
 class ChallengeWarriorView(WarriorViewMixin, FormView):
+    # a challenge is a ladder battle, so both sides play the ladder
+    warriors = Warrior.objects.filter(next_battle_schedule__isnull=False)
     form_class = ChallengeWarriorForm
     template_name = 'warriors/challenge_warrior.html'
 
@@ -293,16 +269,15 @@ def is_request_authorized(warrior, request):
     )
 
 
-def own_warrior_arenas(request):
+def own_warriors(request):
     """
-    The visitor's warriors on every arena: an account's,
+    The visitor's warriors: an account's,
     or what a logged-out browser created or discovered,
-    whose session holds both warrior and warrior-arena ids (`WarriorCreateForm.save`).
+    whose session holds their ids (`WarriorCreateForm.save`).
     """
     if request.user.is_authenticated:
-        return WarriorArena.objects.filter(warrior__users=request.user)
-    ids = request.session.get('authorized_warriors', [])
-    return WarriorArena.objects.filter(Q(id__in=ids) | Q(warrior__id__in=ids))
+        return Warrior.objects.filter(users=request.user)
+    return Warrior.objects.filter(id__in=request.session.get('authorized_warriors', []))
 
 
 def claim_session_warriors(sender, request, user, **kwargs):
@@ -331,7 +306,6 @@ class BattleDetailView(DetailView):
         # and authoring one side here (a hill boss that also plays the ladder)
         # must not open the other side's sealed result.
         return super().get_queryset().rated().select_related(
-            'arena',
             'warrior_1',
             'warrior_2',
         ).prefetch_related(
@@ -372,32 +346,29 @@ class BattleDetailView(DetailView):
             for game in battle.games_list
         ]
 
-        warrior_arena = self.get_nav_warrior_arena()
-        context['nav_warrior_arena'] = warrior_arena
-        context.update(battle_nav_context(self.object, warrior_arena, self.request.user))
+        warrior = self.get_nav_warrior()
+        context['nav_warrior'] = warrior
+        context.update(battle_nav_context(self.object, warrior, self.request.user))
 
         return context
 
-    def get_nav_warrior_arena(self):
+    def get_nav_warrior(self):
         """
-        The warrior named by the `warrior_arena` query parameter, if it fought here.
+        The warrior named by the `warrior` query parameter, if it fought here.
 
         The warrior page puts the parameter on every link into a battle,
         so that stepping onward from there stays in the list it showed.
         A value naming no warrior of this battle names no warrior at all.
         """
         try:
-            warrior_arena_id = uuid.UUID(self.request.GET.get('warrior_arena', ''))
+            warrior_id = uuid.UUID(self.request.GET.get('warrior', ''))
         except ValueError:
             return None
-        warrior_arena = WarriorArena.objects.filter(
-            id=warrior_arena_id,
-        ).select_related('arena').first()
-        if warrior_arena is None:
-            return None
-        if warrior_arena.warrior_id not in (self.object.warrior_1_id, self.object.warrior_2_id):
-            return None
-        return warrior_arena
+        if warrior_id == self.object.warrior_1_id:
+            return self.object.warrior_1
+        if warrior_id == self.object.warrior_2_id:
+            return self.object.warrior_2
+        return None
 
 
 def battle_sides(battle):
@@ -520,64 +491,89 @@ def game_scoring(game, battle, score_object, visible_warrior_ids):
     }
 
 
-def battle_nav_context(battle, warrior_arena, user):
+def battle_nav_context(battle, warrior, user):
     """
     Links for the two walks through neighbouring battles in time.
 
-    The arena walk is always offered, being all a battle URL supplies on its own;
+    The ladder walk is always offered, being all a battle URL supplies on its own;
     the warrior walk joins it once a warrior is named,
     stepping through the list `WarriorDetailView` shows.
     Both carry the warrior onward,
-    so an arena step landing on another of its battles keeps the warrior walk.
+    so a ladder step landing on another of its battles keeps the warrior walk.
     """
-    arena_previous, arena_next = battle_neighbour_urls(
-        Battle.objects.for_user(user).rated().filter(arena__llm=battle.llm),
-        battle, warrior_arena,
+    ladder_previous, ladder_next = battle_neighbour_urls(
+        Battle.objects.for_user(user).rated(),
+        battle, warrior,
     )
-    if warrior_arena is None:
+    if warrior is None:
         warrior_previous, warrior_next = None, None
     else:
         warrior_previous, warrior_next = battle_neighbour_urls(
-            Battle.objects.with_warrior_arena(warrior_arena),
-            battle, warrior_arena,
+            Battle.objects.with_warrior(warrior.id),
+            battle, warrior,
         )
     return {
-        'arena_previous_battle_url': arena_previous,
-        'arena_next_battle_url': arena_next,
+        'ladder_previous_battle_url': ladder_previous,
+        'ladder_next_battle_url': ladder_next,
         'warrior_previous_battle_url': warrior_previous,
         'warrior_next_battle_url': warrior_next,
     }
 
 
-def battle_neighbour_urls(battles, battle, warrior_arena):
+def battle_neighbour_urls(battles, battle, warrior):
     """Links to the battles either side of this one within `battles`, older first."""
     battles = battles.only('id', 'scheduled_at')
     older = battles.filter(scheduled_at__lt=battle.scheduled_at).order_by('-scheduled_at').first()
     newer = battles.filter(scheduled_at__gt=battle.scheduled_at).order_by('scheduled_at').first()
-    return battle_url(older, warrior_arena), battle_url(newer, warrior_arena)
+    return battle_url(older, warrior), battle_url(newer, warrior)
 
 
-def battle_url(battle, warrior_arena):
+def battle_url(battle, warrior):
     """A battle link that keeps the warrior whose list it was reached from, if any."""
     if battle is None:
         return None
     url = reverse('battle_detail', args=(battle.id,))
-    if warrior_arena is not None:
-        url += '?' + urlencode({'warrior_arena': warrior_arena.id})
+    if warrior is not None:
+        url += '?' + urlencode({'warrior': warrior.id})
     return url
 
 
-class WarriorLeaderboard(ArenaViewMixin, ListView):
-    model = WarriorArena
+class ArenaPageRedirect(RedirectView):
+    """
+    An arena page's URL, sent on to the page that serves every ranking
+    ("Arena-era URLs" in docs/data-model.md).
+
+    The arena id it carries is dropped: one page serves every ranking.
+    """
+    permanent = True
+
+    def get_redirect_url(self, *args, **kwargs):
+        return super().get_redirect_url()
+
+
+def leaderboard_redirect(request):
+    return redirect('ranking_leaderboard', LEADING_RANKING)
+
+
+class WarriorLeaderboard(ListView):
+    model = WarriorRating
     template_name = 'warriors/warrior_leaderboard.html'
-    context_object_name = 'warriors'
+    context_object_name = 'ratings'
+
+    def dispatch(self, request, *args, ranking, **kwargs):
+        try:
+            self.ranking = Ranking(ranking)
+        except ValueError:
+            raise Http404('No such ranking') from None
+        return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        return WarriorArena.objects.ranked().filter(
-            arena=self.arena,
+        return WarriorRating.objects.ranked().filter(
+            ranking=self.ranking,
         ).select_related(
             'warrior',
         )[:100].only(
+            'ranking',
             'rating',
             'rating_playstyle',
             'games_played',
@@ -587,34 +583,30 @@ class WarriorLeaderboard(ArenaViewMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        warriors = self.get_queryset()
-        playstyle_data = [
+        context['ranking'] = self.ranking
+        context['rankings'] = list(Ranking)
+        context['playstyle_data'] = [
             {
-                'x': warrior.rating_playstyle[0],
-                'y': warrior.rating_playstyle[1],
-                'name': str(warrior)
+                'x': rating.rating_playstyle[0],
+                'y': rating.rating_playstyle[1],
+                'name': str(rating),
             }
-            for warrior in warriors
-            if warrior.rating_playstyle
+            for rating in context['ratings']
+            if rating.rating_playstyle
         ]
-        context['playstyle_data'] = playstyle_data
         return context
 
 
-class UpcomingBattlesView(ArenaViewMixin, ListView):
-    model = WarriorArena
+class UpcomingBattlesView(ListView):
+    model = Warrior
     template_name = 'warriors/upcoming_battles.html'
     context_object_name = 'warriors'
 
     def get_queryset(self):
-        return own_warrior_arenas(self.request).battleworthy().filter(
-            arena=self.arena,
-        ).select_related(
-            'warrior',
-        ).order_by('next_battle_schedule')[:100]
+        return own_warriors(self.request).on_ladder().order_by('next_battle_schedule')[:100]
 
 
-class RecentBattlesView(ArenaViewMixin, ListView):
+class RecentBattlesView(ListView):
     model = Battle
     template_name = 'warriors/recent_battles.html'
     context_object_name = 'battles'
@@ -630,10 +622,7 @@ class RecentBattlesView(ArenaViewMixin, ListView):
         authorized_warriors = self.request.session.get('authorized_warriors', [])
         if authorized_warriors:
             q |= Q(warrior_1__id__in=authorized_warriors) | Q(warrior_2__id__in=authorized_warriors)
-        qs = Battle.objects.rated().filter(
-            llm=self.arena.llm,
-        ).filter(q).distinct().order_by('-scheduled_at')
+        qs = Battle.objects.rated().filter(q).distinct().order_by('-scheduled_at')
         battles = list(qs[:100])
         prefetch_warriors(battles)
-        prefetch_warrior_arenas(self.arena, battles)
         return battles
