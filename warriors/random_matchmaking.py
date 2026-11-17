@@ -5,7 +5,9 @@ from django.db import transaction
 from django.utils import timezone
 
 from .battles import Battle
-from .models import WarriorArena
+from .rankings import LEADING_RANKING
+from .rating_models import WarriorRating
+from .warriors import Warrior
 
 
 MATCHMAKING_MAX_RATING_DIFF = 100  # rating diff of 100 means expected score is 64%
@@ -20,7 +22,7 @@ def schedule_battles(n=10, now=None):
 def schedule_battle(now=None):
     if now is None:
         now = timezone.now()
-    warrior = WarriorArena.objects.battleworthy().filter(
+    warrior = Warrior.objects.on_ladder().filter(
         next_battle_schedule__lte=now,
     ).order_by('next_battle_schedule').select_for_update(
         no_key=True,
@@ -28,96 +30,73 @@ def schedule_battle(now=None):
     ).first()
     if warrior is None:
         return
-    if (
-        not warrior.arena.enabled or
-        (opponent := find_opponent(warrior)) is None
-    ):
-        warrior.next_battle_schedule = now + get_next_battle_delay(warrior) + datetime.timedelta(minutes=1)
+    opponent = find_opponent(warrior)
+    if opponent is None:
+        warrior.next_battle_schedule = (
+            now + get_next_battle_delay(battle_count(warrior)) + datetime.timedelta(minutes=1)
+        )
         warrior.save(update_fields=['next_battle_schedule'])
         return
     create_battle(warrior, opponent, now=now)
 
 
 def create_battle(warrior, opponent, now=None):
+    """
+    A ladder battle, and the next one for `warrior` scheduled by its battle count.
+
+    The opponent's clock is left alone:
+    being picked does not spend its own turn.
+    """
     if now is None:
         now = timezone.now()
 
     battle = Battle.create_from_warriors(warrior, opponent)
 
-    # Update warrior1 statistics
-    warrior.games_played = Battle.objects.with_warrior_arena(warrior).count()
-    warrior.next_battle_schedule = now + get_next_battle_delay(warrior)
-    warrior.save(update_fields=[
-        'games_played',
-        'next_battle_schedule',
-    ])
-
-    # Update warrior2 statistics
-    opponent.games_played = Battle.objects.with_warrior_arena(opponent).count()
-    opponent.save(update_fields=['games_played'])
+    warrior.next_battle_schedule = now + get_next_battle_delay(battle_count(warrior))
+    warrior.save(update_fields=['next_battle_schedule'])
 
     # Generate voyage 3 embeddings in case not already generated.
     # Normally we generate them when warrior is created.
     # This is for old warriors created before we introduced embeddings.
     # Possibly this can be removed in the future.
-    warrior.warrior.schedule_voyage_3_embedding()
-    opponent.warrior.schedule_voyage_3_embedding()
+    warrior.schedule_voyage_3_embedding()
+    opponent.schedule_voyage_3_embedding()
 
     return battle
 
 
-def find_opponent(warrior_arena, max_rating_diff=MATCHMAKING_MAX_RATING_DIFF):
+def battle_count(warrior):
+    return Battle.objects.with_warrior(warrior.id).count()
+
+
+def find_opponent(warrior, max_rating_diff=MATCHMAKING_MAX_RATING_DIFF):
+    """A random suitable opponent for the warrior (`find_opponents`), or None."""
+    return find_opponents(warrior, max_rating_diff).order_by('?').first()
+
+
+def find_opponents(warrior, max_rating_diff=MATCHMAKING_MAX_RATING_DIFF):
     """
-    Find a suitable opponent for the given warrior arena.
-
-    Args:
-        warrior_arena (WarriorArena): The warrior arena to find an opponent for
-        max_rating_diff (int): Maximum rating difference between opponents
-
-    Returns:
-        WarriorArena: A suitable opponent, or None if none found
+    The warriors near this one's rating in `LEADING_RANKING`
+    that it has not fought within the cooldown.
     """
-    return find_opponents(
-        warrior_arena, max_rating_diff
-    ).order_by('?').select_for_update(
-        no_key=True,
-        skip_locked=True,
-    ).first()
-
-
-def find_opponents(warrior_arena, max_rating_diff=MATCHMAKING_MAX_RATING_DIFF):
-    """
-    Find suitable opponents for the given warrior arena.
-
-    Args:
-        warrior_arena (WarriorArena): The warrior arena to find opponents for
-        max_rating_diff (int): Maximum rating difference between opponents
-
-    Returns:
-        QuerySet: A queryset of suitable opponents
-    """
-    battle_worthy_qs = WarriorArena.objects.battleworthy()
-    top_rating = warrior_arena.rating + max_rating_diff
-    bottom_rating = warrior_arena.rating - max_rating_diff
-
-    historic_battles = Battle.objects.with_warrior_arena(warrior_arena).recent()
-
-    return battle_worthy_qs.filter(
-        arena_id=warrior_arena.arena_id,
-        rating__lt=top_rating,
-        rating__gt=bottom_rating,
+    rating = WarriorRating.objects.get(warrior=warrior, ranking=LEADING_RANKING)
+    historic_battles = Battle.objects.with_warrior(warrior.id).recent()
+    return Warrior.objects.on_ladder().filter(
+        ratings__ranking=LEADING_RANKING,
+        ratings__rating__lt=rating.rating + max_rating_diff,
+        ratings__rating__gt=rating.rating - max_rating_diff,
     ).exclude(
-        id=warrior_arena.id,
+        id=warrior.id,
     ).exclude(
-        warrior_id__in=historic_battles.values('warrior_1'),
+        id__in=historic_battles.values('warrior_1'),
     ).exclude(
-        warrior_id__in=historic_battles.values('warrior_2'),
+        id__in=historic_battles.values('warrior_2'),
     )
 
 
-def get_next_battle_delay(warrior_arena):
+def get_next_battle_delay(battle_count):
     """
-    Get delay to the game N+1, where N is the number of games with this warrior.
+    Get delay to the battle N+1, where N is the number of ladder battles the warrior fought.
     Games are exponentially less and less frequent.
 
     The front-loaded start is deliberate:
@@ -128,7 +107,7 @@ def get_next_battle_delay(warrior_arena):
     """
     K = 2
     time_unit = datetime.timedelta(minutes=1)
-    exponent = warrior_arena.games_played - random.random()
+    exponent = battle_count - random.random()
     if exponent > 25:
         # avoid overflow
         exponent = 25

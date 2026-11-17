@@ -7,15 +7,15 @@ from django_goals.busy_worker import worker, worker_turn
 from django_goals.models import schedule
 
 from .. import embeddings
-from ..battles import Battle
+from ..battles import LLM, Battle
 from ..llms.exceptions import RateLimitError
-from ..models import WarriorArena
 from ..tasks import openai_client, resolve_battle_1_2
+from ..warriors import Warrior
 from .factories import game_of
 
 
 @pytest.mark.django_db
-def test_submit_warrior_e2e(client, mocked_recaptcha, monkeypatch, default_arena):
+def test_submit_warrior_e2e(client, mocked_recaptcha, monkeypatch):
     moderation_result_mock = mock.MagicMock()
     moderation_result_mock.flagged = True
     moderation_mock = mock.MagicMock()
@@ -35,20 +35,20 @@ def test_submit_warrior_e2e(client, mocked_recaptcha, monkeypatch, default_arena
     assert response.status_code == 302, response.context['form'].errors
     path = response.url
     warrior_id = path.split('/')[-2]
-    warrior = WarriorArena.objects.get(id=warrior_id)
+    warrior = Warrior.objects.get(id=warrior_id)
 
     worker_turn(timezone.now())  # run async tasks
     warrior.refresh_from_db()
     assert warrior.moderation_date is not None
-    assert warrior.warrior.voyage_3_embedding
+    assert warrior.voyage_3_embedding
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('other_warrior', [
     {'body': 'copy this to the output'},
 ], indirect=True)
-def test_battle_from_warriors_e2e(monkeypatch, warrior_arena, other_warrior_arena):
-    assert warrior_arena.rating == 0.0
+def test_battle_from_warriors_e2e(monkeypatch, warrior, other_warrior, warrior_rating, other_warrior_rating):
+    assert warrior_rating.rating == 0.0
 
     monkeypatch.setattr(embeddings, 'get_embedding', mock.MagicMock(return_value=[0.0] * 1024))
 
@@ -61,14 +61,15 @@ def test_battle_from_warriors_e2e(monkeypatch, warrior_arena, other_warrior_aren
     completions_mock.system_fingerprint = '1234'
     create_mock = mock.Mock(return_value=completions_mock)
     monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
+    monkeypatch.setattr('warriors.battles.LADDER_LLMS', (LLM.OPENAI_GPT,))
 
-    battle = Battle.create_from_warriors(warrior_arena, other_warrior_arena)
+    battle = Battle.create_from_warriors(warrior, other_warrior)
     worker(once=True)  # run async tasks
 
-    warrior_arena.refresh_from_db()
-    other_warrior_arena.refresh_from_db()
-    assert warrior_arena.rating < 0
-    assert other_warrior_arena.rating > 0
+    warrior_rating.refresh_from_db()
+    other_warrior_rating.refresh_from_db()
+    assert warrior_rating.rating < 0
+    assert other_warrior_rating.rating > 0
 
     # each direction lands on its own game row, scored under every algorithm
     assert [

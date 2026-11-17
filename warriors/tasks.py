@@ -7,13 +7,14 @@ from django.db import transaction
 from django.utils import timezone
 from django_goals.models import AllDone, RetryMeLater, schedule
 
-from .battles import LLM, MATCHMAKING_COOLDOWN, Battle
+from .battles import LLM, Battle
 from .llms import anthropic
 from .llms.exceptions import TransientLLMError
 from .llms.google import resolve_battle_google
 from .llms.openai import openai_client, resolve_battle_openai
-from .models import Arena, WarriorArena, get_or_create_warrior_arenas
 from .random_matchmaking import create_battle
+from .rankings import LEADING_RANKING
+from .rating_models import WarriorRating
 from .score import ScoreAlgorithm, get_or_create_game_score
 from .text_unit import TextUnit
 from .warriors import MAX_WARRIOR_LENGTH, Warrior, ensure_name_generated
@@ -51,53 +52,49 @@ def do_moderation(goal, warrior_id):
     return AllDone()
 
 
-def schedule_battles_top(now=None):
-    for arena in Arena.objects.filter(
-        enabled=True,
-    ):
-        schedule_battle_top_arena(arena.id)
-
-
-def schedule_battle_top_arena(arena_id):
+def schedule_battle_top(now=None):
+    """
+    A battle near the top of `LEADING_RANKING`:
+    walking down from the best, a warrior picked now and then
+    meets the lowest-rated of those above it it has not fought within the cooldown.
+    """
     rating = 4000  # arbitrary value, higer than any real rating
-    warriors_above = set()
+    ratings_above = set()
     while True:
         with transaction.atomic():
-            warrior = WarriorArena.objects.battleworthy().filter(
-                arena_id=arena_id,
+            warrior_rating = WarriorRating.objects.battleworthy().filter(
+                ranking=LEADING_RANKING,
                 rating__lt=rating,
             ).order_by('-rating').select_for_update(
                 no_key=True,
                 skip_locked=True,
             ).first()
-            if warrior is None:
+            if warrior_rating is None:
                 # we are at the bottom of the ranking
                 return None
-            rating = warrior.rating
-            if warrior.id in warriors_above:
+            rating = warrior_rating.rating
+            if warrior_rating.id in ratings_above:
                 # may happen becuase of concurrent updates, just skip
                 continue
-            warriors_above.add(warrior.id)
+            ratings_above.add(warrior_rating.id)
             if random.random() < 0.9:
                 # warrior gets picked only ocasionally
                 continue
 
             # try find and opponent among the warriors above
-            historic_battles = Battle.objects.with_warrior_arena(warrior).filter(
-                scheduled_at__gt=timezone.now() - MATCHMAKING_COOLDOWN,
-            )
-            opponent = WarriorArena.objects.filter(
-                id__in=warriors_above,
+            historic_battles = Battle.objects.with_warrior(warrior_rating.warrior_id).recent()
+            opponent = WarriorRating.objects.filter(
+                id__in=ratings_above,
             ).exclude(
-                id=warrior.id,
+                id=warrior_rating.id,
             ).exclude(
                 warrior_id__in=historic_battles.values('warrior_1'),
             ).exclude(
                 warrior_id__in=historic_battles.values('warrior_2'),
-            ).order_by('rating').first()
+            ).order_by('rating').select_related('warrior').first()
 
             if opponent is not None:
-                return create_battle(warrior, opponent)
+                return create_battle(warrior_rating.warrior, opponent.warrior)
 
 
 def resolve_battle_1_2(goal, battle_id):
@@ -208,14 +205,10 @@ def _run_llm(game, now):
 
 
 def transfer_rating(goal, battle_id):
-    # Fanning out to every same-llm arena lazily enrolls both warriors there,
-    # battle-eligible immediately — the implicit cross-arena spread described in
-    # "The one bag of warriors already exists — implicitly" in docs/data-model.md.
+    # Every ranking reads every battle, so each refits both warriors.
     battle = Battle.objects.get(id=battle_id)
-    for arena in Arena.objects.filter(llm=battle.llm):
-        for warrior_arena in get_or_create_warrior_arenas(
-            arena,
-            [battle.warrior_1_id, battle.warrior_2_id],
-        ).values():
-            warrior_arena.update_rating()
+    for warrior_rating in WarriorRating.objects.filter(
+        warrior_id__in=[battle.warrior_1_id, battle.warrior_2_id],
+    ).order_by('ranking', 'id'):
+        warrior_rating.update_rating()
     return AllDone()

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils import timezone
 
 from .battles import Battle
-from .models import Arena, WarriorArena
+from .rating_models import WarriorRating
 from .text_unit import TextUnit
 from .warriors import Warrior
 
@@ -16,15 +16,6 @@ class ReadOnlyModelAdminMixin:
 
     def has_delete_permission(self, request, obj=None):
         return False
-
-
-@admin.register(Arena)
-class ArenaAdmin(admin.ModelAdmin):
-    list_display = (
-        'name', 'listed',
-        'site',
-    )
-    search_fields = ('id', 'name')
 
 
 @admin.register(Warrior)
@@ -52,42 +43,20 @@ class WarriorAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
         )
 
 
-@admin.register(WarriorArena)
-class WarriorArenaAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
+@admin.register(WarriorRating)
+class WarriorRatingAdmin(ReadOnlyModelAdminMixin, admin.ModelAdmin):
     list_display = (
-        'id',
+        'warrior',
+        'ranking',
         'rating',
         'games_played',
     )
     list_filter = (
+        'ranking',
         'warrior__moderation_passed',
     )
-    search_fields = ('id', 'warrior__name', 'warrior__author_name')
-    date_hierarchy = 'warrior__created_at'
-
-    fieldsets = (
-        (None, {
-            'fields': (
-                'name',
-                'author_name',
-                'body',
-                'created_at',
-            ),
-        }),
-        ('Stats', {
-            'fields': (
-                'rating',
-                'games_played',
-            ),
-        }),
-        ('Moderation', {
-            'fields': (
-                'moderation_passed',
-                'moderation_date',
-                'moderation_model',
-            ),
-        }),
-    )
+    search_fields = ('id', 'warrior__id', 'warrior__name', 'warrior__author_name')
+    date_hierarchy = 'rating_updated_at'
 
 
 @admin.register(Battle)

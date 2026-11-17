@@ -49,11 +49,9 @@ so the storage is symmetric and the display follows it.
 An unqualified default would have no owner.
 Which algorithm is authoritative is a property of a *ranking*,
 not of a battle:
-today `Arena.score_algorithm`,
-and under the target shape in `docs/data-model.md`
-part of the ranking registry key,
-so several rankings can read one battle through different algorithms.
-The battle page belongs to no arena and no ranking —
+`Ranking.score_algorithm` (`warriors/rankings.py`),
+so several rankings read one battle through different algorithms.
+The battle page belongs to no ranking —
 it is the record of what happened —
 which leaves it no basis for calling one column the score
 and the other experimental.
@@ -139,7 +137,7 @@ a warrior's score under an algorithm:
 the mean over the battle's games,
 undefined until every game is resolved.
 `GameScore.score_for` and `Battle.warrior_score` are those two names,
-and `WarriorArena.update_rating` calls the second
+and `WarriorRating.update_rating` calls the second
 rather than keeping its own copy.
 The rejected alternative — a display-only computation —
 leaves two spellings of one number free to drift,
@@ -153,7 +151,7 @@ and rating are all one call.
 **The battle lists keep a score column per game.**
 A battle page has room for every game and every algorithm;
 a list row has room for neither,
-and the warrior-arena list is arena-scoped,
+and the warrior page's list reads through one ranking at a time (`?ranking=`),
 so it has an owner to ask for an algorithm —
 the one place where naming one is legitimate.
 Its per-order score columns stay:

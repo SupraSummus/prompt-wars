@@ -2,12 +2,12 @@ from django import forms
 from django.utils.translation import gettext as _
 
 from .battles import Battle
-from .models import WarriorArena
+from .warriors import Warrior
 
 
 class ChallengeWarriorForm(forms.Form):
     warrior = forms.ModelChoiceField(
-        queryset=WarriorArena.objects.all(),
+        queryset=Warrior.objects.all(),
         widget=forms.RadioSelect,
         label=_('Choose your prompt'),
     )
@@ -17,9 +17,8 @@ class ChallengeWarriorForm(forms.Form):
         self.opponent = opponent
         self.user = user
 
-        self.fields['warrior'].queryset = WarriorArena.objects.filter(
-            arena_id=self.opponent.arena_id,
-            warrior__users=self.user,
+        self.fields['warrior'].queryset = Warrior.objects.on_ladder().filter(
+            users=self.user,
         ).exclude(
             id=self.opponent.id,
         )
@@ -29,9 +28,9 @@ class ChallengeWarriorForm(forms.Form):
             return
         cleaned_data = super().clean()
         warrior = cleaned_data['warrior']
-        earlier_battle = Battle.objects.with_warrior_arenas(
-            self.opponent,
-            warrior,
+        earlier_battle = Battle.objects.with_warriors(
+            self.opponent.id,
+            warrior.id,
         ).recent().exists()
         if earlier_battle:
             self.add_error('warrior', forms.ValidationError(

@@ -8,21 +8,11 @@
 {% block content %}
   <main class="container">
 
-    {% if battle.arena %}
-      <nav aria-label="breadcrumb">
-        <ul>
-          <li><a href="{% url 'arena_list' %}">Arenas</a></li>
-          <li><a href="{% url 'arena_detail' battle.arena.id %}">{{ battle.arena }}</a></li>
-          <li aria-current="page">Battle</li>
-        </ul>
-      </nav>
-    {% endif %}
-
     <header>
       <h1 class="pw-versus">
-        <a class="pw-fighter pw-side-1" href="{% url 'warrior:get' battle.warrior_1.id %}">{{ battle.warrior_1 }}</a>
+        <a class="pw-fighter pw-side-1" href="{% url 'warrior_detail' battle.warrior_1.id %}">{{ battle.warrior_1 }}</a>
         <span class="pw-vs">vs</span>
-        <a class="pw-fighter pw-side-2" href="{% url 'warrior:get' battle.warrior_2.id %}">{{ battle.warrior_2 }}</a>
+        <a class="pw-fighter pw-side-2" href="{% url 'warrior_detail' battle.warrior_2.id %}">{{ battle.warrior_2 }}</a>
       </h1>
       <p class="pw-battle-meta">
         <small>
@@ -62,7 +52,7 @@
               {% for row in summary.rows %}
                 <tr class="pw-side-{{ row.side }}">
                   <th scope="row">
-                    <a href="{% url 'warrior:get' row.warrior.id %}" class="pw-name"><span class="pw-dot" aria-hidden="true"></span>{{ row.warrior }}</a>
+                    <a href="{% url 'warrior_detail' row.warrior.id %}" class="pw-name"><span class="pw-dot" aria-hidden="true"></span>{{ row.warrior }}</a>
                   </th>
                   {% for score in row.scores %}
                     <td>{% include 'warriors/partials/score_bar.html' with score=score %}</td>
@@ -104,40 +94,40 @@
     </section>
 
     <section>
-      {% if nav_warrior_arena %}
-        <nav class="pw-walk" aria-label="Battles of {{ nav_warrior_arena }}">
+      {% if nav_warrior %}
+        <nav class="pw-walk" aria-label="Battles of {{ nav_warrior }}">
           <div>
             {% if warrior_previous_battle_url %}
               <a href="{{ warrior_previous_battle_url }}" role="button" class="secondary outline">
-                <span aria-hidden="true">←</span> Older<span class="pw-sr-only"> battle of {{ nav_warrior_arena }}</span>
+                <span aria-hidden="true">←</span> Older<span class="pw-sr-only"> battle of {{ nav_warrior }}</span>
               </a>
             {% endif %}
           </div>
           <div>
-            <a href="{% url 'warrior_detail' nav_warrior_arena.id %}">All battles of {{ nav_warrior_arena }}</a>
+            <a href="{% url 'warrior_detail' nav_warrior.id %}">All battles of {{ nav_warrior }}</a>
           </div>
           <div>
             {% if warrior_next_battle_url %}
               <a href="{{ warrior_next_battle_url }}" role="button" class="secondary outline">
-                Newer<span class="pw-sr-only"> battle of {{ nav_warrior_arena }}</span> <span aria-hidden="true">→</span>
+                Newer<span class="pw-sr-only"> battle of {{ nav_warrior }}</span> <span aria-hidden="true">→</span>
               </a>
             {% endif %}
           </div>
         </nav>
       {% endif %}
-      <nav class="pw-walk" aria-label="Battles in this arena">
+      <nav class="pw-walk" aria-label="Battles on the ladder">
         <div>
-          {% if arena_previous_battle_url %}
-            <a href="{{ arena_previous_battle_url }}" role="button" class="secondary outline">
-              <span aria-hidden="true">←</span> Older<span class="pw-sr-only"> battle in this arena</span>
+          {% if ladder_previous_battle_url %}
+            <a href="{{ ladder_previous_battle_url }}" role="button" class="secondary outline">
+              <span aria-hidden="true">←</span> Older<span class="pw-sr-only"> battle on the ladder</span>
             </a>
           {% endif %}
         </div>
-        <div class="pw-muted" aria-hidden="true">Battles in this arena</div>
+        <div class="pw-muted" aria-hidden="true">Battles on the ladder</div>
         <div>
-          {% if arena_next_battle_url %}
-            <a href="{{ arena_next_battle_url }}" role="button" class="secondary outline">
-              Newer<span class="pw-sr-only"> battle in this arena</span> <span aria-hidden="true">→</span>
+          {% if ladder_next_battle_url %}
+            <a href="{{ ladder_next_battle_url }}" role="button" class="secondary outline">
+              Newer<span class="pw-sr-only"> battle on the ladder</span> <span aria-hidden="true">→</span>
             </a>
           {% endif %}
         </div>

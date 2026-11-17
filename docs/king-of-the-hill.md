@@ -19,12 +19,15 @@ It is judged by whether attackers come back in later rounds ("How it is judged")
 
 ## The hill and the ladder
 
-A hill battle is an ordinary battle, created unrated and without an arena (`Battle.create`).
+A hill battle is an ordinary battle,
+created unrated on its round's model rather than one drawn for the ladder (`Battle.create`).
 The ladder's goals play and score it,
 and every ladder query skips it (`BattleQuerySet.rated`; see `docs/data-model.md`).
-Rating them would push the boss's `games_played` up with every attack,
-and matchmaking backs off exponentially in that number (`get_next_battle_delay`);
-the rating fan-out in `transfer_rating` would also enroll every attacker in matchmaking.
+Rating them would push the boss's ladder battle count up with every attack,
+and matchmaking backs off exponentially in that count (`get_next_battle_delay`);
+the rating fan-out in `transfer_rating` would also put every attacker on the leaderboards.
+An attacker has no ladder clock (`Warrior.next_battle_schedule`),
+so matchmaking never picks or pairs it.
 The battle page (`BattleDetailView`) shows no unrated battle to anyone;
 otherwise the ladder author of a boss could open the attacker's side of a sealed hill battle.
 
@@ -179,7 +182,7 @@ but the captcha sends the visitor's to Google, as the data policy says (`llm_war
 - **Other ways to tell hill battles apart.**
   A hill-only `LLM` value would make an LLM name a pool, not a model (`docs/data-model.md`);
   an anti-join against hill attempts would bring the hill's table into the ladder's rating job;
-  an `Arena` row would get the ladder's rating fan-out and matchmaking queue.
+  a hill `Ranking` would get the ladder's rating fan-out and matchmaking queue.
 
 ## Deliberately not built
 

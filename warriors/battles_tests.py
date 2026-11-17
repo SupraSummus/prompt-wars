@@ -9,7 +9,7 @@ from django_goals.models import Goal
 from .battles import LLM, Battle
 from .score import ScoreAlgorithm
 from .tests.factories import (
-    BattleFactory, GameScoreFactory, WarriorArenaFactory, WarriorFactory,
+    BattleFactory, GameScoreFactory, WarriorFactory, WarriorRatingFactory,
     game_of,
 )
 from .tests.fixtures import create_scores
@@ -39,11 +39,10 @@ def test_battle_score():
 
     assert battle.warrior_score(battle.warrior_1_id) == 0
 
-    # to compute performance we must assign warrior_arenas (not in the db)
-    warrior_arena_1 = WarriorArenaFactory(warrior=battle.warrior_1, rating_playstyle=[0, 0])
-    warrior_arena_2 = WarriorArenaFactory(warrior=battle.warrior_2, rating_playstyle=[0, 0])
+    warrior_rating_1 = WarriorRatingFactory(warrior=battle.warrior_1, rating_playstyle=[0, 0])
+    warrior_rating_2 = WarriorRatingFactory(warrior=battle.warrior_2, rating_playstyle=[0, 0])
     # it could have been closer to 1 if there was a discrepancy in the ratings
-    assert battle.warrior_performance(warrior_arena_1, warrior_arena_2) == pytest.approx(-0.5, abs=0.01)
+    assert battle.warrior_performance(warrior_rating_1, warrior_rating_2) == pytest.approx(-0.5, abs=0.01)
 
 
 @pytest.fixture
@@ -148,8 +147,8 @@ def test_reading_scores_costs_no_query_per_battle():
 # under the default test-wrapping transaction the timestamps would agree
 # even without Battle.create's own atomic block.
 @pytest.mark.django_db(transaction=True)
-def test_create_from_warriors_scheduled_at_consistent(warrior_arena, other_warrior_arena):
-    battle = Battle.create_from_warriors(warrior_arena, other_warrior_arena)
+def test_create_from_warriors_scheduled_at_consistent(warrior, other_warrior):
+    battle = Battle.create_from_warriors(warrior, other_warrior)
     battle.refresh_from_db()
     assert [game.scheduled_at for game in battle.games.all()] == [battle.scheduled_at] * 2
 
@@ -164,7 +163,7 @@ def test_create_hands_on_rating_only_when_rated(warrior, other_warrior, rated):
         rated=rated,
     )
     battle.refresh_from_db()
-    assert (battle.arena, battle.rated) == (None, rated)
+    assert battle.rated == rated
     assert battle.games.count() == 2
     assert Goal.objects.filter(handler='warriors.tasks.transfer_rating').exists() is rated
 

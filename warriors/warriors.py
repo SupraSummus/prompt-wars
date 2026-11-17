@@ -5,7 +5,9 @@ from functools import lru_cache
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import urlencode
 from django.utils.text import normalize_newlines
 from django.utils.translation import gettext
 from django.utils.translation import gettext_lazy as _
@@ -62,6 +64,12 @@ class WarriorQuerySet(models.QuerySet):
     def battleworthy(self):
         return self.filter(
             moderation_passed=True,
+        )
+
+    def on_ladder(self):
+        """The warriors matchmaking may pair: battleworthy, and entered for the ladder."""
+        return self.battleworthy().filter(
+            next_battle_schedule__isnull=False,
         )
 
 
@@ -123,6 +131,13 @@ class Warrior(EmbeddingMixin, models.Model):
         help_text=_("Indicates whether battle results should be public for this warrior."),
     )
 
+    # When matchmaking next looks for an opponent (`schedule_battle`);
+    # None keeps the warrior off the ladder ("One clock per warrior" in docs/data-model.md).
+    next_battle_schedule = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
     def update_public_battle_results(self):
         """Recompute public_battle_results based on per user data"""
         from .models import WarriorUserPermission
@@ -159,11 +174,25 @@ class Warrior(EmbeddingMixin, models.Model):
                 name='warrior_body_sha_256',
             ),
         ]
+        indexes = [
+            models.Index(
+                fields=['next_battle_schedule'],
+                name='warrior_next_battle_index',
+                condition=models.Q(moderation_passed=True),
+            ),
+        ]
 
     def __str__(self):
         if self.moderation_passed is not True:
             return str(self.id)
         return self.name or str(self.id)
+
+    def get_absolute_url(self):
+        return reverse('warrior_detail', args=[str(self.id)])
+
+    def get_ranking_url(self, ranking):
+        """The warrior's page, its battles read through one ranking."""
+        return self.get_absolute_url() + '?' + urlencode({'ranking': ranking})
 
     @property
     def ensure_voyage_3_embedding_handler(self):

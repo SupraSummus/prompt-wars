@@ -5,38 +5,57 @@ from django.utils import timezone
 
 from users.tests.factories import UserFactory
 
-from ..battles import Battle, Game
-from ..models import LLM, Arena, WarriorArena, WarriorUserPermission
+from ..battles import LLM, Battle, Game
+from ..models import WarriorUserPermission
+from ..rankings import Ranking
+from ..rating_models import WarriorRating, enter_ladder
 from ..score import GameScore
 from ..text_unit import TextUnit
 from ..warriors import Warrior
 
 
-class ArenaFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = Arena
-
-    name = factory.Sequence(lambda n: f'factory-made arena {n}')
-    llm = LLM.OPENAI_GPT
-
-
 class WarriorFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Warrior
+        skip_postgeneration_save = True
 
     body = factory.Sequence(lambda n: f'factory-made warrior body {n}')
     body_sha_256 = factory.LazyAttribute(
         lambda o: hashlib.sha256(o.body.encode('utf-8')).digest()
     )
     moderation_passed = True
+    # on the ladder, as a warrior submitted through the prompt form is;
+    # `next_battle_schedule=None` makes one that plays only the hill
+    next_battle_schedule = factory.LazyFunction(timezone.now)
+
+    @factory.post_generation
+    def ladder(obj, create, extracted, **kwargs):
+        """A warrior with a clock has a rating in every ranking, as `enter_ladder` leaves it."""
+        if create and obj.next_battle_schedule is not None:
+            enter_ladder(obj)
 
 
-class WarriorArenaFactory(factory.django.DjangoModelFactory):
+class WarriorRatingFactory(factory.django.DjangoModelFactory):
+    """
+    A warrior's rating in one ranking, set to the given fields.
+
+    A ladder warrior has its ratings from the start (`WarriorFactory.ladder`),
+    so this sets one rather than inserting a second.
+    """
     class Meta:
-        model = WarriorArena
+        model = WarriorRating
 
-    arena = factory.SubFactory(ArenaFactory)
+    ranking = Ranking.LCS
     warrior = factory.SubFactory(WarriorFactory)
+
+    @classmethod
+    def _create(cls, model_class, *args, warrior, ranking, **kwargs):
+        rating, _ = model_class.objects.update_or_create(
+            warrior=warrior,
+            ranking=ranking,
+            defaults=kwargs,
+        )
+        return rating
 
 
 class WarriorUserPermissionFactory(factory.django.DjangoModelFactory):
@@ -60,6 +79,7 @@ class BattleFactory(factory.django.DjangoModelFactory):
         model = Battle
         skip_postgeneration_save = True
 
+    llm = LLM.OPENAI_GPT
     warrior_1 = factory.SubFactory(WarriorFactory)
     warrior_2 = factory.SubFactory(WarriorFactory)
 
@@ -99,16 +119,13 @@ class BattleFactory(factory.django.DjangoModelFactory):
     )
 
 
-def batch_create_battles(arena, warrior_arena, n):
-    """Create n battles between warrior_arena and new opponents in the same arena."""
+def batch_create_battles(warrior, n):
+    """Create n resolved battles between the warrior and new opponents."""
     battles = []
     for _ in range(n):
-        other_warrior_arena = WarriorArenaFactory(arena=arena)
         battle = BattleFactory(
-            arena=arena,
-            llm=arena.llm,
-            warrior_1=warrior_arena.warrior,
-            warrior_2=other_warrior_arena.warrior,
+            warrior_1=warrior,
+            warrior_2=WarriorFactory(),
             game_1_2__resolved_at=timezone.now(),
             game_1_2__text_unit=TextUnitFactory(),
             game_2_1__resolved_at=timezone.now(),

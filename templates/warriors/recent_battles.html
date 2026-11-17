@@ -5,13 +5,6 @@
 {% block content %}
   <main class="container">
 
-    <nav aria-label="breadcrumb">
-      <ul>
-        <li><a href="{% url 'arena_detail' arena.id %}">{{ arena }}</a></li>
-        <li>Recent battles</li>
-      </ul>
-    </nav>
-
     <h1>Recent battles</h1>
     <table>
       <thead>
@@ -29,11 +22,11 @@
               {% include 'time.html' with time=battle.scheduled_at %}
             </a></td>
             <td>{{ battle.scheduled_at|timesince }}</td>
-            <td><a href="{% url 'warrior_detail' battle.warrior_arena_1.id %}">
-              {{ battle.warrior_arena_1 }}
+            <td><a href="{{ battle.warrior_1.get_absolute_url }}">
+              {{ battle.warrior_1 }}
             </a></td>
-            <td><a href="{% url 'warrior_detail' battle.warrior_arena_2.id %}">
-              {{ battle.warrior_arena_2 }}
+            <td><a href="{{ battle.warrior_2.get_absolute_url }}">
+              {{ battle.warrior_2 }}
             </a></td>
           </tr>
         {% endfor %}

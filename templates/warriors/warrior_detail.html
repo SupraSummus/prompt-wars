@@ -14,14 +14,6 @@
   {# while moderation decides, the page polls for itself (`warrior_page_polling`); the verdict comes back without hx-*, which ends it #}
   <main class="container"{% if polling == 'page' %} hx-get="{{ request.path }}?polling=page" hx-trigger="every {{ poll_seconds }}s" hx-select="main" hx-swap="outerHTML"{% endif %}>
 
-    <nav aria-label="breadcrumb">
-      <ul>
-        <li><a href="{% url 'arena_list' %}">Arenas</a></li>
-        <li><a href="{% url 'arena_detail' arena.id %}">{{ arena }}</a></li>
-        <li>Prompt</li>
-      </ul>
-    </nav>
-
     <hgroup>
       {# before moderation the name stays hidden from everyone, and its author needs no id to know what this is #}
       <h1>{% if warrior.moderation_passed is None and show_secrets %}Your new prompt{% else %}{{ warrior }}{% endif %}</h1>
@@ -56,7 +48,7 @@
         Our AI moderator flagged it as not appropriate.
       </p>
       <p>
-        You may <a href="{% url 'arena_warrior_create' arena.id %}">write another prompt</a>, of course.
+        You may <a href="{% url 'warrior_create' %}">write another prompt</a>, of course.
       </p>
 
     {% else %}
@@ -68,26 +60,76 @@
         </details>
       {% endif %}
 
+      <section>
+        <h2 id="ratings">Ratings</h2>
+        <table aria-labelledby="ratings">
+          <thead>
+            <tr>
+              <th scope="col">Leaderboard</th>
+              <th scope="col">Rating points</th>
+              <th scope="col">Games played</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in ratings %}
+              <tr>
+                <th scope="row"><a href="{% url 'ranking_leaderboard' row.ranking %}">{{ row.ranking.label }}</a></th>
+                <td>
+                  {% if row.rating %}
+                    {{ row.rating.rating|floatformat:0 }}
+                    <small>
+                      ±{{ row.rating.rating_error_abs|floatformat:0 }},
+                      updated {% include 'time.html' with time=row.rating.rating_updated_at %}
+                    </small>
+                  {% else %}
+                    <span aria-hidden="true">&ndash;</span><span class="pw-sr-only">none yet</span>
+                  {% endif %}
+                </td>
+                <td>{% if row.rating %}{{ row.rating.games_played }}{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
       {# until a first battle is scored, the list polls for itself, without disturbing the rest of the page #}
       <section id="battles-section"{% if polling == 'battles' %} hx-get="{{ request.path }}?polling=battles" hx-trigger="every {{ poll_seconds }}s" hx-select="#battles-section" hx-swap="outerHTML"{% endif %}>
       <h2 id="battles">Battles</h2>
-      <p>
-        {% if request.user.is_authenticated %}
-          <a href="{% url 'challenge_warrior' warrior.id %}" role="button">Challenge this prompt to a duel</a>
-        {% else %}
-          <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Log in</a> to challenge this prompt to a duel.
-        {% endif %}
-      </p>
-      <p>
-        Next auto battle: {% include 'time.html' with time=warrior.next_battle_schedule %}
-        (in {{ warrior.next_battle_schedule|timeuntil }})
-      </p>
+      {# a challenge is a ladder battle, and a warrior with no clock plays only the hill #}
+      {% if warrior.next_battle_schedule %}
+        <p>
+          {% if request.user.is_authenticated %}
+            <a href="{% url 'challenge_warrior' warrior.id %}" role="button">Challenge this prompt to a duel</a>
+          {% else %}
+            <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Log in</a> to challenge this prompt to a duel.
+          {% endif %}
+        </p>
+      {% endif %}
+      {% if warrior.next_battle_schedule %}
+        <p>
+          Next auto battle: {% include 'time.html' with time=warrior.next_battle_schedule %}
+          (in {{ warrior.next_battle_schedule|timeuntil }})
+        </p>
+      {% endif %}
       {% if not battles %}
         <p>
           No battles yet, but one should be scheduled soon.
           {% if polling %}This list updates by itself.{% else %}<a href="">Reload the page</a>{% endif %}
         </p>
       {% else %}
+      <nav aria-label="Leaderboard the scores are read through">
+        <ul>
+          {% for row in ratings %}
+            <li>
+              {% if row.ranking == ranking %}
+                <strong aria-current="page">{{ row.ranking.label }}</strong>
+              {% else %}
+                <a href="{{ row.url }}#battles">{{ row.ranking.label }}</a>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </nav>
       {# a data table may scroll sideways on a narrow screen; the region makes that reachable by keyboard #}
       <div class="overflow-auto" role="region" tabindex="0" aria-labelledby="battles">
       <table>
@@ -127,25 +169,12 @@
       {% endif %}
       <p><small>
         A score is this prompt's share of one game,
-        in which it goes first or second.
+        in which it goes first or second,
+        as the {{ ranking.label }} scores it.
         Performance is the battle score
-        minus the score the two prompts' ratings predicted.
+        minus the score the two prompts' ratings there predicted.
       </small></p>
       </section>
-
-      {% if other_warrior_arenas %}
-        <h2>On other arenas</h2>
-        <ul>
-          {% for other_warrior_arena in other_warrior_arenas %}
-            <li>
-              <a href="{% url 'warrior_detail' other_warrior_arena.id %}">
-                {{ other_warrior_arena.arena }}
-              </a>
-            </li>
-          {% endfor %}
-        </ul>
-        <a href="{% url 'warrior:get' warrior.warrior.id %}">Ratings on every arena</a>
-      {% endif %}
 
       <h2>Details</h2>
       <dl>
@@ -155,16 +184,6 @@
         {% endif %}
         <dt>Created at</dt>
         <dd>{% include 'time.html' with time=warrior.created_at %}</dd>
-        <dt>Rating points</dt>
-        <dd>
-          {{ warrior.rating|floatformat:0 }}
-          <small>
-            ±{{ warrior.rating_error_abs|floatformat:0 }},
-            updated {% include 'time.html' with time=warrior.rating_updated_at %}
-          </small>
-        </dd>
-        <dt>Games played</dt>
-        <dd>{{ warrior.games_played }}</dd>
         <dt>Id</dt>
         <dd><code>{{ warrior.id }}</code></dd>
       </dl>

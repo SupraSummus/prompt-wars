@@ -2,27 +2,41 @@ import datetime
 import uuid
 
 import pytest
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 
 from users.tests.factories import UserFactory
 
 from ..battles import Battle
+from ..models import LegacyWarriorArena
+from ..rankings import LEADING_RANKING, Ranking
 from ..score import ScoreAlgorithm
 from ..text_unit import TextUnit
 from .factories import (
-    BattleFactory, GameScoreFactory, WarriorArenaFactory, batch_create_battles,
-    game_of,
+    BattleFactory, GameScoreFactory, WarriorFactory, WarriorRatingFactory,
+    batch_create_battles, game_of,
 )
 from .fixtures import create_scores
 
 
+@pytest.mark.parametrize(('arena_page', 'page'), [
+    ('', reverse_lazy('home')),
+    ('create/', reverse_lazy('warrior_create')),
+    ('leaderboard/', reverse_lazy('warrior_leaderboard')),
+    ('upcoming-battles/', reverse_lazy('upcoming_battles')),
+    ('recent-battles/', reverse_lazy('recent_battles')),
+])
+def test_an_arena_page_leads_to_its_replacement(client, arena_page, page):
+    response = client.get(f'/arena/{uuid.uuid4()}/{arena_page}')
+    assert (response.status_code, response.url) == (301, str(page))
+
+
 @pytest.mark.django_db
-def test_arena_detail(client, arena):
-    response = client.get(
-        reverse('arena_detail', args=(arena.id,))
-    )
-    assert response.status_code == 200
+def test_a_warrior_arena_page_leads_to_its_warrior(client, warrior):
+    legacy = LegacyWarriorArena.objects.create(id=uuid.uuid4(), warrior=warrior)
+    response = client.get(f'/warrior-arena/{legacy.id}/')
+    assert (response.status_code, response.url) == (301, warrior.get_absolute_url())
+    assert client.get(f'/warrior-arena/{uuid.uuid4()}/').status_code == 404
 
 
 @pytest.mark.django_db
@@ -34,16 +48,16 @@ def test_arena_detail(client, arena):
 @pytest.mark.parametrize('battle', [{
     'game_1_2__resolved_at': timezone.now(),
 }], indirect=True)
-def test_warrior_details(client, warrior_arena, battle):
+def test_warrior_details(client, warrior, battle):
     response = client.get(
-        reverse('warrior_detail', args=(warrior_arena.id,))
+        reverse('warrior_detail', args=(warrior.id,))
     )
     assert response.status_code == 200
     assert battle in [row['battle'] for row in response.context['battles']]
 
 
 @pytest.mark.django_db
-def test_warrior_details_scores_belong_to_the_page_warrior(client, arena):
+def test_warrior_details_scores_belong_to_the_page_warrior(client):
     """
     The page's warrior leads one game and follows in the other,
     and both cells report that warrior's own score.
@@ -52,7 +66,6 @@ def test_warrior_details_scores_belong_to_the_page_warrior(client, arena):
     """
     now = timezone.now()
     battle = BattleFactory(
-        llm=arena.llm,
         warrior_1__id=uuid.UUID(int=1),
         warrior_2__id=uuid.UUID(int=2),
         game_1_2__resolved_at=now,
@@ -63,10 +76,8 @@ def test_warrior_details_scores_belong_to_the_page_warrior(client, arena):
         score_1_2_1=0.1, score_1_2_2=0.2,
         score_2_1_1=0.3, score_2_1_2=0.4,
     )
-    warrior_arena = WarriorArenaFactory(arena=arena, warrior=battle.warrior_2)
-
     response = client.get(
-        reverse('warrior_detail', args=(warrior_arena.id,))
+        reverse('warrior_detail', args=(battle.warrior_2_id,))
     )
 
     row, = response.context['battles']
@@ -80,13 +91,13 @@ def test_warrior_details_scores_belong_to_the_page_warrior(client, arena):
 
 
 @pytest.mark.django_db
-def test_warrior_details_creates_user_permission(user, user_client, warrior_arena, warrior):
+def test_warrior_details_creates_user_permission(user, user_client, warrior):
     assert user not in warrior.users.all()
     session = user_client.session
     session['authorized_warriors'] = [str(warrior.id)]
     session.save()
     response = user_client.get(
-        reverse('warrior_detail', args=(warrior_arena.id,)),
+        reverse('warrior_detail', args=(warrior.id,)),
     )
     assert response.status_code == 200
     assert user in warrior.users.all()
@@ -94,54 +105,58 @@ def test_warrior_details_creates_user_permission(user, user_client, warrior_aren
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('session_authorized', [True, False])
-def test_warrior_details_authorized_session(client, warrior, warrior_arena, session_authorized):
+def test_warrior_details_authorized_session(client, warrior, session_authorized):
     session = client.session
     session['authorized_warriors'] = [str(warrior.id)] if session_authorized else []
     session.save()
     response = client.get(
-        reverse('warrior_detail', args=(warrior_arena.id,))
+        reverse('warrior_detail', args=(warrior.id,))
     )
     assert response.status_code == 200
     assert response.context['show_secrets'] == session_authorized
-    assert (warrior_arena.body in response.content.decode()) == session_authorized
+    assert (warrior.body in response.content.decode()) == session_authorized
 
 
 @pytest.mark.django_db
-def test_warrior_details_do_few_sql_queries(client, arena, warrior_arena, django_assert_max_num_queries):
+def test_warrior_details_do_few_sql_queries(client, warrior, django_assert_max_num_queries):
     n = 100
-    batch_create_battles(arena, warrior_arena, n)
+    batch_create_battles(warrior, n)
     with django_assert_max_num_queries(n // 2):
         response = client.get(
-            reverse('warrior_detail', args=(warrior_arena.id,))
+            reverse('warrior_detail', args=(warrior.id,))
         )
     assert len(response.context['battles']) == n
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('other_arena_listed', [True, False])
-def test_warrior_arena_detail_has_links_to_other_arenas(client, warrior_arena, other_arena_listed):
-    other_warrior_arena = WarriorArenaFactory(
-        warrior=warrior_arena.warrior,
-        arena__listed=other_arena_listed,
-    )
-    response = client.get(
-        reverse('warrior_detail', args=(warrior_arena.id,))
-    )
+@pytest.mark.parametrize('warrior', [{'next_battle_schedule': None}], indirect=True)
+def test_warrior_details_of_a_warrior_off_the_ladder_write_nothing(client, warrior):
+    """A hill attacker's page shows no rating, and viewing it creates none."""
+    response = client.get(reverse('warrior_detail', args=(warrior.id,)))
     assert response.status_code == 200
-
-    assert (other_warrior_arena in response.context['other_warrior_arenas']) == other_arena_listed
-    assert warrior_arena not in response.context['other_warrior_arenas']
-
-    link_to_other = reverse('warrior_detail', args=(other_warrior_arena.id,))
-    assert (link_to_other in response.content.decode()) == other_arena_listed
+    assert response.context['rating'] is None
+    assert not warrior.ratings.exists()
 
 
 @pytest.mark.django_db
-def test_warrior_set_public_battle_results(user_client, warrior, warrior_arena, warrior_user_permission):
+@pytest.mark.parametrize('ranking', list(Ranking))
+def test_warrior_details_read_battles_through_the_asked_ranking(client, warrior, ranking):
+    """Every ranking's rating is on the page; the battle list reads through the one asked for."""
+    WarriorRatingFactory(warrior=warrior, ranking=Ranking.SEMANTIC, rating=123)
+    response = client.get(warrior.get_ranking_url(ranking))
+    assert response.status_code == 200
+    assert response.context['ranking'] == ranking
+    assert response.context['rating'].ranking == ranking
+    assert [row['ranking'] for row in response.context['ratings']] == list(Ranking)
+    assert '123' in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_warrior_set_public_battle_results(user_client, warrior, warrior_user_permission):
     assert warrior.public_battle_results is False
     assert warrior_user_permission.public_battle_results is False
     response = user_client.post(
-        reverse('warrior_set_public_battles', args=(warrior_arena.id,)),
+        reverse('warrior_set_public_battles', args=(warrior.id,)),
         data={
             'public_battle_results': True,
         },
@@ -154,34 +169,44 @@ def test_warrior_set_public_battle_results(user_client, warrior, warrior_arena, 
 
 
 @pytest.mark.django_db
-def test_challenge_warrior_get(user_client, warrior_arena, warrior_user_permission, other_warrior_arena):
+def test_challenge_warrior_get(user_client, warrior, warrior_user_permission, other_warrior):
     response = user_client.get(
-        reverse('challenge_warrior', args=(other_warrior_arena.id,))
+        reverse('challenge_warrior', args=(other_warrior.id,))
     )
     assert response.status_code == 200
-    assert warrior_arena in response.context['form'].fields['warrior'].queryset
+    assert warrior in response.context['form'].fields['warrior'].queryset
 
 
 @pytest.mark.django_db
-def test_challenge_warrior_post(user_client, warrior_arena, warrior_user_permission, other_warrior_arena):
+@pytest.mark.parametrize('other_warrior', [{'next_battle_schedule': None}], indirect=True)
+def test_challenge_a_warrior_off_the_ladder(user_client, warrior, warrior_user_permission, other_warrior):
+    """A challenge is a ladder battle, and a hill attacker plays only the hill."""
+    response = user_client.get(
+        reverse('challenge_warrior', args=(other_warrior.id,))
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_challenge_warrior_post(user_client, warrior, warrior_user_permission, other_warrior):
     response = user_client.post(
-        reverse('challenge_warrior', args=(other_warrior_arena.id,)),
+        reverse('challenge_warrior', args=(other_warrior.id,)),
         data={
-            'warrior': warrior_arena.id,
+            'warrior': warrior.id,
         },
     )
     assert response.status_code == 302
-    assert Battle.objects.with_warrior_arenas(warrior_arena, other_warrior_arena).exists()
+    assert Battle.objects.with_warriors(warrior.id, other_warrior.id).exists()
 
 
 @pytest.mark.django_db
 def test_challenge_warrior_post_duplicate(
-    user_client, warrior_arena, warrior_user_permission, other_warrior_arena, battle,
+    user_client, warrior, warrior_user_permission, other_warrior, battle,
 ):
     response = user_client.post(
-        reverse('challenge_warrior', args=(other_warrior_arena.id,)),
+        reverse('challenge_warrior', args=(other_warrior.id,)),
         data={
-            'warrior': warrior_arena.id,
+            'warrior': warrior.id,
         },
     )
     assert response.status_code == 200
@@ -189,9 +214,9 @@ def test_challenge_warrior_post_duplicate(
 
 
 @pytest.mark.django_db
-def test_challenge_warrior_bad_data(user_client, warrior_arena):
+def test_challenge_warrior_bad_data(user_client, warrior):
     response = user_client.post(
-        reverse('challenge_warrior', args=(warrior_arena.id,)),
+        reverse('challenge_warrior', args=(warrior.id,)),
         data={},
     )
     assert response.status_code == 200
@@ -263,7 +288,7 @@ def test_battle_details_warrior_keeps_its_side(client, battle):
 @pytest.mark.parametrize('battle', [{
     'game_1_2__resolved_at': timezone.now(),
 }], indirect=True)
-def test_battle_details_public(client, battle, warrior_arena):
+def test_battle_details_public(client, battle, warrior):
     game = game_of(battle, '1_2')
     game.text_unit = TextUnit.get_or_create_by_content('asdf1234')
     game.save(update_fields=['text_unit'])
@@ -271,7 +296,7 @@ def test_battle_details_public(client, battle, warrior_arena):
         reverse('battle_detail', args=(battle.id,))
     )
     assert response.status_code == 200
-    assert ('asdf1234' in response.content.decode()) is warrior_arena.public_battle_results
+    assert ('asdf1234' in response.content.decode()) is warrior.public_battle_results
 
 
 @pytest.mark.django_db
@@ -303,107 +328,120 @@ def schedule_in_order(*battles):
         battle.save(update_fields=['scheduled_at'])
 
 
-def battle_url(battle, warrior_arena=None):
+def battle_url(battle, warrior=None):
     url = reverse('battle_detail', args=(battle.id,))
-    if warrior_arena is not None:
-        url += f'?warrior_arena={warrior_arena.id}'
+    if warrior is not None:
+        url += f'?warrior={warrior.id}'
     return url
 
 
 @pytest.mark.django_db
-def test_battle_details_nav_walks_both(client, arena, warrior_arena):
-    """A battle of other warriors is the arena's next one and not the warrior's."""
-    older, middle, newer = batch_create_battles(arena, warrior_arena, 3)
-    stranger = batch_create_battles(arena, WarriorArenaFactory(arena=arena), 1)[0]
+def test_battle_details_nav_walks_both(client, warrior):
+    """A battle of other warriors is the ladder's next one and not the warrior's."""
+    older, middle, newer = batch_create_battles(warrior, 3)
+    stranger = batch_create_battles(WarriorFactory(), 1)[0]
     schedule_in_order(older, middle, stranger, newer)
 
-    response = client.get(battle_url(middle, warrior_arena))
+    response = client.get(battle_url(middle, warrior))
 
     assert response.status_code == 200
-    assert response.context['arena_previous_battle_url'] == battle_url(older, warrior_arena)
-    assert response.context['arena_next_battle_url'] == battle_url(stranger, warrior_arena)
-    assert response.context['warrior_previous_battle_url'] == battle_url(older, warrior_arena)
-    assert response.context['warrior_next_battle_url'] == battle_url(newer, warrior_arena)
+    assert response.context['ladder_previous_battle_url'] == battle_url(older, warrior)
+    assert response.context['ladder_next_battle_url'] == battle_url(stranger, warrior)
+    assert response.context['warrior_previous_battle_url'] == battle_url(older, warrior)
+    assert response.context['warrior_next_battle_url'] == battle_url(newer, warrior)
     # both walks reach the page, not just the context
     content = response.content.decode()
-    assert battle_url(stranger, warrior_arena) in content
-    assert battle_url(newer, warrior_arena) in content
+    assert battle_url(stranger, warrior) in content
+    assert battle_url(newer, warrior) in content
 
 
 @pytest.mark.django_db
-def test_battle_details_nav_without_a_warrior(client, arena, warrior_arena):
-    """Naming no warrior leaves the arena walk, so the battle URL stands alone."""
-    older, middle, newer = batch_create_battles(arena, warrior_arena, 3)
+def test_battle_details_nav_without_a_warrior(client, warrior):
+    """Naming no warrior leaves the ladder walk, so the battle URL stands alone."""
+    older, middle, newer = batch_create_battles(warrior, 3)
     schedule_in_order(older, middle, newer)
 
     response = client.get(battle_url(middle))
 
     assert response.status_code == 200
-    assert response.context['arena_previous_battle_url'] == battle_url(older)
-    assert response.context['arena_next_battle_url'] == battle_url(newer)
+    assert response.context['ladder_previous_battle_url'] == battle_url(older)
+    assert response.context['ladder_next_battle_url'] == battle_url(newer)
     assert response.context['warrior_previous_battle_url'] is None
     assert response.context['warrior_next_battle_url'] is None
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('bad_value', [
-    lambda arena: 'not-a-uuid',
-    lambda arena: str(uuid.uuid4()),
-    lambda arena: str(WarriorArenaFactory(arena=arena).id),
+    lambda: 'not-a-uuid',
+    lambda: str(uuid.uuid4()),
+    lambda: str(WarriorFactory().id),
 ], ids=['malformed', 'unknown', 'stranger'])
-def test_battle_details_nav_unrecognized_warrior(client, arena, battle, bad_value):
+def test_battle_details_nav_unrecognized_warrior(client, battle, bad_value):
     response = client.get(
         reverse('battle_detail', args=(battle.id,)),
-        data={'warrior_arena': bad_value(arena)},
+        data={'warrior': bad_value()},
     )
     assert response.status_code == 200
-    assert response.context['nav_warrior_arena'] is None
+    assert response.context['nav_warrior'] is None
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('battle', [{
     'game_1_2__resolved_at': timezone.now(),
 }], indirect=True)
-def test_warrior_details_links_carry_the_warrior(client, warrior_arena, battle):
+def test_warrior_details_links_carry_the_warrior(client, warrior, battle):
     response = client.get(
-        reverse('warrior_detail', args=(warrior_arena.id,))
+        reverse('warrior_detail', args=(warrior.id,))
     )
-    assert battle_url(battle, warrior_arena) in response.content.decode()
+    assert battle_url(battle, warrior) in response.content.decode()
 
 
 @pytest.mark.django_db
-def test_leaderboard(client, arena, settings, warrior_arena, default_arena):
+def test_leaderboard_opens_on_the_leading_ranking(client):
     response = client.get(reverse('warrior_leaderboard'))
+    assert response.url == reverse('ranking_leaderboard', args=(LEADING_RANKING,))
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('ranking', list(Ranking))
+def test_leaderboard(client, ranking):
+    mine = WarriorRatingFactory(ranking=ranking)
+    other = WarriorRatingFactory(ranking=next(r for r in Ranking if r != ranking))
+    response = client.get(reverse('ranking_leaderboard', args=(ranking,)))
     assert response.status_code == 200
-    assert warrior_arena in response.context['warriors']
+    assert mine in response.context['ratings']
+    assert other not in response.context['ratings']
+
+
+def test_leaderboard_of_no_ranking(client):
+    assert client.get(reverse('ranking_leaderboard', args=('no-such',))).status_code == 404
 
 
 @pytest.mark.django_db
-def test_loaderboard_sql_queries(client, arena, django_assert_max_num_queries):
+def test_loaderboard_sql_queries(client, django_assert_max_num_queries):
     n = 100
-    WarriorArenaFactory.create_batch(n, arena=arena)
+    WarriorRatingFactory.create_batch(n)
     with django_assert_max_num_queries(n // 2):
-        response = client.get(reverse('arena_leaderboard', args=(arena.id,)))
-    assert response.context['warriors'].count() == n
+        response = client.get(reverse('ranking_leaderboard', args=(Ranking.LCS,)))
+    assert response.context['ratings'].count() == n
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior_arena', [{'next_battle_schedule': timezone.now()}], indirect=True)
-def test_upcoming_battles(user_client, warrior_arena, warrior_user_permission, default_arena):
+def test_upcoming_battles(user_client, warrior, warrior_user_permission):
     response = user_client.get(reverse('upcoming_battles'))
     assert response.status_code == 200
-    assert warrior_arena in response.context['warriors']
+    assert warrior in response.context['warriors']
 
 
 @pytest.mark.django_db
-def test_recent_battles(user_client, battle, warrior_user_permission, default_arena):
+def test_recent_battles(user_client, battle, warrior_user_permission):
     response = user_client.get(reverse('recent_battles'))
     assert response.status_code == 200
     assert battle in response.context['battles']
 
 
 @pytest.mark.django_db
-def test_recent_battles_no_duplicates(user, user_client, battle, default_arena):
+def test_recent_battles_no_duplicates(user, user_client, battle):
     # this user has access to both warriors
     battle.warrior_1.users.add(user)
     battle.warrior_2.users.add(user)
@@ -422,7 +460,7 @@ def test_recent_battles_no_duplicates(user, user_client, battle, default_arena):
     (False, False),
 ])
 def test_recent_battles_public_battle_results(
-    client, battle, default_arena,
+    client, battle,
     public_battle_results, expected_visible,
 ):
     """Test that battles are visible based on warrior's public_battle_results setting."""
@@ -440,8 +478,8 @@ def test_recent_battles_public_battle_results(
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('warrior', [{'moderation_passed': None}], indirect=True)
-def test_a_fresh_warriors_page_polls_until_its_first_result(client, arena, warrior, warrior_arena):
-    url = reverse('warrior_detail', args=(warrior_arena.id,))
+def test_a_fresh_warriors_page_polls_until_its_first_result(client, warrior):
+    url = reverse('warrior_detail', args=(warrior.id,))
     assert 'hx-select="main"' in client.get(url).content.decode()
     assert client.get(url, {'polling': 'page'}).status_code == 204
 
@@ -450,7 +488,7 @@ def test_a_fresh_warriors_page_polls_until_its_first_result(client, arena, warri
     assert 'hx-select="#battles-section"' in client.get(url, {'polling': 'page'}).content.decode()
     assert client.get(url, {'polling': 'battles'}).status_code == 204
 
-    batch_create_battles(arena, warrior_arena, 1)
+    batch_create_battles(warrior, 1)
     assert 'hx-get' not in client.get(url, {'polling': 'battles'}).content.decode()
 
 
@@ -459,6 +497,6 @@ def test_a_fresh_warriors_page_polls_until_its_first_result(client, arena, warri
     'moderation_passed': None,
     'created_at': timezone.now() - datetime.timedelta(days=1),
 }], indirect=True)
-def test_warrior_details_of_an_old_warrior_do_not_poll(client, warrior, warrior_arena):
-    response = client.get(reverse('warrior_detail', args=(warrior_arena.id,)))
+def test_warrior_details_of_an_old_warrior_do_not_poll(client, warrior):
+    response = client.get(reverse('warrior_detail', args=(warrior.id,)))
     assert response.context['polling'] is None
