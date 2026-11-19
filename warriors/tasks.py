@@ -154,7 +154,7 @@ def resolve_battle(goal, battle_id, direction):
 def _run_llm(game, now):
     resolve_battle_function = {
         LLM.OPENAI_GPT: resolve_battle_openai,
-        LLM.CLAUDE_3_HAIKU: anthropic.resolve_battle,
+        LLM.CLAUDE: anthropic.resolve_battle,
         LLM.GOOGLE_GEMINI: resolve_battle_google,
     }[game.llm]
 

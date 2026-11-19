@@ -19,13 +19,12 @@ humanize = "*"
 voyageai = "*"
 google-auth = {extras = ["requests"], version = "*"}
 httpx = "*"
+httpx2 = "*"
 dominate = "*"
 pgvector = "*"
-# Capped below their majors that move to httpx2:
-# respx mocks only httpx, so the tests in warriors/llms/ would hit the real APIs.
-openai = "<3"
-anthropic = "<1"
-google-genai = "<3"
+openai = "*"
+anthropic = "*"
+google-genai = "*"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -39,6 +38,7 @@ flake8-pyproject = "*"
 factory-boy = "*"
 django-debug-toolbar = "*"
 respx = "*"
+pytest-httpx2 = "*"
 
 [build-system]
 requires = ["poetry-core"]

@@ -230,6 +230,12 @@ poetry run python -m pytest embedding_explorer/tests.py -v
 poetry run python -m pytest warriors/ -m "not real_world"
 ```
 
+After bumping an LLM SDK, run the `real_world` tests with real keys
+(an environment variable such as `OPENAI_API_KEY` wins over `.env`).
+The mocked tests follow whatever URL the SDK builds,
+so only a live call shows the API refusing it.
+The environment's network settings must allow each provider's host.
+
 ### Linting
 
 ```bash
