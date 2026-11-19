@@ -119,6 +119,8 @@ turning off a foreign key's `db_index` also drops and re-validates the constrain
 locking both tables for a full scan.
 `manage.py sqlmigrate <app> <migration>` shows what will run;
 `0064_gamescore_game_no_index.py` shows how to run only the part you want.
+A dependency bump can bring migrations too, from apps like `django_goals`:
+`migrate --plan` against a database migrated before the bump lists them.
 
 A change with no SQL at all, like a `help_text`, gets no migration of its own:
 edit the field in the migration that created it,

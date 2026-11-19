@@ -6,24 +6,26 @@ package-mode = false
 [tool.poetry.dependencies]
 python = "^3.13.1"
 django = "==5.2.*"
-openai = "*"
 django-environ = "*"
 psycopg = "*"
 django-recaptcha = "*"
 sentry-sdk = {extras = ["django"], version = "*"}
 gunicorn = "*"
 whitenoise = "*"
-anthropic = "*"
 numpy = "*"
 scipy = "*"
 django-goals = "*"
 humanize = "*"
 voyageai = "*"
-google-genai = "*"
 google-auth = {extras = ["requests"], version = "*"}
 httpx = "*"
 dominate = "*"
 pgvector = "*"
+# Capped below their majors that move to httpx2:
+# respx mocks only httpx, so the tests in warriors/llms/ would hit the real APIs.
+openai = "<3"
+anthropic = "<1"
+google-genai = "<3"
 
 
 [tool.poetry.group.dev.dependencies]
