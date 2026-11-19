@@ -45,6 +45,7 @@ template = parse_template('''\
             {% endfor %}
         </tbody>
     </table>
+    <p><a href="{% url 'upcoming_battles' %}">Upcoming battles <span aria-hidden="true">→</span></a></p>
 
     {% if page_obj.has_other_pages %}
         <nav class="pagination">
