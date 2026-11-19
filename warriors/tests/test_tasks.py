@@ -11,11 +11,13 @@ from openai.types.chat.chat_completion import (
 )
 from openai.types.completion_usage import CompletionUsage
 
+from ..rankings import Ranking
 from ..tasks import (
     do_moderation, openai_client, resolve_battle, schedule_battle_top,
     transfer_rating,
 )
 from ..warriors import MAX_WARRIOR_LENGTH
+from .factories import WarriorFactory, WarriorRatingFactory
 
 
 @pytest.mark.django_db
@@ -92,13 +94,18 @@ def test_do_moderation(warrior, monkeypatch, moderation_flagged):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('warrior_rating', [{'rating': 100}], indirect=True)
-@pytest.mark.parametrize('other_warrior_rating', [{'rating': 250}], indirect=True)
-def test_schedule_battle_top(warrior_rating, other_warrior_rating, monkeypatch):
+@pytest.mark.parametrize('ranking', list(Ranking))
+def test_schedule_battle_top(ranking, warrior, other_warrior, monkeypatch):
+    WarriorRatingFactory(warrior=warrior, ranking=ranking, rating=100)
+    WarriorRatingFactory(warrior=other_warrior, ranking=ranking, rating=250)
+    # tops every ranking but the one asked for
+    outsider = WarriorFactory()
+    for r in Ranking:
+        WarriorRatingFactory(warrior=outsider, ranking=r, rating=-500 if r == ranking else 1000)
     monkeypatch.setattr('random.random', lambda: 0.9999)
-    battle = schedule_battle_top()
+    battle = schedule_battle_top(ranking=ranking)
     assert battle is not None
-    assert {warrior_rating.warrior, other_warrior_rating.warrior} == {battle.warrior_1, battle.warrior_2}
+    assert {warrior, other_warrior} == {battle.warrior_1, battle.warrior_2}
 
 
 @pytest.mark.django_db
