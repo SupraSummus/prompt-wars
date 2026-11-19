@@ -132,6 +132,16 @@ and map a 429 response to the `RetryMeLater` that
 `voyageai.error.RateLimitError` currently triggers —
 that exception is the only thing the SDK contributes here.
 
+`pyproject.toml` caps `openai`, `anthropic` and `google-genai`
+below their `httpx2` majors (the reason sits beside the caps),
+so every release past them passes us by.
+Anthropic's `httpx2` majors also drop `temperature` from `messages.create`,
+which `resolve_battle` in `warriors/llms/anthropic.py` passes.
+Next move: mock the tests in `warriors/llms/` at a level that knows `httpx2`,
+such as a mock transport handed to each client,
+decide whether the Anthropic battle keeps its temperature through `extra_body`,
+then lift the caps.
+
 `moderation_experiment.py` sits at the repo root,
 a scratch run against the OpenAI moderation endpoint
 imported by hand in a shell, outside any app,
