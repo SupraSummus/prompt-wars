@@ -187,6 +187,12 @@ labelled by the heading above it.
 Next move: wrap all three the same way
 and screenshot each at 320px.
 
+`create_ranking_stats_for` computes `RankingStats.rating_quantiles` every day,
+and no page shows them:
+their chart lived on the arena page.
+Next move: decide whether the leaderboard shows the chart again;
+if not, drop the field and its percentile query.
+
 Two first attacks sent at once without a hill session cookie
 (two tabs, or a browser without JavaScript to disable the button)
 run as two players (`hill.identity.get_identity`):
