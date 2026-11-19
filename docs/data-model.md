@@ -83,15 +83,15 @@ such as two rows with the same algorithm:
 two rating states converging over the same battles.
 The cost is that a ranking cannot be switched on or off without a deploy.
 
-The rankings are peers in what players see:
+The rankings are peers.
+Each battle pairs warriors by their rating in a ranking drawn for it
+(`schedule_battle`, `schedule_battle_top`),
+so every ranking gets battles between warriors it rates alike.
+Players see them side by side:
 each has its leaderboard (`/leaderboard/<ranking>/`),
 and a warrior's page shows its rating in all of them,
 its battle list read through the one asked for.
-Where only one ranking fits, `LEADING_RANKING` is it:
-a warrior's ladder battles are paired by one rating,
-and a page showing one ranking has to open on some ranking.
-Battles among the leaders are the exception:
-`schedule_battle_top` draws a ranking for each.
+`LEADING_RANKING` is only where a page showing one ranking opens.
 
 ## One clock per warrior
 

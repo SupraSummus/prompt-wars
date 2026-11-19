@@ -5,7 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from .battles import Battle
-from .rankings import LEADING_RANKING
+from .rankings import Ranking
 from .rating_models import WarriorRating
 from .warriors import Warrior
 
@@ -19,9 +19,15 @@ def schedule_battles(n=10, now=None):
 
 
 @transaction.atomic
-def schedule_battle(now=None):
+def schedule_battle(now=None, ranking=None):
+    """
+    A battle for the warrior whose turn is due,
+    against one near it in a ranking drawn at random unless given.
+    """
     if now is None:
         now = timezone.now()
+    if ranking is None:
+        ranking = random.choice(list(Ranking))
     warrior = Warrior.objects.on_ladder().filter(
         next_battle_schedule__lte=now,
     ).order_by('next_battle_schedule').select_for_update(
@@ -30,7 +36,7 @@ def schedule_battle(now=None):
     ).first()
     if warrior is None:
         return
-    opponent = find_opponent(warrior)
+    opponent = find_opponent(warrior, ranking)
     if opponent is None:
         warrior.next_battle_schedule = (
             now + get_next_battle_delay(battle_count(warrior)) + datetime.timedelta(minutes=1)
@@ -69,20 +75,20 @@ def battle_count(warrior):
     return Battle.objects.with_warrior(warrior.id).count()
 
 
-def find_opponent(warrior, max_rating_diff=MATCHMAKING_MAX_RATING_DIFF):
+def find_opponent(warrior, ranking, max_rating_diff=MATCHMAKING_MAX_RATING_DIFF):
     """A random suitable opponent for the warrior (`find_opponents`), or None."""
-    return find_opponents(warrior, max_rating_diff).order_by('?').first()
+    return find_opponents(warrior, ranking, max_rating_diff).order_by('?').first()
 
 
-def find_opponents(warrior, max_rating_diff=MATCHMAKING_MAX_RATING_DIFF):
+def find_opponents(warrior, ranking, max_rating_diff=MATCHMAKING_MAX_RATING_DIFF):
     """
-    The warriors near this one's rating in `LEADING_RANKING`
+    The warriors near this one's rating in `ranking`
     that it has not fought within the cooldown.
     """
-    rating = WarriorRating.objects.get(warrior=warrior, ranking=LEADING_RANKING)
+    rating = WarriorRating.objects.get(warrior=warrior, ranking=ranking)
     historic_battles = Battle.objects.with_warrior(warrior.id).recent()
     return Warrior.objects.on_ladder().filter(
-        ratings__ranking=LEADING_RANKING,
+        ratings__ranking=ranking,
         ratings__rating__lt=rating.rating + max_rating_diff,
         ratings__rating__gt=rating.rating - max_rating_diff,
     ).exclude(

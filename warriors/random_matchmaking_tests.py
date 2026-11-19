@@ -8,6 +8,7 @@ from .random_matchmaking import (
     create_battle, find_opponents, get_next_battle_delay, schedule_battle,
     schedule_battles,
 )
+from .rankings import Ranking
 from .tests.factories import BattleFactory, WarriorRatingFactory
 
 
@@ -76,7 +77,7 @@ def test_schedule_battle_no_warriors(warrior, warrior_rating):
 @pytest.mark.parametrize('other_warrior', [{'next_battle_schedule': None}], indirect=True)
 def test_a_warrior_off_the_ladder_is_never_paired(warrior, warrior_rating, other_warrior, other_warrior_rating):
     """A King of the Hill attacker has no clock, so matchmaking neither picks it nor pairs it."""
-    assert other_warrior not in find_opponents(warrior)
+    assert other_warrior not in find_opponents(warrior, Ranking.LCS)
     schedule_battles()
     assert not Battle.objects.exists()
 
@@ -92,7 +93,7 @@ def test_a_warrior_off_the_ladder_is_never_paired(warrior, warrior_rating, other
     ({'rating': -1}, True),
 ], indirect=['other_warrior_rating'])
 def test_find_opponents_max_rating_diff(warrior, warrior_rating, other_warrior, other_warrior_rating, matched):
-    opponents = find_opponents(warrior, max_rating_diff=1.2)
+    opponents = find_opponents(warrior, Ranking.LCS, max_rating_diff=1.2)
     assert (other_warrior in opponents) is matched
 
 
@@ -102,7 +103,7 @@ def test_find_opponents_max_rating_diff(warrior, warrior_rating, other_warrior, 
     {'moderation_passed': None},
 ], indirect=True)
 def test_find_opponents_exclude_not_worthy(warrior, warrior_rating, other_warrior, other_warrior_rating):
-    opponents = find_opponents(warrior)
+    opponents = find_opponents(warrior, Ranking.LCS)
     assert other_warrior not in opponents
 
 
@@ -111,9 +112,16 @@ def test_find_opponents_exclude_not_worthy(warrior, warrior_rating, other_warrio
 def test_find_opponents_exclude_already_battled(warrior, other_warrior, other_warrior_rating, battle_exists):
     if battle_exists:
         Battle.create_from_warriors(warrior, other_warrior)
-    opponents = find_opponents(warrior)
+    opponents = find_opponents(warrior, Ranking.LCS)
     opponent_expected = not battle_exists
     assert (other_warrior in opponents) is opponent_expected
+
+
+@pytest.mark.django_db
+def test_find_opponents_reads_the_given_ranking(warrior, other_warrior):
+    WarriorRatingFactory(warrior=other_warrior, ranking=Ranking.LCS, rating=1000)
+    assert other_warrior not in find_opponents(warrior, Ranking.LCS)
+    assert other_warrior in find_opponents(warrior, Ranking.SEMANTIC)
 
 
 @pytest.mark.django_db

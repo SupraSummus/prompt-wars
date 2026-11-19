@@ -45,7 +45,7 @@ def ladder_sightings(client, warrior_rating, other_warrior_rating, battle):
         user=WarriorUserPermissionFactory(warrior=warrior).user,
     )
     sightings = {
-        'matchmaking cooldown': other_warrior not in find_opponents(warrior),
+        'matchmaking cooldown': other_warrior not in find_opponents(warrior, Ranking.LCS),
         'challenge cooldown': challenge.has_error('warrior', code='duplicate'),
     }
 

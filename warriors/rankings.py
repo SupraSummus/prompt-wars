@@ -22,6 +22,7 @@ SCORE_ALGORITHMS = {
     Ranking.SEMANTIC: ScoreAlgorithm.EMBEDDINGS,
 }
 
-# Where only one ranking fits: matchmaking pairs warriors by its rating,
-# and the home page and `/leaderboard/` open on it.
+# The ranking a page showing one opens on: the home page, `/leaderboard/`,
+# and a warrior's page with no `?ranking=`.
+# Presentation only; rating and matchmaking treat every ranking alike.
 LEADING_RANKING = Ranking.LCS
