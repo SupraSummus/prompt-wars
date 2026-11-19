@@ -337,3 +337,10 @@ are named after them.
 `result` is a property, so renaming needs no migration.
 Next move: rename them to `reply`, `reply_marked_for` and so on,
 then drop `Game.result` from the code's own names in the Vocabulary section.
+
+`schedule_battle_top` is matchmaking but lives in `warriors/tasks.py`,
+and it repeats the cooldown filter of `find_opponents` (`warriors/random_matchmaking.py`):
+both exclude the `warrior_1` and `warrior_2` of `Battle.objects.with_warrior(...).recent()`.
+Next move: move `schedule_battle_top` next to `find_opponents`
+and give both one helper for "warriors this one fought within the cooldown",
+behavior-preserving.

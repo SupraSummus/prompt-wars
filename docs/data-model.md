@@ -88,8 +88,10 @@ each has its leaderboard (`/leaderboard/<ranking>/`),
 and a warrior's page shows its rating in all of them,
 its battle list read through the one asked for.
 Where only one ranking fits, `LEADING_RANKING` is it:
-one battle pool can be paired by only one rating,
+a warrior's ladder battles are paired by one rating,
 and a page showing one ranking has to open on some ranking.
+Battles among the leaders are the exception:
+`schedule_battle_top` draws a ranking for each.
 
 ## One clock per warrior
 

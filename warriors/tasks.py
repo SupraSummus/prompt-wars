@@ -13,7 +13,7 @@ from .llms.exceptions import TransientLLMError
 from .llms.google import resolve_battle_google
 from .llms.openai import openai_client, resolve_battle_openai
 from .random_matchmaking import create_battle
-from .rankings import LEADING_RANKING
+from .rankings import Ranking
 from .rating_models import WarriorRating
 from .score import ScoreAlgorithm, get_or_create_game_score
 from .text_unit import TextUnit
@@ -52,18 +52,22 @@ def do_moderation(goal, warrior_id):
     return AllDone()
 
 
-def schedule_battle_top(now=None):
+def schedule_battle_top(now=None, ranking=None):
     """
-    A battle near the top of `LEADING_RANKING`:
-    walking down from the best, a warrior picked now and then
+    A battle near the top of a ranking, drawn at random unless given:
+    regular matchmaking pairs only by `LEADING_RANKING`,
+    so this is where every leaderboard's leaders meet each other.
+    Walking down from the best, a warrior picked now and then
     meets the lowest-rated of those above it it has not fought within the cooldown.
     """
+    if ranking is None:
+        ranking = random.choice(list(Ranking))
     rating = 4000  # arbitrary value, higer than any real rating
     ratings_above = set()
     while True:
         with transaction.atomic():
             warrior_rating = WarriorRating.objects.battleworthy().filter(
-                ranking=LEADING_RANKING,
+                ranking=ranking,
                 rating__lt=rating,
             ).order_by('-rating').select_for_update(
                 no_key=True,
