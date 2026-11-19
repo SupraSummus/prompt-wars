@@ -1,6 +1,5 @@
-import httpx
+import httpx2
 import pytest
-import respx
 
 from ..warriors import MAX_WARRIOR_LENGTH
 from .exceptions import RateLimitError, TransientLLMError
@@ -10,32 +9,28 @@ from .google import call_gemini
 gemini_endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent'
 
 
-@respx.mock
-def test_google_429():
-    respx.post(gemini_endpoint).respond(429)
+def test_google_429(httpx2_mock):
+    httpx2_mock.post(gemini_endpoint).respond(429)
     with pytest.raises(RateLimitError):
         call_gemini('prompt')
 
 
-@respx.mock
-def test_google_503():
-    respx.post(gemini_endpoint).respond(503)
+def test_google_503(httpx2_mock):
+    httpx2_mock.post(gemini_endpoint).respond(503)
     with pytest.raises(TransientLLMError):
         call_gemini('prompt')
 
 
-@respx.mock
-def test_google_connection_error():
-    """The SDK talks over httpx and never retries, so the transport error reaches us."""
-    respx.post(gemini_endpoint).mock(side_effect=httpx.ConnectError)
+def test_google_connection_error(httpx2_mock):
+    """The SDK talks over httpx2 and never retries, so the transport error reaches us."""
+    httpx2_mock.post(gemini_endpoint).mock(side_effect=httpx2.ConnectError('refused'))
     with pytest.raises(TransientLLMError):
         call_gemini('prompt')
 
 
-@respx.mock
-def test_google_no_candidates():
+def test_google_no_candidates(httpx2_mock):
     """Nothing was generated at all - nothing to score, and nothing a retry would fix."""
-    respx.post(gemini_endpoint).respond(
+    httpx2_mock.post(gemini_endpoint).respond(
         200,
         json={
             'modelVersion': 'v1',
@@ -48,13 +43,12 @@ def test_google_no_candidates():
     assert llm_version == 'v1'
 
 
-@respx.mock
-def test_google_token_limit_reasoning():
+def test_google_token_limit_reasoning(httpx2_mock):
     """This is what reasoning eating the whole output budget looks like on the live endpoint.
 
     An empty content object - no parts at all - is where `response.text` is None, not ''.
     """
-    respx.post(gemini_endpoint).respond(
+    httpx2_mock.post(gemini_endpoint).respond(
         200,
         json={
             'candidates': [{'content': {}, 'finishReason': 'MAX_TOKENS', 'index': 0}],
@@ -68,7 +62,6 @@ def test_google_token_limit_reasoning():
     assert llm_version == 'gemini-3.5-flash-lite'
 
 
-@respx.mock
 @pytest.mark.parametrize(
     ('generated_text_len', 'expected_finish_reason'),
     [
@@ -76,12 +69,12 @@ def test_google_token_limit_reasoning():
         (MAX_WARRIOR_LENGTH, 'MAX_TOKENS'),
     ],
 )
-def test_google_token_limit_response(generated_text_len, expected_finish_reason):
+def test_google_token_limit_response(generated_text_len, expected_finish_reason, httpx2_mock):
     """This happens when the model starts generating response (after CoT) but reaches token limit.
 
     A response that made it to full length counts, a shorter one doesn't.
     """
-    respx.post(gemini_endpoint).respond(
+    httpx2_mock.post(gemini_endpoint).respond(
         200,
         json={
             'candidates': [{
@@ -101,11 +94,10 @@ def test_google_token_limit_response(generated_text_len, expected_finish_reason)
     assert llm_version == 'gemini-2.0-flash-thinking-exp-01-21'
 
 
-@respx.mock
-def test_google_no_finish_reason():
+def test_google_no_finish_reason(httpx2_mock):
     """According to docs mising finish reason means the model "has not stopped generating the tokens".
     Lets treat that as transient error."""
-    respx.post(gemini_endpoint).respond(
+    httpx2_mock.post(gemini_endpoint).respond(
         200,
         json={
             'candidates': [{
@@ -122,10 +114,9 @@ def test_google_no_finish_reason():
         call_gemini('prompt')
 
 
-@respx.mock
-def test_google_no_text():
+def test_google_no_text(httpx2_mock):
     """A reason other than the token limit stands even when nothing was generated."""
-    respx.post(gemini_endpoint).respond(
+    httpx2_mock.post(gemini_endpoint).respond(
         200,
         json={
             'candidates': [{'finishReason': 'RECITATION', 'index': 0}],

@@ -116,7 +116,7 @@ Nothing covers the function.
 Next move: wrap the call in the same two `except` clauses,
 have `ensure_name_generated` return `RetryMeLater` for them,
 default the content to `''`,
-and cover all three with `respx` mocks next to the battle tests.
+and cover all three with `httpx2_mock` routes next to the battle tests.
 This changes behavior — a failed name generation starts retrying — so it needs sign-off.
 
 `warriors/embeddings.py` uses the `voyageai` SDK for a single `embed()` call,
@@ -131,16 +131,6 @@ drop `voyageai` from `pyproject.toml`,
 and map a 429 response to the `RetryMeLater` that
 `voyageai.error.RateLimitError` currently triggers —
 that exception is the only thing the SDK contributes here.
-
-`pyproject.toml` caps `openai`, `anthropic` and `google-genai`
-below their `httpx2` majors (the reason sits beside the caps),
-so every release past them passes us by.
-Anthropic's `httpx2` majors also drop `temperature` from `messages.create`,
-which `resolve_battle` in `warriors/llms/anthropic.py` passes.
-Next move: mock the tests in `warriors/llms/` at a level that knows `httpx2`,
-such as a mock transport handed to each client,
-decide whether the Anthropic battle keeps its temperature through `extra_body`,
-then lift the caps.
 
 `moderation_experiment.py` sits at the repo root,
 a scratch run against the OpenAI moderation endpoint

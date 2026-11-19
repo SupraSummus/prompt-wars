@@ -1,6 +1,6 @@
 from unittest import mock
 
-import httpx
+import httpx2
 import openai
 import pytest
 from django.utils import timezone
@@ -157,7 +157,7 @@ def test_resolve_battle(battle, monkeypatch):
 def test_resolve_battle_service_unavailable(battle, monkeypatch):
     create_mock = mock.Mock(side_effect=openai.APIStatusError(
         'not now',
-        response=httpx.Response(503, request=httpx.Request('POST', 'https://openai.com')),
+        response=httpx2.Response(503, request=httpx2.Request('POST', 'https://openai.com')),
         body=None,
     ))
     monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)
@@ -174,7 +174,7 @@ def test_resolve_battle_service_unavailable(battle, monkeypatch):
 def test_resolve_battle_rate_limit(battle, monkeypatch):
     create_mock = mock.Mock(side_effect=openai.RateLimitError(
         'Rate limit bro',
-        response=httpx.Response(429, request=httpx.Request('POST', 'https://openai.com')),
+        response=httpx2.Response(429, request=httpx2.Request('POST', 'https://openai.com')),
         body=None,
     ))
     monkeypatch.setattr(openai_client.chat.completions, 'create', create_mock)

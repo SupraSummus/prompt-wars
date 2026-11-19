@@ -25,11 +25,12 @@ class Hill(models.Model):
     enabled = models.BooleanField(
         default=False,
     )
-    # Only the models that run at temperature 0:
-    # the repeat rule and charging a failed battle to its player assume a battle replays.
+    # The repeat rule and charging a failed battle to its player assume a battle replays.
+    # Gemini runs at temperature 0, so it mostly does;
+    # Claude takes no temperature, so on a Claude hill a repeat or a failure could roll differently.
     llm = models.CharField(
         max_length=20,
-        choices=[(llm.value, llm.label) for llm in (LLM.GOOGLE_GEMINI, LLM.CLAUDE_3_HAIKU)],
+        choices=[(llm.value, llm.label) for llm in (LLM.GOOGLE_GEMINI, LLM.CLAUDE)],
         default=LLM.GOOGLE_GEMINI,
         help_text=_('Copied into each new round, so a change takes effect at the next handover.'),
     )

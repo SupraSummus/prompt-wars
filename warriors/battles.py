@@ -75,7 +75,8 @@ class BattleQuerySet(models.QuerySet):
 
 class LLM(models.TextChoices):
     OPENAI_GPT = 'openai-gpt', _('OpenAI GPT')
-    CLAUDE_3_HAIKU = 'claude-3-haiku', _('Anthropic Claude')
+    # a stored key, not a model name: `llms.anthropic.resolve_battle` picks the model
+    CLAUDE = 'claude-3-haiku', _('Anthropic Claude')
     GOOGLE_GEMINI = 'google-gemini', _('Google Gemini')
 
 

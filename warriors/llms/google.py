@@ -1,11 +1,11 @@
 import logging
 
-import httpx
+import httpx2
 from django.conf import settings
 from google import genai
 from google.genai.errors import ClientError, ServerError
 from google.genai.types import (
-    FinishReason, GenerateContentConfig, ThinkingConfig,
+    FinishReason, GenerateContentConfig, HttpOptions, ThinkingConfig,
 )
 
 from ..warriors import MAX_WARRIOR_LENGTH
@@ -15,6 +15,8 @@ from .exceptions import RateLimitError, TransientLLMError
 logger = logging.getLogger(__name__)
 client = genai.Client(
     api_key=settings.GOOGLE_AI_API_KEY,
+    # v1, the SDK's default, has no -latest model aliases
+    http_options=HttpOptions(api_version='v1beta'),
 )
 
 
@@ -42,8 +44,8 @@ def call_gemini(prompt):
         if e.code == 429:
             raise RateLimitError() from e
         raise
-    except (ServerError, httpx.TransportError) as e:
-        # the SDK's httpx transport never retries, so its resets and timeouts land here raw too
+    except (ServerError, httpx2.TransportError) as e:
+        # the SDK's httpx2 transport never retries, so its resets and timeouts land here raw too
         raise TransientLLMError() from e
 
     # None whenever no candidate carries a text part - what reasoning eating the whole budget looks like

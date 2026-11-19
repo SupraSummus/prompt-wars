@@ -53,8 +53,10 @@ with no house boss either, the boss holds on.
 The term counts rounds of one text, not of one player, because identities are free.
 
 The crown goes to the best of everything a player sends.
-The model runs at temperature 0 (`Hill.llm`), so a battle mostly replays,
+Gemini runs at temperature 0, so a battle mostly replays,
 and the luck is in the variants: several real edits are several rolls.
+Claude, the other choice of `Hill.llm`, takes no temperature,
+so on a Claude hill the same text would roll again.
 The margin and the per-player cap bound it.
 
 ## What an attack must be
@@ -160,7 +162,7 @@ but the captcha sends the visitor's to Google, as the data policy says (`llm_war
 - **Winning both prompt orders.**
   The model's bias toward one position would decide the crown.
 - **A confirmation rematch, or a final between the best attacks.**
-  At temperature 0 a rematch mostly replays the lucky battle: more calls, nothing confirmed.
+  On Gemini a rematch mostly replays the lucky battle: more calls, nothing confirmed.
 - **Ending a reign early when most attacks fail.**
   Fresh sessions are free, so a few deliberate failures could end any reign and pick its inheritor.
 - **Revealing every attack, or every battle's replies.**
@@ -219,7 +221,9 @@ Each with what would bring it back.
 
 - Whether `HILL_WIN_SCORE`, `HILL_MAX_REIGN_ROUNDS`, `HILL_BOSS_COPY_THRESHOLD` and the crown gates are right:
   they come from reasoning and a few measurements, not from real rounds.
-- Whether the model is deterministic in practice; if not, the rematch is worth another look.
+- Whether Gemini is deterministic in practice,
+  and whether Claude, which is not, belongs on a hill;
+  for a model that rolls, the rematch and the repeat rule are worth another look.
 - Whether reigns settle into bosses nobody can beat, despite the gates and the term.
 - Whether the share text travels.
 
