@@ -55,8 +55,7 @@ def do_moderation(goal, warrior_id):
 def schedule_battle_top(now=None, ranking=None):
     """
     A battle near the top of a ranking, drawn at random unless given:
-    regular matchmaking pairs only by `LEADING_RANKING`,
-    so this is where every leaderboard's leaders meet each other.
+    where a leaderboard's leaders meet each other.
     Walking down from the best, a warrior picked now and then
     meets the lowest-rated of those above it it has not fought within the cooldown.
     """

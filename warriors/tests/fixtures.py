@@ -20,7 +20,7 @@ def warrior(request):
 
 @pytest.fixture
 def warrior_rating(request, warrior):
-    """The warrior's rating in `Ranking.LCS`, the one matchmaking reads."""
+    """The warrior's rating in `Ranking.LCS`, the factory's default ranking."""
     return WarriorRatingFactory(
         warrior=warrior,
         **getattr(request, 'param', {}),
