@@ -184,6 +184,5 @@ class Command(BaseCommand):
             f"new through a shared link: {out_of(total(rows, 'via-share'), total(rows, 'new'))}",
             f"  Tuning: beaten {sum(row['ended'] == BossReason.BROKE for row in rows)} times, "
             f"{total(rows, 'broken_early')} by one of the round's first 3 attacks; "
-            f"house fallbacks {sum(row['ended'] == BossReason.HOUSE for row in rows)}; "
             f'most rounds held by one player {max(held.values(), default=0)} of {len(rows)}',
         ]))

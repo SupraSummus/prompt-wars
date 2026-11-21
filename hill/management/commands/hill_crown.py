@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from hill.forms import NAME_MAX_LENGTH, clean_display_text
 from hill.handover import Successor, crown
-from hill.models import BossReason, Hill, HouseBoss, Round
+from hill.models import BossReason, Hill, Round
 from hill.tasks import (
     TRANSIENT_MODERATION_ERRORS, moderate, record_warrior_moderation,
 )
@@ -19,13 +19,13 @@ from warriors.warriors import (
 
 class Command(BaseCommand):
     """
-    The owner's hand on the hill: seed the first boss, replace a boss, or add a house boss.
+    The owner's hand on the hill: seed the first boss, or replace the boss at once.
 
     The prompt is moderated synchronously before any lock is taken,
     so the scheduler's handover never waits on the moderation call.
     """
     help = (
-        'Crown a prompt as the hill boss at once (--now), add it to the house bosses (--house), or both. '
+        'Crown a prompt as the hill boss at once, closing the open round. '
         'Creates the hill, disabled, if there is none.'
     )
 
@@ -43,18 +43,14 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             '--name',
-            help='The name the hill shows for this boss; left out, a house boss keeps the one it has.',
+            help='The name the hill shows for this boss.',
         )
         parser.add_argument(
             '--author',
-            help='The author the hill shows for this boss; left out, a house boss keeps the one it has.',
+            help='The author the hill shows for this boss.',
         )
-        parser.add_argument('--house', action='store_true', help='Add the prompt to the house bosses.')
-        parser.add_argument('--now', action='store_true', help='Make the prompt the boss now, closing the open round.')
 
     def handle(self, *args, **options):
-        if not (options['house'] or options['now']):
-            raise CommandError('Pass --now to crown the prompt, --house to add it to the house bosses, or both.')
         names = {
             field: self._display_text(options[field], f'--{field}')
             for field in ('name', 'author')
@@ -75,26 +71,14 @@ class Command(BaseCommand):
                 hill=hill,
                 closed_at=None,
             ).first()
-            house_boss = HouseBoss.objects.filter(hill=hill, warrior=warrior).first()
-            if options['house']:
-                house_boss, _ = HouseBoss.objects.update_or_create(
-                    hill=hill,
-                    warrior=warrior,
-                    defaults=names,
-                )
-                self.stdout.write(f'Added {warrior.id} to the house bosses of {hill}.')
-            if options['now']:
-                if house_boss is not None:
-                    # crowning a house boss shows its names unless new ones are given
-                    names = {'name': house_boss.name, 'author': house_boss.author, **names}
-                next_round = crown(hill, hill_round, Successor(
-                    warrior=warrior,
-                    attempt=None,
-                    reason=BossReason.OWNER,
-                    reign_round=1,
-                    **names,
-                ), timezone.now())
-                self.stdout.write(f'{next_round} is open with {warrior.id} as its boss, until {next_round.ends_at:%Y-%m-%d %H:%M} UTC.')
+            next_round = crown(hill, hill_round, Successor(
+                warrior=warrior,
+                attempt=None,
+                reason=BossReason.OWNER,
+                reign_round=1,
+                **names,
+            ), timezone.now())
+            self.stdout.write(f'{next_round} is open with {warrior.id} as its boss, until {next_round.ends_at:%Y-%m-%d %H:%M} UTC.')
         if not hill.enabled:
             self.stdout.write('The hill is disabled; enable it in the admin to open it to attacks.')
 

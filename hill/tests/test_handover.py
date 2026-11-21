@@ -4,12 +4,10 @@ import pytest
 from django.utils import timezone
 from django_goals.models import Goal
 
-from warriors.tests.factories import WarriorFactory
-
 from .. import handover
 from ..handover import decide_successor, hill_handover, round_end
-from ..models import AttemptState, BossReason, CrownBlock, HouseBoss, Round
-from ..rules import HILL_HANDOVER_GRACE, standings
+from ..models import AttemptState, BossReason, CrownBlock, Round
+from ..rules import HILL_HANDOVER_GRACE, HILL_MAX_REIGN_ROUNDS, standings
 from ..status import sweep_hill_attempts
 from .factories import (
     HillAttemptFactory, RoundFactory, fought, resolve, scored,
@@ -31,17 +29,6 @@ def reign(hill, boss):
     ]
     rounds.append(RoundFactory(hill=hill, boss=boss, number=7, reign_round=3))
     return rounds
-
-
-def serve(warrior, number):
-    """Record `warrior` as the house boss of round `number`, closed."""
-    RoundFactory(boss=warrior, number=number, boss_reason=BossReason.HOUSE, closed_at=timezone.now())
-
-
-def house(hill, warrior=None, **kwargs):
-    warrior = warrior or WarriorFactory()
-    HouseBoss.objects.create(hill=hill, warrior=warrior, **kwargs)
-    return warrior
 
 
 def successor(hill, hill_round):
@@ -94,14 +81,7 @@ def test_at_the_term_limit_the_best_of_the_reign_inherits(hill, reign):
     first_round, _, last_round = reign
     inheritor = scored(first_round, 0.3)
     scored(last_round, 0.2)
-    house(hill)
     assert successor(hill, last_round) == (BossReason.INHERITED, inheritor.warrior, inheritor, 1)
-
-
-@pytest.mark.django_db
-def test_before_the_term_limit_the_boss_holds_over_a_losing_reign(hill, reign):
-    scored(reign[0], 0.3)
-    assert successor(hill, reign[1])[0] == BossReason.HELD
 
 
 @pytest.mark.django_db
@@ -112,57 +92,14 @@ def test_an_attempt_from_before_the_reign_does_not_inherit(hill, reign):
 
 
 @pytest.mark.django_db
-def test_at_the_term_limit_house_bosses_step_in_the_longest_rested_first(hill, reign):
-    """With nothing to inherit: one that never served, then the one that served longest ago."""
-    recent = house(hill)
-    serve(recent, 2)
-    rested = house(hill)
-    serve(rested, 1)
-    fresh = house(hill, name='Dawkins mutation', author='Owner')
-
-    found = decide_successor(hill, reign[-1])
-    assert (found.reason, found.warrior, found.attempt, found.reign_round) == (BossReason.HOUSE, fresh, None, 1)
-    assert (found.name, found.author) == ('Dawkins mutation', 'Owner')
-    order = []
-    for number in (8, 9, 10):
-        order.append(decide_successor(hill, reign[-1]).warrior)
-        serve(order[-1], number)
-    assert order == [fresh, rested, recent]
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize('another', [True, False])
-def test_the_rotation_skips_the_boss_itself(hill, reign, another):
-    boss = reign[-1].boss
-    house(hill, warrior=boss)
-    other = house(hill) if another else None
-    assert successor(hill, reign[-1]) == (
-        (BossReason.HOUSE, other, None, 1) if another
-        # it holds on past its term
-        else (BossReason.HELD, boss, None, 4)
-    )
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize('moderation_passed', [None, False])
-def test_the_rotation_skips_a_house_boss_moderation_has_not_passed(hill, reign, moderation_passed):
-    """The admin can add any warrior as a house boss; only `hill_crown --house` moderates it."""
-    house(hill, warrior=WarriorFactory(moderation_passed=moderation_passed))
-    assert successor(hill, reign[-1])[0] == BossReason.HELD
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize('attacked, reason', [
-    (True, BossReason.INHERITED),
-    (False, BossReason.HOUSE),
-], ids=['to the best of its reign', 'else to a house boss'])
-def test_a_flagged_boss_leaves_at_the_handover(hill, open_round, attacked, reason):
-    """Flagged by a takedown in the first round of its term."""
-    open_round.boss.moderation_passed = False
-    open_round.boss.save(update_fields=['moderation_passed'])
-    if attacked:
-        scored(open_round, 0.3)
-    house(hill)
+@pytest.mark.parametrize('open_round, boss, reason', [
+    ({'reign_round': HILL_MAX_REIGN_ROUNDS - 1}, {}, BossReason.HELD),
+    ({'reign_round': HILL_MAX_REIGN_ROUNDS}, {}, BossReason.INHERITED),
+    ({'reign_round': HILL_MAX_REIGN_ROUNDS + 1}, {}, BossReason.INHERITED),
+    ({}, {'moderation_passed': False}, BossReason.INHERITED),
+], indirect=['open_round', 'boss'], ids=['within its term', 'at its end', 'past it', 'boss taken down'])
+def test_a_losing_attack_inherits_once_the_term_is_over(hill, open_round, reason):
+    scored(open_round, 0.1)
     assert successor(hill, open_round)[0] == reason
 
 
