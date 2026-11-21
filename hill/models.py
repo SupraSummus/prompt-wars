@@ -54,55 +54,11 @@ class Hill(models.Model):
         return cls.objects.order_by('id').first()
 
 
-class HouseBoss(models.Model):
-    """
-    An owner-placed boss the hill falls back to (`hill.handover.next_house_boss`).
-
-    The names live here, typed by the owner,
-    because a house boss may wait rounds before it first serves
-    and the hill never shows `Warrior.name`.
-    """
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False,
-    )
-    hill = models.ForeignKey(
-        to=Hill,
-        on_delete=models.CASCADE,
-        # hill_house_boss_unique leads with hill and answers lookups by it
-        db_index=False,
-    )
-    warrior = models.ForeignKey(
-        to=Warrior,
-        on_delete=models.PROTECT,
-        related_name='+',
-    )
-    name = models.CharField(
-        max_length=40,
-        blank=True,
-    )
-    author = models.CharField(
-        max_length=40,
-        blank=True,
-    )
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=('hill', 'warrior'),
-                name='hill_house_boss_unique',
-            ),
-        ]
-
-    def __str__(self):
-        return self.name or str(self.warrior_id)
-
-
 class BossReason(models.TextChoices):
     OWNER = 'owner', _('Crowned by the owner')
     BROKE = 'broke', _('Broke the hill')
     INHERITED = 'inherited', _('Inherited the hill')
+    # on past rounds only: "Rejected alternatives" in docs/king-of-the-hill.md
     HOUSE = 'house', _('House boss')
     HELD = 'held', _('Held the hill')
 

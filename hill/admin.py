@@ -2,19 +2,12 @@ from django.contrib import admin
 
 from warriors.admin import ReadOnlyModelAdminMixin
 
-from .models import Hill, HillAttempt, HouseBoss, Round
-
-
-class HouseBossInline(admin.TabularInline):
-    model = HouseBoss
-    raw_id_fields = ('warrior',)
-    extra = 0
+from .models import Hill, HillAttempt, Round
 
 
 @admin.register(Hill)
 class HillAdmin(admin.ModelAdmin):
     list_display = ('__str__', 'enabled', 'llm', 'daily_attempt_limit', 'max_pending')
-    inlines = (HouseBossInline,)
 
     def has_add_permission(self, request):
         # a singleton: `Hill.current()` reads one row

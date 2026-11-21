@@ -43,13 +43,12 @@ An attack takes the hill only by beating the boss by a margin (`hill.rules.beats
 because when little of either prompt survives,
 the score swings across half on noise.
 Otherwise the boss holds for a term at most (`HILL_MAX_REIGN_ROUNDS`),
-so a strong boss doesn't sit on the home page through a quiet week.
+so a boss too strong to beat still passes the hill on to one of its attackers.
 At the end of a term, the best attack of the reign inherits the hill
 even though it lost its battle,
 and the boss card says it inherited.
-With no eligible attack in the reign, the house boss that served longest ago steps in (`next_house_boss`),
-so no single counter-prompt owns the fallback;
-with no house boss either, the boss holds on.
+With no eligible attack in the reign, the boss holds on past its term,
+and the first eligible attack after that inherits at the next handover.
 The term counts rounds of one text, not of one player, because identities are free.
 
 The crown goes to the best of everything a player sends.
@@ -80,8 +79,10 @@ leads its player back to their earlier attack in the round, for free (`_repeated
 ## Traffic regimes
 
 **Nobody attacks.**
-The boss holds until its term ends, then a house boss steps in, if the owner seeded one.
-Under an owner or house boss the hill page has no battle to show,
+The boss holds, past its term too,
+so on a quiet hill a player's first eligible attack takes the hill at the next handover,
+even a losing one.
+Under an owner's boss the hill page has no battle to show,
 so a visitor's first attack is the first battle they see.
 
 **A normal day.**
@@ -139,7 +140,7 @@ set with the "Take down" action in the Warrior admin (`WarriorAdmin.take_down`).
 It hides the text, its names and the replies that echo it (`Round.boss_shown`)
 from everyone but a player looking at their own attacks,
 and ends the boss's term at the next handover (`hill.handover.term_over`).
-It works the same for attack, owner and house bosses,
+It works the same for attack and owner bosses,
 and it takes the warrior off the ladder too.
 Requests come through the contact the data policy names.
 
@@ -159,6 +160,10 @@ but the captcha sends the visitor's to Google, as the data policy says (`llm_war
 - **Handing the hill to the best attack every round.**
   The boss would usually have lost its battle, and its share text would announce a defeat.
   Inheritance does this only at the end of a term, as the price of rotation.
+- **House bosses: owner prompts that step in when a term ends unattacked.**
+  Each starts a fresh term, so it delays the first attack that could inherit,
+  and only a player's prompt has a battle to show and a link to share.
+  A taken-down boss nobody attacks is replaced by hand (runbook, step 6).
 - **Winning both prompt orders.**
   The model's bias toward one position would decide the crown.
 - **A confirmation rematch, or a final between the best attacks.**
@@ -283,14 +288,13 @@ it is the trigger for "Email and a claim flow for winners", not a mark against t
 
 ## Launch runbook
 
-1. **Seed the first boss and the house, soon after deploying:**
+1. **Seed the first boss soon after deploying:**
    the nav links the hill from the deploy on, to a "closed" page until it is enabled.
    `hill_crown` moderates the prompt, creates the hill switched off if there is none,
-   and with `--now` opens a round under it.
-   Both seeds are texts the project publishes elsewhere:
+   and opens a round under it.
+   The seed is a text the project publishes elsewhere:
 
-       ./manage.py hill_crown --body-file hill/seeds/dawkins.txt --name "Dawkins mutation" --house --now
-       ./manage.py hill_crown --body-file hill/seeds/start-stop.txt --name "Start–Stop" --house
+       ./manage.py hill_crown --body-file hill/seeds/dawkins.txt --name "Dawkins mutation"
 
 2. **Check the switches, then enable.**
    In admin, check the `Hill` row's `llm`, `daily_attempt_limit` and `max_pending`, then tick `enabled`.
@@ -314,8 +318,7 @@ it is the trigger for "Email and a claim flow for winners", not a mark against t
 6. **Take something down** with the "Take down" action in the Warrior admin.
    A boss taken down is hidden at once,
    and its term ends at the next handover.
-   To replace it at once, run `hill_crown --now`;
-   `--warrior` takes an existing warrior's id,
-   and a house boss keeps its names.
+   To replace it at once, run `hill_crown`;
+   `--warrior` takes an existing warrior's id.
 7. **Switch it off** by unticking `enabled`.
    The open round stays as it is, and nothing needs migrating back.

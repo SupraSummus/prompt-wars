@@ -260,7 +260,7 @@ they are unrated,
 so no ladder page lists or opens them.
 Next move: in `WarriorCreateForm.clean`,
 read the hash with `cleaned_data.get` (`clean_body` may have failed),
-and refuse a text whose Warrior is a hill boss, a house boss or has a `HillAttempt`,
+and refuse a text whose Warrior is a hill boss or has a `HillAttempt`,
 unless the requester already holds a grant for it,
 checked without `Warrior.is_user_authorized`'s cache (next entry),
 with copy that doesn't say whether the text is public;
@@ -345,3 +345,13 @@ Both also draw their ranking with the same line.
 Next move: move `schedule_battle_top` next to `find_opponents`
 and give both one helper for "warriors this one fought within the cooldown",
 behavior-preserving.
+
+`BossReason.HOUSE` names a boss the hill can't pick
+("Rejected alternatives" in `docs/king-of-the-hill.md`);
+it stays for past rounds,
+with branches in `hill.display.reign_line` and `templates/hill/partials/handover.html`.
+Next move: count production rounds with `boss_reason='house'`.
+With none, drop the value and its branches,
+editing the choices in `hill/migrations/0001_initial.py`.
+With some, a repair command rewrites them to `owner`
+(the owner placed every house boss), then the same.

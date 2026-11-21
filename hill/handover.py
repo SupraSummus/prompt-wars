@@ -11,13 +11,13 @@ import datetime
 import logging
 
 from django.db import transaction
-from django.db.models import F, OuterRef, Q, Subquery
+from django.db.models import Q
 from django_goals.models import schedule
 
 from warriors.warriors import Warrior
 
 from .models import (
-    AttemptState, BossReason, CrownBlock, Hill, HillAttempt, HouseBoss, Round,
+    AttemptState, BossReason, CrownBlock, Hill, HillAttempt, Round,
 )
 from .rules import (
     HILL_HANDOVER_GRACE, HILL_HANDOVER_HOUR, HILL_MAX_REIGN_ROUNDS,
@@ -58,43 +58,6 @@ def held(hill_round):
     )
 
 
-def next_house_boss(hill, exclude):
-    """
-    The house boss to step in: the one whose last reign is furthest back, never-served first.
-
-    Rotating through several stops one counter-prompt,
-    prepared against a single fallback, from retaking the hill each time it falls back.
-    Excluded warriors, and those moderation has not passed, are skipped
-    (the admin can add any warrior; `hill_crown --house` moderates it first);
-    None if no house boss is left.
-    """
-    last_served = Round.objects.filter(
-        hill=hill,
-        boss=OuterRef('warrior'),
-    ).order_by('-number').values('number')[:1]
-    house_boss = HouseBoss.objects.filter(
-        hill=hill,
-        warrior__moderation_passed=True,
-    ).exclude(
-        warrior__in=exclude,
-    ).annotate(
-        last_served=Subquery(last_served),
-    ).order_by(
-        F('last_served').asc(nulls_first=True),
-        'warrior_id',
-    ).select_related('warrior').first()
-    if house_boss is None:
-        return None
-    return Successor(
-        warrior=house_boss.warrior,
-        attempt=None,
-        reason=BossReason.HOUSE,
-        reign_round=1,
-        name=house_boss.name,
-        author=house_boss.author,
-    )
-
-
 def term_over(hill_round):
     """
     Whether the boss leaves at this handover even unbeaten:
@@ -110,29 +73,25 @@ def decide_successor(hill, hill_round):
     """
     Who holds the hill after `hill_round`.
 
-    The best attacker who beat the boss (`hill.rules.beats_boss`) takes it.
-    Otherwise the boss holds until its term is over (`term_over`):
-    then the best eligible attempt of its reign inherits, although it lost its battle,
-    else the next house boss steps in, else the boss holds on.
+    The best eligible attempt of the boss's reign takes it if it beat the boss (`hill.rules.beats_boss`),
+    or, once the term is over (`term_over`), although it lost its battle;
+    otherwise the boss holds.
     Every candidate passed the no-return rule when it was sent.
     Why: "The crown rule" and "Rejected alternatives" in docs/king-of-the-hill.md.
     """
-    best = best_eligible(hill_round.attempts)
-    if best is not None and beats_boss(best):
+    reign = Round.objects.filter(
+        hill=hill,
+        boss_id=hill_round.boss_id,
+        number__gt=hill_round.number - hill_round.reign_round,
+        number__lte=hill_round.number,
+    )
+    best = best_eligible(HillAttempt.objects.filter(hill_round__in=reign))
+    if best is None:
+        return held(hill_round)
+    if beats_boss(best):
         return Successor.from_attempt(best, BossReason.BROKE)
     if term_over(hill_round):
-        reign = Round.objects.filter(
-            hill=hill,
-            boss_id=hill_round.boss_id,
-            number__gt=hill_round.number - hill_round.reign_round,
-            number__lte=hill_round.number,
-        )
-        inheritor = best_eligible(HillAttempt.objects.filter(hill_round__in=reign))
-        if inheritor is not None:
-            return Successor.from_attempt(inheritor, BossReason.INHERITED)
-        house_boss = next_house_boss(hill, exclude=[hill_round.boss_id])
-        if house_boss is not None:
-            return house_boss
+        return Successor.from_attempt(best, BossReason.INHERITED)
     return held(hill_round)
 
 
